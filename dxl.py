@@ -57,7 +57,7 @@ for i in range(0, n):
     port.write(data[i])
     K -= 1
     if K <= 0:
-        K = 128
+        K = 256
         sys.stdout.write("\r")
         progressBar(i*100.0/n)
     cs += ord(data[i])
