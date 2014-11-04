@@ -1,0 +1,18 @@
+Read this before submitting patches:
+
+    http://leaflabs.com/docs/libmaple/contributing.html
+
+In particular, patches without sign-off lines will not be accepted.
+
+If your patch is formatted very differently from the libmaple style,
+you may find the astyle options file in contrib/astylerc useful for
+auto-formatting it roughly in the libmaple style.
+
+LeafLabs is a small shop.  Please help us merge your patches
+efficiently by getting formatting nits etc. out of the way before
+submitting.
+
+When writing your patch, feel free to add yourself to the CREDITS
+file.  If you can't write your name in ASCII (or choose not to
+romanize it), then use UTF-8, and use your best judgement for how it
+should sort compared to the other names in the file.
