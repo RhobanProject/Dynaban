@@ -46,6 +46,7 @@ print('* Trying to enter bootloader...')
 wait_for_string(port, 'SYSTEM', "#")
 
 print('* Entering firmware loading mode...')
+time.sleep(0.1);
 slow_write(port, "L\r")
 wait_for_string(port, 'Ready')
 
