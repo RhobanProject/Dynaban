@@ -1,0 +1,7 @@
+
+Serial
+PB6 / PB7
+D16   D15
+TX    RX
+(Remapped USART1)
+
