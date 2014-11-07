@@ -71,8 +71,15 @@
 #define BOARD_JTDO_PIN            19
 #define BOARD_NJTRST_PIN          18
 
-#define BOARD_USB_DISC_DEV        GPIOB
-#define BOARD_USB_DISC_BIT        9
+// #define BOARD_USB_DISC_DEV        GPIOB
+// #define BOARD_USB_DISC_BIT        9
+
+// #define BOARD_HBRIDGE_SD          23
+// #define BOARD_HBRIDGE_A           26
+// #define BOARD_HBRIDGE_B           27
+
+#define BOARD_TX_ENABLE             21
+#define BOARD_RX_ENABLE             20
 
 enum {
     PB11, PB10, PB2, PB0, PA7, PA6, PA5, PA4, PA3, PA2, PA1, PA0, PC15, PC14,

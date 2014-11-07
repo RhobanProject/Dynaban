@@ -97,9 +97,9 @@ extern const uint8 boardADCPins[BOARD_NR_ADC_PINS] __FLASH__ = {
     3, 4, 5, 6, 7, 8, 9, 10, 11
 };
 
-#define USB_DP 23
-#define USB_DM 24
+// #define USB_DP 23
+// #define USB_DM 24
 
 extern const uint8 boardUsedPins[BOARD_NR_USED_PINS] __FLASH__ = {
-    BOARD_LED_PIN, BOARD_BUTTON_PIN, USB_DP, USB_DM
+    BOARD_LED_PIN, BOARD_BUTTON_PIN
 };
