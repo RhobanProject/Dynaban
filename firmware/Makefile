@@ -29,11 +29,13 @@ BOARD_INCLUDE_DIR := $(MAKEDIR)/board-includes
 
 # Try "make help" for more information on BOARD and MEMORY_TARGET;
 # these default to a Maple Flash build.
-BOARD ?= mx64at
+# BOARD ?= mx64at
+BOARD ?= maple_mini
 MEMORY_TARGET ?= flash
 
 # Chooses the bootloader, available: maple and robotis
-BOOTLOADER ?= robotis
+# BOOTLOADER ?= robotis
+BOOTLOADER ?= maple
 
 # This is the serial port used by robotis bootloader
 ROBOTIS_PORT ?= /dev/ttyACM0
@@ -86,6 +88,7 @@ LIBMAPLE_MODULES += $(SRCROOT)/libraries/LiquidCrystal
 LIBMAPLE_MODULES += $(SRCROOT)/libraries/Wire
 # Experimental libraries:
 LIBMAPLE_MODULES += $(SRCROOT)/libraries/FreeRTOS
+LIBMAPLE_MODULES += $(SRCROOT)/libraries/DynaBan
 
 # User modules:
 ifneq ($(USER_MODULES),)

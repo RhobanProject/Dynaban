@@ -1,9 +1,30 @@
+/*
+Pour le codeur magnétique :
+- Mettre en place les interruptions
+- Trouver les limites de fonctionnement des tempos -> check mais décevant pour l'instant
+- Voir s'il y a un intérêt a obtenir un angle à précision décimale -> check, la précision de la puce est impressionante,
+par contre j'utilise une représentation en virgule fixe  (a voir s'il y a des conventions dessus dans l'équipe)
+- Faire une machine d'états qui avance d'un cran à chaque interruption d'un timer, de sorte que la lecture ne bloque pas le reste.
+   - Faire un codeur.c et codeur.h
+   - Faire en sorte que l'utilisateur nous donne le numéro du timer et c'est tout (à voir si c'est sa responsabilité d'appeler la fonction codeur_tick)
+   - Gérer le fait qu'il y ait plusieurs codeurs
+   - Faire au mieux pour les attentes (je garde 1us pour les "grosses attentes" mais je peux accélérer la clock) => Utiliser le même timer pour des interruptions à pérdiode differentes
+   
+ */
+
 // Sample main.cpp file. Blinks the built-in LED, sends a message out
 // USART2, and turns on PWM on pin 2.
 
 #include <wirish/wirish.h>
+#include <libmaple/adc.h>
+#include <libmaple/timer.h>
+#include <DynaBan/magneticEncoder.h>
 
-void setup() {
+int getAngle(bool pDebug);
+bool isItSafeToPrintUSB();
+encoder * encoder0;
+
+void setup() {   
     disableDebugPorts();
     pinMode(BOARD_LED_PIN, OUTPUT);
 
@@ -12,52 +33,42 @@ void setup() {
     pinMode(BOARD_TX_ENABLE, OUTPUT);
     digitalWrite(BOARD_TX_ENABLE, LOW);
 
-    afio_remap(AFIO_REMAP_USART1);
+    /*afio_remap(AFIO_REMAP_USART1);
     gpio_set_mode(GPIOB, 6, GPIO_AF_OUTPUT_PP);
-    gpio_set_mode(GPIOB, 7, GPIO_INPUT_FLOATING);
-    Serial1.begin(57600);
+    gpio_set_mode(GPIOB, 7, GPIO_INPUT_FLOATING);*/
 
-/*
-    HardwareTimer timer(1);
-    timer.pause();
-    timer.setPrescaleFactor(3);
-    timer.setOverflow(1000);
-    timer.refresh();
-    timer.resume();
-
-    // Setting to low before setting lines as output
-    digitalWrite(BOARD_HBRIDGE_SD, LOW);
-    digitalWrite(BOARD_HBRIDGE_A, LOW);
-    digitalWrite(BOARD_HBRIDGE_B, LOW);
-
-    pinMode(BOARD_HBRIDGE_SD, OUTPUT);
-    digitalWrite(BOARD_HBRIDGE_SD, LOW);
-
-    pinMode(BOARD_HBRIDGE_A, PWM);
-    pwmWrite(BOARD_HBRIDGE_A, 0);
-
-    pinMode(BOARD_HBRIDGE_B, PWM);
-    pwmWrite(BOARD_HBRIDGE_B, 0);
-
-    digitalWrite(BOARD_HBRIDGE_SD, HIGH);
-    */
+    delay(3000);
+    SerialUSB.println("C'est parti !");
+    
+    //Encoder management
+    initSharingPinsMode(1, 7, 8);
+    addEncoderSharingPinsMode(6);
+    start();
 }
 
-void loop() {
-    static int sorry = 1;
+void loop() {    
+    while(isReadyToRead() == false);
+    toggleLED();
+    readAnglesSharingPinsMode();
+    encoder0 = getEncoder(0);
+    if (encoder0->isDataInvalid) {
+        SerialUSB.println("Data invalid :/");
+    } else {
+        SerialUSB.print("Anglex10 = ");
+        SerialUSB.println(encoder0->tenTimesAngle);
+        SerialUSB.print("Questionnable? : ");
+        SerialUSB.println(encoder0->isDataQuestionable);
+    }
 
-    digitalWrite(BOARD_TX_ENABLE, HIGH);
-    delay(2);
-    Serial1.print("Sorry ...");
-    Serial1.println(sorry++);
-    delay(2);
-    digitalWrite(BOARD_TX_ENABLE, LOW);
+    /*SerialUSB.print("Anglex10 = ");
+    SerialUSB.println(readTenTimesAngleSequential(6, 7, 8));
+    */
+    delay(100);
+    //digitalWrite(BOARD_TX_ENABLE, HIGH);
+}
 
-    digitalWrite(BOARD_LED_PIN, HIGH);
-    delay(200);
-    
-    digitalWrite(BOARD_LED_PIN, LOW);
-    delay(500);
+bool isItSafeToPrintUSB() {
+    return SerialUSB.isConnected() && (SerialUSB.getDTR() || SerialUSB.getRTS()); 
 }
 
 // Force init to be called *first*, i.e. before static object allocation.
