@@ -41,21 +41,21 @@ void setup() {
     SerialUSB.println("C'est parti !");
     
     //Encoder management
-    initSharingPinsMode(1, 7, 8);
-    addEncoderSharingPinsMode(6);
-    start();
+    encoder_initSharingPinsMode(1, 7, 8);
+    encoder_addEncoderSharingPinsMode(6);
+    encoder_start();
 }
 
 void loop() {    
-    while(isReadyToRead() == false);
+    while(encoder_isReadyToRead() == false);
     toggleLED();
-    readAnglesSharingPinsMode();
-    encoder0 = getEncoder(0);
+    encoder_readAnglesSharingPinsMode();
+    encoder0 = encoder_getEncoder(0);
     if (encoder0->isDataInvalid) {
         SerialUSB.println("Data invalid :/");
     } else {
         SerialUSB.print("Anglex10 = ");
-        SerialUSB.println(encoder0->tenTimesAngle);
+        SerialUSB.println(encoder0->angle);
         SerialUSB.print("Questionnable? : ");
         SerialUSB.println(encoder0->isDataQuestionable);
     }
