@@ -135,3 +135,8 @@ void HardwareSerial::write(unsigned char ch) {
 void HardwareSerial::flush(void) {
     usart_reset_rx(this->usart_device);
 }
+
+void HardwareSerial::waitDataToBeSent()
+{
+    while(!(this->usart_device->regs->SR & USART_SR_TC));
+}

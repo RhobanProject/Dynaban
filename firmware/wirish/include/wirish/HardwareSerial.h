@@ -67,6 +67,8 @@ public:
     virtual void write(unsigned char);
     using Print::write;
 
+    bool waitDataToBeSent();
+
     /* Pin accessors */
     int txPin(void) { return this->tx_pin; }
     int rxPin(void) { return this->rx_pin; }
