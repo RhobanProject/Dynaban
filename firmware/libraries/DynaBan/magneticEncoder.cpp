@@ -65,7 +65,7 @@ long * getArrayOfTimeStamps() {
     return arrayOfTimeStamps;
 }
 
-bool isReadyToRead() {
+bool encoder_isReadyToRead() {
     return readyToRead;
 }
 
@@ -78,14 +78,14 @@ void setReadyToRead() {
     }
 }
 
-encoder * getEncoder(uint8 pEncoderId) {
+encoder * encoder_getEncoder(uint8 pEncoderId) {
     return &arrayOfEncoders[pEncoderId];
 }
 
 /**
    /!\ Using this functions implies that all of the encoder you'll connect will share the same CLK pin and the same CS pin.
  */
-void initSharingPinsMode(uint8 pTimerIndex, uint8 pClkPin, uint8 pCsPin) {
+void encoder_initSharingPinsMode(uint8 pTimerIndex, uint8 pClkPin, uint8 pCsPin) {
     timer = new HardwareTimer(pTimerIndex);
     nbEncoders = 0;
     CLK_PIN = pClkPin;
@@ -118,7 +118,7 @@ void initSharingPinsMode(uint8 pTimerIndex, uint8 pClkPin, uint8 pCsPin) {
         arrayOfEncoders[i].DOPin = 0;
         arrayOfEncoders[i].CLKPin = 0;
         arrayOfEncoders[i].CSPin = 0;
-        arrayOfEncoders[i].tenTimesAngle = 0;
+        arrayOfEncoders[i].angle = 0;
         arrayOfEncoders[i].inputLong = 0;
         arrayOfEncoders[i].isDataQuestionable = 0;
         arrayOfEncoders[i].isDataInvalid = 0;
@@ -128,14 +128,14 @@ void initSharingPinsMode(uint8 pTimerIndex, uint8 pClkPin, uint8 pCsPin) {
 /**
    Activates the timer so the read cycle can start
  */
-void start() {
+void encoder_start() {
     // Refresh the timer's count, prescale, and overflow
     timer->refresh();
     // Start the timer counting
     timer->resume();
 }
 
-void addEncoderSharingPinsMode(uint8 pDOPin) {
+void encoder_addEncoderSharingPinsMode(uint8 pDOPin) {
     encoder newEncoder;
 
     newEncoder.DOPin = pDOPin;
@@ -143,7 +143,7 @@ void addEncoderSharingPinsMode(uint8 pDOPin) {
     newEncoder.CLKPin = CLK_PIN;
     // CS pin is shared with the other encoders
     newEncoder.CSPin = CS_PIN;
-    newEncoder.tenTimesAngle = 0;
+    newEncoder.angle = 0;
     newEncoder.inputLong = 0;
     newEncoder.isDataQuestionable = false;
     newEncoder.isDataInvalid = false;
@@ -159,7 +159,7 @@ void addEncoderSharingPinsMode(uint8 pDOPin) {
     nbEncoders++;
 }
 
-void readAnglesSharingPinsMode() {    
+void encoder_readAnglesSharingPinsMode() {    
     toggleLED();
     //arrayOfTimeStamps[0] = timer->getCount();
     int halfClkPeriodUs = 1; // DataSheet says >= 500 ns
@@ -167,7 +167,7 @@ void readAnglesSharingPinsMode() {
     for (int i = 0; i < nbEncoders; i++) {
         enc = &arrayOfEncoders[i];
         enc->inputLong = 0;
-        enc->tenTimesAngle = 0;
+        enc->angle = 0;
     }
     
     // Toggling CSn twice to start the communication
@@ -204,12 +204,12 @@ void readAnglesSharingPinsMode() {
 
     for (int i = 0; i < nbEncoders; i++) {
         enc = &arrayOfEncoders[i];
-        enc->tenTimesAngle = enc->inputLong & ANGLE_MASK;
+        enc->angle = enc->inputLong & ANGLE_MASK;
         // shifting 18-digit angle right 6 digits to form 12-digit value
-        enc->tenTimesAngle = (enc->tenTimesAngle >> 6); 
+        enc->angle = (enc->angle >> 6); 
         
         // /!\ warning, x10 :
-        enc->tenTimesAngle = enc->tenTimesAngle * 0.8789; //0.08789 == angle * (360/4096) == actual degrees
+        enc->angle = enc->angle * 0.8789; //0.08789 == angle * (360/4096) == actual degrees
         
         if (debug) {
             statusbits = enc->inputLong & STATUS_MASK;
@@ -255,7 +255,7 @@ void printEncoder(encoder * pEncoder) {
     SerialUSB.print("CSPin : ");
     SerialUSB.println(pEncoder->CSPin);
     SerialUSB.print("tenTimesAngle : ");
-    SerialUSB.println(pEncoder->tenTimesAngle);
+    SerialUSB.println(pEncoder->angle);
     SerialUSB.print("inputLong : ");
     SerialUSB.println(pEncoder->inputLong);
     SerialUSB.print("isDataQuestionable : ");
@@ -264,11 +264,11 @@ void printEncoder(encoder * pEncoder) {
     SerialUSB.println(pEncoder->isDataInvalid);
 }
 
-long readTenTimesAngleSequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {    
+long encoder_readAngleSequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {    
     //arrayOfTimeStamps[0] = timer->getCount();
     int halfClkPeriodUs = 1; // DataSheet says >= 500 ns
     long inputLong = 0;
-    long tenTimesAngle = 0;
+    long angle = 0;
     
     // Toggling CSn twice to start the communication
     digitalWrite(pCSPin, HIGH);
@@ -297,11 +297,11 @@ long readTenTimesAngleSequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {
         }
     }
 
-    tenTimesAngle = inputLong & ANGLE_MASK;
-    tenTimesAngle = (tenTimesAngle >> 6); // shift 18-digit angle right 6 digits to form 12-digit value
+    angle = inputLong & ANGLE_MASK;
+    angle = (angle >> 6); // shift 18-digit angle right 6 digits to form 12-digit value
     
     // /!\ warning, x10 :
-    tenTimesAngle = tenTimesAngle * 0.8789; //0.08789 == angle * (360/4096) == actual degrees
+    angle = angle * 0.8789; //0.08789 == angle * (360/4096) == actual degrees
     if (debug) {
             statusbits = inputLong & STATUS_MASK;
             //DECn = statusbits & 2; // goes high if magnet moved away from IC
@@ -323,11 +323,11 @@ long readTenTimesAngleSequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {
           if (LIN) {  
               //SerialUSB.println("linearity alarm: magnet misaligned? Data questionable."); 
           } else if (COF) { 
-              tenTimesAngle = -1;
+              angle = -1;
               //SerialUSB.println("cordic overflow: magnet misaligned? Data invalid."); 
           }
     }
-    return tenTimesAngle;
+    return angle;
     //arrayOfTimeStamps[1] = timer->getCount();    
 }
 
