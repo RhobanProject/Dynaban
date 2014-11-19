@@ -22,55 +22,104 @@ par contre j'utilise une représentation en virgule fixe  (a voir s'il y a des c
 
 int getAngle(bool pDebug);
 bool isItSafeToPrintUSB();
+
+int PWM_1_PIN = 27; // PA8
+int PWM_2_PIN = 26; // PA9
+int SHUT_DOWN_PIN = 23; // PA12 
+int OVER_FLOW = 3000;
 encoder * encoder0;
+int counter = 0;
 
 void setup() {   
     disableDebugPorts();
-    pinMode(BOARD_LED_PIN, OUTPUT);
 
+    afio_remap(AFIO_REMAP_USART1);
+    gpio_set_mode(GPIOB, 6, GPIO_AF_OUTPUT_PP);
+    gpio_set_mode(GPIOB, 7, GPIO_INPUT_FLOATING);    
+
+    Serial1.begin(57600);
+
+    //Ensuring the shut down is active (inversed logic on this one)
+    digitalWrite(SHUT_DOWN_PIN, LOW);
+    pinMode(SHUT_DOWN_PIN, OUTPUT);
+    digitalWrite(SHUT_DOWN_PIN, LOW);
+
+    //Procedure to safely prepare the first PWM signal
+    digitalWrite(PWM_1_PIN, LOW);
+    pinMode(PWM_1_PIN, PWM);
+    pwmWrite(PWM_1_PIN, 0x0000);
+
+    //Procedure to safely prepare the second PWM signal
+    digitalWrite(PWM_2_PIN, LOW);
+    pinMode(PWM_2_PIN, PWM);
+    pwmWrite(PWM_2_PIN, 0x0000);
+    
+    //Setting the timer's prescale to get roughly a 25KHz PWM. THe 2 pins share the same timer, channel 1 and 2.
+    HardwareTimer timer1(1);
+    timer1.setPrescaleFactor(1);
+    timer1.setOverflow(OVER_FLOW);
+
+    pinMode(BOARD_LED_PIN, OUTPUT);
+       
     // Initialization of USART
     digitalWrite(BOARD_TX_ENABLE, LOW);
     pinMode(BOARD_TX_ENABLE, OUTPUT);
     digitalWrite(BOARD_TX_ENABLE, LOW);
 
-    /*afio_remap(AFIO_REMAP_USART1);
-    gpio_set_mode(GPIOB, 6, GPIO_AF_OUTPUT_PP);
-    gpio_set_mode(GPIOB, 7, GPIO_INPUT_FLOATING);*/
-
-    delay(3000);
-    SerialUSB.println("C'est parti !");
-    
+       
     //Encoder management
-    encoder_initSharingPinsMode(1, 7, 8);
+    encoder_initSharingPinsMode(7, 8);
     encoder_addEncoderSharingPinsMode(6);
-    encoder_start();
+    
+    delay(2000);
+    digitalWrite(SHUT_DOWN_PIN, HIGH);
+    pwmWrite(PWM_1_PIN, 1500);
 }
 
-void loop() {    
-    while(encoder_isReadyToRead() == false);
+void loop() {
+    counter++;
     toggleLED();
+
     encoder_readAnglesSharingPinsMode();
     encoder0 = encoder_getEncoder(0);
+#if BOARD_HAVE_SERIALUSB
     if (encoder0->isDataInvalid) {
+        digitalWrite(BOARD_TX_ENABLE, HIGH);
         SerialUSB.println("Data invalid :/");
+        Serial1.waitDataToBeSent();
+        digitalWrite(BOARD_TX_ENABLE, LOW);
+        
     } else {
         SerialUSB.print("Anglex10 = ");
         SerialUSB.println(encoder0->angle);
-        SerialUSB.print("Questionnable? : ");
-        SerialUSB.println(encoder0->isDataQuestionable);
     }
-
+#else
+    if (encoder0->isDataInvalid) {
+        digitalWrite(BOARD_TX_ENABLE, HIGH);
+        Serial1.println("Data invalid :/");
+        Serial1.waitDataToBeSent();
+        digitalWrite(BOARD_TX_ENABLE, LOW);
+    } else {
+        digitalWrite(BOARD_TX_ENABLE, HIGH);
+        Serial1.print("Anglex10 = ");
+        Serial1.println(encoder0->angle);
+        Serial1.waitDataToBeSent();
+        digitalWrite(BOARD_TX_ENABLE, LOW);
+    }
+#endif
     /*SerialUSB.print("Anglex10 = ");
     SerialUSB.println(readTenTimesAngleSequential(6, 7, 8));
     */
+
     delay(100);
     //digitalWrite(BOARD_TX_ENABLE, HIGH);
 }
 
+#if BOARD_HAVE_SERIALUSB
 bool isItSafeToPrintUSB() {
     return SerialUSB.isConnected() && (SerialUSB.getDTR() || SerialUSB.getRTS()); 
 }
-
+#endif
 // Force init to be called *first*, i.e. before static object allocation.
 // Otherwise, statically allocated objects that need libmaple may fail.
 __attribute__((constructor)) void premain() {

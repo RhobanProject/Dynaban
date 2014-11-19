@@ -22,7 +22,7 @@ encoder * encoder_getEncoder(uint8 pEncoderId);
    pTimerIndex is the id of the timer that shall be used for handling the encoder 
    (eg. 1 to 4 on the maple mini).
  */
-void encoder_initSharingPinsMode(uint8 pTimerIndex, uint8 pClkPin, uint8 pCsPin);
+void encoder_initSharingPinsMode(uint8 pClkPin, uint8 pCsPin);
 
 
 void encoder_addEncoderSharingPinsMode(uint8 pDOPin);
@@ -34,8 +34,8 @@ void encoder_readAnglesSharingPinsMode();
 
 
 long encoder_getAngle(uint8 pEncoderId);
-bool encoder_isReadyToRead();
-void encoder_start();
+//bool encoder_isReadyToRead();
+//void encoder_start();
 
 /**
    Return 10x an encoder angle in an one shot fashion (no need to call init, addEncoder or start). 

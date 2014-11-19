@@ -65,9 +65,9 @@ long * getArrayOfTimeStamps() {
     return arrayOfTimeStamps;
 }
 
-bool encoder_isReadyToRead() {
+/*bool encoder_isReadyToRead() {
     return readyToRead;
-}
+    }*/
 
 
 void setReadyToRead() {
@@ -85,8 +85,8 @@ encoder * encoder_getEncoder(uint8 pEncoderId) {
 /**
    /!\ Using this functions implies that all of the encoder you'll connect will share the same CLK pin and the same CS pin.
  */
-void encoder_initSharingPinsMode(uint8 pTimerIndex, uint8 pClkPin, uint8 pCsPin) {
-    timer = new HardwareTimer(pTimerIndex);
+void encoder_initSharingPinsMode(uint8 pClkPin, uint8 pCsPin) {
+    //timer = new HardwareTimer(pTimerIndex);
     nbEncoders = 0;
     CLK_PIN = pClkPin;
     CS_PIN = pCsPin;
@@ -99,17 +99,17 @@ void encoder_initSharingPinsMode(uint8 pTimerIndex, uint8 pClkPin, uint8 pCsPin)
     digitalWrite(CLK_PIN, HIGH);
 
     // Pause the timer while we're configuring it
-    timer->pause();
+    //timer->pause();
     // Set up period
-    timer->setPeriod(1); // in microseconds
+    //timer->setPeriod(1); // in microseconds
     //timer->setPrescaleFactor(1); //prescale = 1 => freq = 72MHz, prescale = 65535 => freq = 1099 Hz
     //timer->setOverflow(10); // 1 to 65535
     
     // Set up an interrupt on channel 1
-    timer->setChannel1Mode(TIMER_OUTPUT_COMPARE);
+    //timer->setChannel1Mode(TIMER_OUTPUT_COMPARE);
     // Interrupt 1 count after each update
-    timer->setCompare(TIMER_CH1, 1);
-    timer->attachCompare1Interrupt(setReadyToRead);
+    //timer->setCompare(TIMER_CH1, 1);
+    //timer->attachCompare1Interrupt(setReadyToRead);
     
     // The timer shall be restarted  through the "start()" function after all the encoders have been added
     
@@ -130,9 +130,9 @@ void encoder_initSharingPinsMode(uint8 pTimerIndex, uint8 pClkPin, uint8 pCsPin)
  */
 void encoder_start() {
     // Refresh the timer's count, prescale, and overflow
-    timer->refresh();
+    //timer->refresh();
     // Start the timer counting
-    timer->resume();
+    //timer->resume();
 }
 
 void encoder_addEncoderSharingPinsMode(uint8 pDOPin) {
@@ -155,12 +155,11 @@ void encoder_addEncoderSharingPinsMode(uint8 pDOPin) {
     //pinMode(CS_PIN, OUTPUT);     
     
     arrayOfEncoders[nbEncoders] = newEncoder;
-    printEncoder(&arrayOfEncoders[nbEncoders]);
+    //printEncoder(&arrayOfEncoders[nbEncoders]);
     nbEncoders++;
 }
 
 void encoder_readAnglesSharingPinsMode() {    
-    toggleLED();
     //arrayOfTimeStamps[0] = timer->getCount();
     int halfClkPeriodUs = 1; // DataSheet says >= 500 ns
     encoder * enc;
@@ -247,6 +246,7 @@ void encoder_readAnglesSharingPinsMode() {
     //arrayOfTimeStamps[1] = timer->getCount();    
 }
 
+#if BOARD_HAVE_SERIALUSB
 void printEncoder(encoder * pEncoder) {
     SerialUSB.print("DOPin : ");
     SerialUSB.println(pEncoder->DOPin);
@@ -263,7 +263,7 @@ void printEncoder(encoder * pEncoder) {
     SerialUSB.print("isDataInvalid : ");
     SerialUSB.println(pEncoder->isDataInvalid);
 }
-
+#endif
 long encoder_readAngleSequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {    
     //arrayOfTimeStamps[0] = timer->getCount();
     int halfClkPeriodUs = 1; // DataSheet says >= 500 ns

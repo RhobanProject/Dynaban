@@ -90,20 +90,20 @@ static void disable_timer_if_necessary(timer_dev *dev, uint8 ch) {
 
 void HardwareSerial::begin(uint32 baud) {
     ASSERT(baud <= this->usart_device->max_baud);
-
+    
     if (baud > this->usart_device->max_baud) {
         return;
     }
-
+    
+/*
     const stm32_pin_info *txi = &PIN_MAP[this->tx_pin];
     const stm32_pin_info *rxi = &PIN_MAP[this->rx_pin];
-
     disable_timer_if_necessary(txi->timer_device, txi->timer_channel);
-
     usart_config_gpios_async(this->usart_device,
                              rxi->gpio_device, rxi->gpio_bit,
                              txi->gpio_device, txi->gpio_bit,
                              0);
+*/
     usart_init(this->usart_device);
     usart_set_baud_rate(this->usart_device, USART_USE_PCLK, baud);
     usart_enable(this->usart_device);
