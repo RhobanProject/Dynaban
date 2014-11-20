@@ -10,7 +10,7 @@ CXXFLAGS_$(d) := $(WIRISH_INCLUDES) $(LIBMAPLE_INCLUDES)
 # Local rules and targets
 cSRCS_$(d) :=
 
-cppSRCS_$(d) := magneticEncoder.cpp
+cppSRCS_$(d) := magneticEncoder.cpp asserv.cpp motorManager.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

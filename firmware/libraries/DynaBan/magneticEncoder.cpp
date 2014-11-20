@@ -105,9 +105,9 @@ void encoder_initSharingPinsMode(uint8 pClkPin, uint8 pCsPin) {
     //timer->setPrescaleFactor(1); //prescale = 1 => freq = 72MHz, prescale = 65535 => freq = 1099 Hz
     //timer->setOverflow(10); // 1 to 65535
     
-    // Set up an interrupt on channel 1
+    //Set up an interrupt on channel 1
     //timer->setChannel1Mode(TIMER_OUTPUT_COMPARE);
-    // Interrupt 1 count after each update
+    //Interrupt 1 count after each update
     //timer->setCompare(TIMER_CH1, 1);
     //timer->attachCompare1Interrupt(setReadyToRead);
     

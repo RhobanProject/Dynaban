@@ -19,9 +19,16 @@ par contre j'utilise une représentation en virgule fixe  (a voir s'il y a des c
 #include <libmaple/adc.h>
 #include <libmaple/timer.h>
 #include <DynaBan/magneticEncoder.h>
+#include <DynaBan/motorManager.h>
+#include <DynaBan/asserv.h>
 
 int getAngle(bool pDebug);
 bool isItSafeToPrintUSB();
+
+typedef struct _hardware__ {
+    encoder * enc;
+    motor * mot;
+} hardware;
 
 int PWM_1_PIN = 27; // PA8
 int PWM_2_PIN = 26; // PA9
@@ -29,6 +36,11 @@ int SHUT_DOWN_PIN = 23; // PA12
 int OVER_FLOW = 3000;
 encoder * encoder0;
 int counter = 0;
+bool readyToUpdateHardware = false;
+void setReadyToUpdateHardware();
+hardware hardwareStruct;
+
+
 
 void setup() {   
     disableDebugPorts();
@@ -38,80 +50,96 @@ void setup() {
     gpio_set_mode(GPIOB, 7, GPIO_INPUT_FLOATING);    
 
     Serial1.begin(57600);
-
-    //Ensuring the shut down is active (inversed logic on this one)
-    digitalWrite(SHUT_DOWN_PIN, LOW);
-    pinMode(SHUT_DOWN_PIN, OUTPUT);
-    digitalWrite(SHUT_DOWN_PIN, LOW);
-
-    //Procedure to safely prepare the first PWM signal
-    digitalWrite(PWM_1_PIN, LOW);
-    pinMode(PWM_1_PIN, PWM);
-    pwmWrite(PWM_1_PIN, 0x0000);
-
-    //Procedure to safely prepare the second PWM signal
-    digitalWrite(PWM_2_PIN, LOW);
-    pinMode(PWM_2_PIN, PWM);
-    pwmWrite(PWM_2_PIN, 0x0000);
     
-    //Setting the timer's prescale to get roughly a 25KHz PWM. THe 2 pins share the same timer, channel 1 and 2.
+    //Setting the timer's prescale to get a 24KHz PWM. The 2 pins share the same timer, channel 1 and 2.
     HardwareTimer timer1(1);
     timer1.setPrescaleFactor(1);
     timer1.setOverflow(OVER_FLOW);
 
     pinMode(BOARD_LED_PIN, OUTPUT);
-       
+    
     // Initialization of USART
     digitalWrite(BOARD_TX_ENABLE, LOW);
     pinMode(BOARD_TX_ENABLE, OUTPUT);
     digitalWrite(BOARD_TX_ENABLE, LOW);
-
-       
-    //Encoder management
+   
+    //Encoder init
     encoder_initSharingPinsMode(7, 8);
     encoder_addEncoderSharingPinsMode(6);
     
+    //Motor init
+    motor_init(encoder_getEncoder(0));
+    asserv_init();
+    
+    hardwareStruct.enc = encoder_getEncoder(0);
+    hardwareStruct.mot = motor_getMotor();
+    
+    HardwareTimer timer2(2);
+    // The hardware will be read at 1Khz
+    timer2.setPeriod(1000);
+    timer2.setChannel1Mode(TIMER_OUTPUT_COMPARE);
+    //Interrupt 1 count after each update
+    timer2.setCompare(TIMER_CH1, 1);
+    timer2.attachCompare1Interrupt(setReadyToUpdateHardware);
     delay(2000);
-    digitalWrite(SHUT_DOWN_PIN, HIGH);
-    pwmWrite(PWM_1_PIN, 1500);
+}
+
+void setReadyToUpdateHardware() {
+    readyToUpdateHardware = true;
+}
+
+void hardwareTick() {
+    //Updating the encoder
+    encoder_readAnglesSharingPinsMode();
+        
+    //Updating the motor
+    motor_update(hardwareStruct.enc);
+    
+    //Updating asserv
+    asserv_tickPropor(hardwareStruct.mot);
 }
 
 void loop() {
     counter++;
     toggleLED();
 
-    encoder_readAnglesSharingPinsMode();
-    encoder0 = encoder_getEncoder(0);
-#if BOARD_HAVE_SERIALUSB
-    if (encoder0->isDataInvalid) {
-        digitalWrite(BOARD_TX_ENABLE, HIGH);
-        SerialUSB.println("Data invalid :/");
-        Serial1.waitDataToBeSent();
-        digitalWrite(BOARD_TX_ENABLE, LOW);
+    if (readyToUpdateHardware) {
+        readyToUpdateHardware = false;
+        hardwareTick();
+        //Debug
+        if (counter == 10) {
+            counter = 0;
+            #if BOARD_HAVE_SERIALUSB
+            if (encoder0->isDataInvalid) {
+                digitalWrite(BOARD_TX_ENABLE, HIGH);
+                SerialUSB.println("Data invalid :/");
+                Serial1.waitDataToBeSent();
+                digitalWrite(BOARD_TX_ENABLE, LOW);
         
-    } else {
-        SerialUSB.print("Anglex10 = ");
-        SerialUSB.println(encoder0->angle);
-    }
-#else
-    if (encoder0->isDataInvalid) {
-        digitalWrite(BOARD_TX_ENABLE, HIGH);
-        Serial1.println("Data invalid :/");
-        Serial1.waitDataToBeSent();
-        digitalWrite(BOARD_TX_ENABLE, LOW);
-    } else {
-        digitalWrite(BOARD_TX_ENABLE, HIGH);
-        Serial1.print("Anglex10 = ");
-        Serial1.println(encoder0->angle);
-        Serial1.waitDataToBeSent();
-        digitalWrite(BOARD_TX_ENABLE, LOW);
-    }
-#endif
-    /*SerialUSB.print("Anglex10 = ");
-    SerialUSB.println(readTenTimesAngleSequential(6, 7, 8));
-    */
+            } else {
+                SerialUSB.print("Anglex10 = ");
+                SerialUSB.println(encoder0->angle);
+            }
+            #else
+            if (encoder0->isDataInvalid) {
+                digitalWrite(BOARD_TX_ENABLE, HIGH);
+                Serial1.println("Data invalid :/");
+                Serial1.waitDataToBeSent();
+                digitalWrite(BOARD_TX_ENABLE, LOW);
+            } else {
+                digitalWrite(BOARD_TX_ENABLE, HIGH);
+                Serial1.print("Anglex10 = ");
+                Serial1.println(encoder0->angle);
+                Serial1.waitDataToBeSent();
+                digitalWrite(BOARD_TX_ENABLE, LOW);
+            }
+            #endif
+        }
+        }
+        /*SerialUSB.print("Anglex10 = ");
+          SerialUSB.println(readTenTimesAngleSequential(6, 7, 8));
+        */
 
-    delay(100);
     //digitalWrite(BOARD_TX_ENABLE, HIGH);
 }
 
