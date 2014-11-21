@@ -34,8 +34,7 @@ int PWM_1_PIN = 27; // PA8
 int PWM_2_PIN = 26; // PA9
 int SHUT_DOWN_PIN = 23; // PA12 
 int OVER_FLOW = 3000;
-encoder * encoder0;
-int counter = 0;
+long counter = 0;
 bool readyToUpdateHardware = false;
 void setReadyToUpdateHardware();
 hardware hardwareStruct;
@@ -81,7 +80,9 @@ void setup() {
     //Interrupt 1 count after each update
     timer2.setCompare(TIMER_CH1, 1);
     timer2.attachCompare1Interrupt(setReadyToUpdateHardware);
+    
     delay(2000);
+    motor_setTargetAngle(1800);
 }
 
 void setReadyToUpdateHardware() {
@@ -100,39 +101,69 @@ void hardwareTick() {
 }
 
 void loop() {
+    delay(1);
     counter++;
     toggleLED();
+    /*digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.println("Je fonctionne :)");
+    Serial1.waitDataToBeSent();
+    digitalWrite(BOARD_TX_ENABLE, LOW);
 
+    if (counter < 16) {
+        motor_setCommand(200 + 200 * counter);
+    } else if (counter > 32) {
+        counter = 0;
+        motor_compliant();
+        delay(15000);
+        motor_restart();
+    } else {
+        motor_setCommand(-200 - 200 * (counter - 16));
+    }
+    
+    delay(1000);
+    return;*/
+
+     if (counter == 1000) {  
+         motor_setTargetAngle(900);
+     } else if (counter == 2000) {
+         motor_setTargetAngle(1800);
+     } else if (counter == 3000) {
+         motor_setTargetAngle(2700);
+         counter = 0;
+     }
+    
+    
     if (readyToUpdateHardware) {
         readyToUpdateHardware = false;
+        
         hardwareTick();
         //Debug
-        if (counter == 10) {
-            counter = 0;
+        if (counter % 500 == 0) {
             #if BOARD_HAVE_SERIALUSB
-            if (encoder0->isDataInvalid) {
-                digitalWrite(BOARD_TX_ENABLE, HIGH);
-                SerialUSB.println("Data invalid :/");
-                Serial1.waitDataToBeSent();
-                digitalWrite(BOARD_TX_ENABLE, LOW);
-        
+            SerialUSB.println();
+            SerialUSB.println("***Encoder");
+            if (hardwareStruct.enc->isDataInvalid) {
+                SerialUSB.println("Data invalid :/");        
             } else {
                 SerialUSB.print("Anglex10 = ");
-                SerialUSB.println(encoder0->angle);
+                SerialUSB.println(hardwareStruct.enc->angle);
             }
+            motor_printMotor();
+            asserv_printAsserv();
             #else
-            if (encoder0->isDataInvalid) {
-                digitalWrite(BOARD_TX_ENABLE, HIGH);
+            digitalWrite(BOARD_TX_ENABLE, HIGH);
+            Serial1.println();
+            Serial1.println("***Encoder");
+            if (hardwareStruct.enc->isDataInvalid) {
                 Serial1.println("Data invalid :/");
-                Serial1.waitDataToBeSent();
-                digitalWrite(BOARD_TX_ENABLE, LOW);
             } else {
-                digitalWrite(BOARD_TX_ENABLE, HIGH);
                 Serial1.print("Anglex10 = ");
-                Serial1.println(encoder0->angle);
-                Serial1.waitDataToBeSent();
-                digitalWrite(BOARD_TX_ENABLE, LOW);
+                Serial1.println(hardwareStruct.enc->angle);
             }
+            motor_printMotor();
+            asserv_printAsserv();
+            Serial1.waitDataToBeSent();
+         digitalWrite(BOARD_TX_ENABLE, LOW);
             #endif
         }
         }
