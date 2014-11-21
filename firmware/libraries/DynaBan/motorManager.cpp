@@ -1,5 +1,5 @@
 #include "motorManager.h"
-
+#include "asserv.h";
 
 // 90% of 3000 (PWM period) :
 const long MAX_COMMAND = 2700;
@@ -95,6 +95,8 @@ void motor_securePwmWrite(uint8 pPin, uint16 pCommand){
 }
 
 void motor_setTargetAngle(long pAngle) {
+    //Reseting asserv to avoid inertia
+    asserv_init();
     if (pAngle > MAX_ANGLE) {
         mot.targetAngle = MAX_ANGLE;
     } else if (pAngle < (-MAX_ANGLE)) {

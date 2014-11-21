@@ -3,6 +3,7 @@
 #include <wirish/wirish.h>
 #include "magneticEncoder.h"
 
+
 typedef enum _motorState_ {
     COMPLIANT       = 0,
     BRAKE           = 1,

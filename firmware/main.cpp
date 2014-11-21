@@ -1,15 +1,11 @@
 /*
-Pour le codeur magnétique :
-- Mettre en place les interruptions
-- Trouver les limites de fonctionnement des tempos -> check mais décevant pour l'instant
-- Voir s'il y a un intérêt a obtenir un angle à précision décimale -> check, la précision de la puce est impressionante,
-par contre j'utilise une représentation en virgule fixe  (a voir s'il y a des conventions dessus dans l'équipe)
-- Faire une machine d'états qui avance d'un cran à chaque interruption d'un timer, de sorte que la lecture ne bloque pas le reste.
-   - Faire un codeur.c et codeur.h
-   - Faire en sorte que l'utilisateur nous donne le numéro du timer et c'est tout (à voir si c'est sa responsabilité d'appeler la fonction codeur_tick)
-   - Gérer le fait qu'il y ait plusieurs codeurs
-   - Faire au mieux pour les attentes (je garde 1us pour les "grosses attentes" mais je peux accélérer la clock) => Utiliser le même timer pour des interruptions à pérdiode differentes
-   
+To do update 21/12/2014
+- Mettre en place un PID. Bien qu'un asservissement en P donne, de manière très frustrante, d'excellents résultats.
+- Debug du I fenetré
+- Lire la capteur de température
+- Lire la mesure de courant
+- Essayer d'asservir le moteur en utilisant la mesure de courant comme mesure de rétro-action
+- Reproduire toutes les fonctionnalités dynamixel
  */
 
 // Sample main.cpp file. Blinks the built-in LED, sends a message out
@@ -97,7 +93,7 @@ void hardwareTick() {
     motor_update(hardwareStruct.enc);
     
     //Updating asserv
-    asserv_tickPropor(hardwareStruct.mot);
+    asserv_tickP(hardwareStruct.mot);
 }
 
 void loop() {
@@ -123,11 +119,11 @@ void loop() {
     delay(1000);
     return;*/
 
-     if (counter == 1000) {  
+     if (counter == 2000) {  
          motor_setTargetAngle(900);
-     } else if (counter == 2000) {
+     } else if (counter == 4000) {
          motor_setTargetAngle(1800);
-     } else if (counter == 3000) {
+     } else if (counter == 6000) {
          motor_setTargetAngle(2700);
          counter = 0;
      }
@@ -138,7 +134,7 @@ void loop() {
         
         hardwareTick();
         //Debug
-        if (counter % 500 == 0) {
+        if (counter % 200 == 0) {
             #if BOARD_HAVE_SERIALUSB
             SerialUSB.println();
             SerialUSB.println("***Encoder");
@@ -163,7 +159,7 @@ void loop() {
             motor_printMotor();
             asserv_printAsserv();
             Serial1.waitDataToBeSent();
-         digitalWrite(BOARD_TX_ENABLE, LOW);
+            digitalWrite(BOARD_TX_ENABLE, LOW);
             #endif
         }
         }
