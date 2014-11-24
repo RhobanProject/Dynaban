@@ -1,7 +1,6 @@
 /*
 To do update 21/12/2014
 - Mettre en place un PID. Bien qu'un asservissement en P donne, de manière très frustrante, d'excellents résultats.
-- Debug du I fenetré
 - Lire la capteur de température
 - Lire la mesure de courant
 - Essayer d'asservir le moteur en utilisant la mesure de courant comme mesure de rétro-action
@@ -93,7 +92,7 @@ void hardwareTick() {
     motor_update(hardwareStruct.enc);
     
     //Updating asserv
-    asserv_tickP(hardwareStruct.mot);
+    asserv_tickPID(hardwareStruct.mot);
 }
 
 void loop() {

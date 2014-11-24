@@ -5,10 +5,12 @@
 #include "magneticEncoder.h"
 
 
-const int P_COEF = 30;// 2 pour mémé //30 excellent // 200 coup sec que l'on sent être mauvais pour la méca // 1000 instabilité et endommagement matériel
-const int I_COEF = 5;
-const int D_COEF = 0;
-const int NB_MAX_DELTAS = 20;
+const int P_COEF = 70;// 2 pour mémé //30 excellent // 200 coup sec que l'on sent être mauvais pour la méca // 1000 instabilité et endommagement matériel
+const int I_COEF = 0;
+const int I_PRESCALE = 1;
+const int MAX_DELTA_SUM = 1000;
+//Would be good to wait a few reads before calculating the derivate :
+const int D_COEF = 50;
 
 typedef enum _asservState_ {
     ARRIVED     = 0,
@@ -18,15 +20,13 @@ typedef enum _asservState_ {
 typedef struct _asserv_ {
     long deltaAngle;
     asservState state;
-    uint32 sumOfDeltas;
-    long listOfPreviousDeltaAngles[20];
-    int indexOfLastInput;
-    int indexOfFirstInput;
+    int32 sumOfDeltas;
 } asserv;
 
 void asserv_init();
 void asserv_tickP(motor * pMot);
 void asserv_tickPI(motor * pMot);
+void asserv_tickPID(motor * pMot);
 void asserv_printAsserv();
 
 #endif /* _ASSERV_H_ */
