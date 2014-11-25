@@ -11,13 +11,16 @@ typedef enum _motorState_ {
 } motorState;
 
 typedef struct _motor_ {
-    long currentCommand;
+    long command;
     long previousCommand;
-    long currentAngle;
+    long angle;
     long previousAngle;
     long targetAngle;
     motorState state;
+    long current;
+    long averageCurrent;
 } motor;
+
 
 void motor_init(encoder * pEnc);
 

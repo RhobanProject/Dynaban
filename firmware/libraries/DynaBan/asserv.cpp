@@ -9,21 +9,21 @@ void asserv_init() {
 }
 
 void asserv_tickP(motor * pMot) {
-    asservStruct.deltaAngle = pMot->targetAngle - pMot->currentAngle;
+    asservStruct.deltaAngle = pMot->targetAngle - pMot->angle;
     if (asservStruct.deltaAngle > 1800) {
         // There is a shorter way, engine bro
-        asservStruct.deltaAngle = pMot->currentAngle - pMot->targetAngle;
+        asservStruct.deltaAngle = pMot->angle - pMot->targetAngle;
     }
     
     motor_setCommand(asservStruct.deltaAngle * P_COEF);
 }
 
 void asserv_tickPI(motor * pMot) {
-    asservStruct.deltaAngle = pMot->targetAngle - pMot->currentAngle;
+    asservStruct.deltaAngle = pMot->targetAngle - pMot->angle;
 
     if (asservStruct.deltaAngle > 1800) {
         // There is a shorter way, engine bro
-        asservStruct.deltaAngle = pMot->currentAngle - pMot->targetAngle;
+        asservStruct.deltaAngle = pMot->angle - pMot->targetAngle;
     }
 
     asservStruct.sumOfDeltas = asservStruct.sumOfDeltas + asservStruct.deltaAngle;
@@ -37,11 +37,11 @@ void asserv_tickPI(motor * pMot) {
 }
 
 void asserv_tickPID(motor * pMot) {
-    asservStruct.deltaAngle = pMot->targetAngle - pMot->currentAngle;
+    asservStruct.deltaAngle = pMot->targetAngle - pMot->angle;
 
     if (asservStruct.deltaAngle > 1800) {
         // There is a shorter way, engine bro
-        asservStruct.deltaAngle = pMot->currentAngle - pMot->targetAngle;
+        asservStruct.deltaAngle = pMot->angle - pMot->targetAngle;
     }
 
     asservStruct.sumOfDeltas = asservStruct.sumOfDeltas + asservStruct.deltaAngle;
@@ -53,7 +53,7 @@ void asserv_tickPID(motor * pMot) {
     
     motor_setCommand(asservStruct.deltaAngle * P_COEF 
                      + (asservStruct.sumOfDeltas * I_COEF) / I_PRESCALE
-                     + (pMot->currentAngle - pMot->previousAngle) * D_COEF);
+                     + (pMot->angle - pMot->previousAngle) * D_COEF);
 }
 
 #if BOARD_HAVE_SERIALUSB

@@ -25,11 +25,10 @@ typedef struct _hardware__ {
     motor * mot;
 } hardware;
 
-int PWM_1_PIN = 27; // PA8
-int PWM_2_PIN = 26; // PA9
-int SHUT_DOWN_PIN = 23; // PA12 
-int CURRENT_ADC_PIN = 33;// PB1
-int OVER_FLOW = 3000;
+
+const int CURRENT_ADC_PIN = 33;// PB1
+const int OVER_FLOW = 3000;
+
 long counter = 0;
 bool readyToUpdateHardware = false;
 void setReadyToUpdateHardware();
@@ -100,12 +99,14 @@ void hardwareTick() {
 }
 
 void loop() {
-    //delay(1);
-    delay(10);
+    delay(1);
+    //delay(10);
+    
     counter++;
     toggleLED();
     digitalWrite(BOARD_TX_ENABLE, HIGH);
-    
+    int fastCounter = 0;
+    long sumOfCurrent = 0;  
     /*if (counter <= 1500) {
         if (counter%100 == 0) {
         Serial1.print("Command;");
@@ -125,13 +126,19 @@ void loop() {
             motor_compliant();
         }
         }*/
-    if (counter == 300) {
+    if (counter == 3000) {
         motor_setCommand(-2700);
     }
-    current = analogRead(CURRENT_ADC_PIN) - 2048;
+    while(fastCounter < 32) {
+        delayMicroseconds(21);// Approx 2*24KHz
+        sumOfCurrent = sumOfCurrent + analogRead(CURRENT_ADC_PIN) - 2048;
+        fastCounter++;
+    }
+    sumOfCurrent = sumOfCurrent / 32;
+    //current = analogRead(CURRENT_ADC_PIN) - 2048;
     Serial1.print(counter);
     Serial1.print(" ");
-    Serial1.println(current);
+    Serial1.println(sumOfCurrent);
     
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
