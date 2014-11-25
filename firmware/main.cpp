@@ -28,13 +28,14 @@ typedef struct _hardware__ {
 int PWM_1_PIN = 27; // PA8
 int PWM_2_PIN = 26; // PA9
 int SHUT_DOWN_PIN = 23; // PA12 
+int CURRENT_ADC_PIN = 33;// PB1
 int OVER_FLOW = 3000;
 long counter = 0;
 bool readyToUpdateHardware = false;
 void setReadyToUpdateHardware();
 hardware hardwareStruct;
 
-
+int16 current;
 
 void setup() {   
     disableDebugPorts();
@@ -57,6 +58,9 @@ void setup() {
     pinMode(BOARD_TX_ENABLE, OUTPUT);
     digitalWrite(BOARD_TX_ENABLE, LOW);
    
+    // ADC pin init
+    pinMode(CURRENT_ADC_PIN, INPUT_ANALOG);
+
     //Encoder init
     encoder_initSharingPinsMode(7, 8);
     encoder_addEncoderSharingPinsMode(6);
@@ -76,8 +80,8 @@ void setup() {
     timer2.setCompare(TIMER_CH1, 1);
     timer2.attachCompare1Interrupt(setReadyToUpdateHardware);
     
-    delay(2000);
-    motor_setTargetAngle(1800);
+    delay(5000);
+    //motor_setTargetAngle(1800);
 }
 
 void setReadyToUpdateHardware() {
@@ -96,28 +100,43 @@ void hardwareTick() {
 }
 
 void loop() {
-    delay(1);
+    //delay(1);
+    delay(10);
     counter++;
     toggleLED();
-    /*digitalWrite(BOARD_TX_ENABLE, HIGH);
-    Serial1.println("Je fonctionne :)");
+    digitalWrite(BOARD_TX_ENABLE, HIGH);
+    
+    /*if (counter <= 1500) {
+        if (counter%100 == 0) {
+        Serial1.print("Command;");
+        Serial1.println(200 * (counter/100));
+        motor_setCommand(200 * (counter/100));
+        }
+    } else {
+        if (counter <= 3000) {
+            if (counter%100 == 0) {
+                Serial1.print("Command;");
+                Serial1.println(-200 - 200 * ((counter - 1600)/100));
+                motor_setCommand(-200 - 200 * ((counter - 1600)/100));
+            }
+        } else {
+            Serial1.print("Command;");
+            Serial1.println("Compliant");
+            motor_compliant();
+        }
+        }*/
+    if (counter == 300) {
+        motor_setCommand(-2700);
+    }
+    current = analogRead(CURRENT_ADC_PIN) - 2048;
+    Serial1.print(counter);
+    Serial1.print(" ");
+    Serial1.println(current);
+    
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
-
-    if (counter < 16) {
-        motor_setCommand(200 + 200 * counter);
-    } else if (counter > 32) {
-        counter = 0;
-        motor_compliant();
-        delay(15000);
-        motor_restart();
-    } else {
-        motor_setCommand(-200 - 200 * (counter - 16));
-    }
-    
-    delay(1000);
-    return;*/
-
+    return;
+    /*
      if (counter == 2000) {  
          motor_setTargetAngle(900);
      } else if (counter == 4000) {
@@ -134,6 +153,7 @@ void loop() {
         hardwareTick();
         //Debug
         if (counter % 200 == 0) {
+            current = analogRead(CURRENT_ADC_PIN) - 2048;
             #if BOARD_HAVE_SERIALUSB
             SerialUSB.println();
             SerialUSB.println("***Encoder");
@@ -157,11 +177,13 @@ void loop() {
             }
             motor_printMotor();
             asserv_printAsserv();
+            Serial1.print("Current = ");
+            Serial1.println(current);
             Serial1.waitDataToBeSent();
             digitalWrite(BOARD_TX_ENABLE, LOW);
             #endif
         }
-        }
+        }*/
         /*SerialUSB.print("Anglex10 = ");
           SerialUSB.println(readTenTimesAngleSequential(6, 7, 8));
         */
