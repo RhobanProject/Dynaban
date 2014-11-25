@@ -146,7 +146,7 @@ static void setup_clocks(void) {
  */
 #if defined(BOOTLOADER_maple)
 #define USER_ADDR_ROM 0x08005000
-#elif defined(BOOTLOADER_robotis)
+#elif defined(BOOTLOADER_robotis) or defined(BOOTLOADER_servo)
 #define USER_ADDR_ROM 0x08003000
 #endif
 #define USER_ADDR_RAM 0x20000C00

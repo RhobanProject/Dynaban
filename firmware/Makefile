@@ -30,12 +30,10 @@ BOARD_INCLUDE_DIR := $(MAKEDIR)/board-includes
 # Try "make help" for more information on BOARD and MEMORY_TARGET;
 # these default to a Maple Flash build.
 BOARD ?= mx64
-#BOARD ?= maple_mini
 MEMORY_TARGET ?= flash
 
 # Chooses the bootloader, available: maple and robotis
-BOOTLOADER ?= robotis
-#BOOTLOADER ?= maple
+BOOTLOADER ?= servo
 
 # This is the serial port used by robotis bootloader
 ROBOTIS_PORT ?= /dev/ttyACM0
@@ -119,6 +117,10 @@ UPLOAD_ram   := $(SUPPORT_PATH)/scripts/reset.py && \
 UPLOAD_flash := $(SUPPORT_PATH)/scripts/reset.py && \
                 sleep 1                  && \
                 $(DFU) -a1 -d $(BOARD_USB_VENDOR_ID):$(BOARD_USB_PRODUCT_ID) -D $(BUILD_PATH)/$(BOARD).bin -R
+endif
+
+ifeq ($(BOOTLOADER),servo)
+UPLOAD_flash := $(SUPPORT_PATH)/scripts/dxl-flash.py $(ROBOTIS_PORT) $(BUILD_PATH)/$(BOARD).bin
 endif
 
 ifeq ($(BOOTLOADER),robotis)
