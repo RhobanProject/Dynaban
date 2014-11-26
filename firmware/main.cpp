@@ -18,16 +18,13 @@ To do update 21/12/2014
 #include <DynaBan/asserv.h>
 #include <DynaBan/dxl.h>
 
-int getAngle(bool pDebug);
-bool isItSafeToPrintUSB();
+unsigned short terribleSignConvention(long pInput, long pIamZeroISwear);
 
 typedef struct _hardware__ {
     encoder * enc;
     motor * mot;
 } hardware;
 
-
-const int CURRENT_ADC_PIN = 33;// PB1
 const int OVER_FLOW = 3000;
 
 long counter = 0;
@@ -141,11 +138,12 @@ void hardwareTick() {
         
         //Updating the motor
         motor_update(hardwareStruct.enc);
-        
+         
         //Updating asserv
         //asserv_tickPID(hardwareStruct.mot);
         //asserv_tickPIDOnTorque(hardwareStruct.mot);
         
+        /*
         digitalWrite(BOARD_TX_ENABLE, HIGH);
         Serial1.println();
         Serial1.print(debugCounter++);
@@ -154,54 +152,61 @@ void hardwareTick() {
         
         Serial1.waitDataToBeSent();
         digitalWrite(BOARD_TX_ENABLE, LOW);
+        */
     }
 
     hardwareCounter++;
 }
 
+void updateDxlRam() {
+    dxl_regs.ram.presentPosition = hardwareStruct.mot->angle;
+    dxl_regs.ram.presentSpeed = terribleSignConvention(hardwareStruct.mot->speed, 1024);
+    
+    dxl_regs.ram.presentLoad = terribleSignConvention(hardwareStruct.mot->superAverageCurrent, 1024);
+    //dxl_regs.ram.presentVoltage = 0;
+    //dxl_regs.ram.presentTemperature = -1;
+    //dxl_regs.ram.registeredInstruction = ;
+    if (hardwareStruct.mot->speed != 0) {
+        dxl_regs.ram.moving = 1;
+    } else {
+        dxl_regs.ram.moving = 0;
+    }
+    
+    dxl_regs.ram.current = terribleSignConvention(hardwareStruct.mot->superAverageCurrent, 2048);
+}
+
+/**
+   From a signed convention to a weird unsigned convention
+ */
+unsigned short terribleSignConvention(long pInput, long pIamZeroISwear) {
+    if (pInput > 0) {
+        return (unsigned short) pInput;
+    } else {
+        return (unsigned short) (pIamZeroISwear - pInput);
+    }
+}
+
 void loop() {
     //delay(1);
     //delay(10);
-    delayMicroseconds(10);
+    //delayMicroseconds(10);
     counter++;
     //toggleLED();
     int fastCounter = 0;
-    long sumOfCurrent = 0;  
+    
+    if (dxl_tick()) {
+        digitalWrite(BOARD_LED_PIN, (dxl_regs.ram.led!=0) ? HIGH : LOW);
+    }
 
-    /*if (counter == 3000) {
-        motor_setCommand(-2700);
-    }
-    while(fastCounter < 32) {
-        delayMicroseconds(21);// Approx 2*24KHz
-        sumOfCurrent = sumOfCurrent + analogRead(CURRENT_ADC_PIN) - 2048;
-        fastCounter++;
-    }
-    sumOfCurrent = sumOfCurrent / 32;
-    //current = analogRead(CURRENT_ADC_PIN) - 2048;
-    Serial1.print(counter);
-    Serial1.print(" ");
-    Serial1.println(sumOfCurrent);
-    
-    Serial1.waitDataToBeSent();
-    digitalWrite(BOARD_TX_ENABLE, LOW);
-    return; */
-    
-    /*if (counter == 100*2000) {
-        motor_setTargetAngle(900);
-    } else if (counter == 100*4000) {
-        motor_setTargetAngle(2700);
-        counter = 0;
-        }*/
-    
-    
     if (readyToUpdateHardware) {
         readyToUpdateHardware = false;
         hardwareTick();
     }
+
     //Debug
-    if (counter % (100*200) == 0) {
-        toggleLED();
-    }
+    // if (counter % (100*200) == 0) {
+    //    toggleLED();
+    // }
     /*if (counter % (100*200) == 0) {
         toggleLED();
             
@@ -216,11 +221,7 @@ void loop() {
     
 }
 
-#if BOARD_HAVE_SERIALUSB
-bool isItSafeToPrintUSB() {
-    return SerialUSB.isConnected() && (SerialUSB.getDTR() || SerialUSB.getRTS()); 
-}
-#endif
+
 // Force init to be called *first*, i.e. before static object allocation.
 // Otherwise, statically allocated objects that need libmaple may fail.
 __attribute__((constructor)) void premain() {

@@ -1,17 +1,8 @@
 #include "motorManager.h"
 #include "asserv.h";
 
-// 90% of 3000 (PWM period) :
-const bool HAS_CURRENT_SENSING = true;
-const int CURRENT_ADC_PIN = 33;// PB1
-const int AVERAGE_FACTOR_FOR_CURRENT = 16;
-const int SUPER_AVERAGE_FACTOR_FOR_CURRENT = 16;
-const long MAX_COMMAND = 2700;
-const long MAX_ANGLE = 3600;
-const int PWM_1_PIN = 27; // PA8 --> Negative rotation
-const int PWM_2_PIN = 26; // PA9 --> Positive rotation
-const int SHUT_DOWN_PIN = 23; // PA12
 static motor mot;
+static int nbUpdates = 0;
 
 void motor_securePwmWrite(uint8 pPin, uint16 pCommand);
 
@@ -48,6 +39,11 @@ void motor_init(encoder * pEnc) {
     mot.angle = pEnc->angle;
     mot.previousAngle = pEnc->angle;
     mot.targetAngle = pEnc->angle;
+    mot.speed = 0;
+    mot.previousSpeed = 0;
+    mot.targetSpeed = 0;
+    mot.acceleration = 0;
+    mot.targetAcceleration = 0;
     mot.state = MOVING;
     mot.current = 0;
     mot.averageCurrent = 0;
@@ -56,10 +52,22 @@ void motor_init(encoder * pEnc) {
 }
 
 void motor_update(encoder * pEnc) {
-    mot.previousAngle = mot.angle;
     mot.angle = pEnc->angle;
+
+    if (nbUpdates % NB_TICKS_BEFORE_UPDATING_SPEED == 0) {
+        mot.speed = mot.angle - mot.previousAngle;
+        mot.previousAngle = mot.angle;
+    }
+
+    if (nbUpdates == NB_TICKS_BEFORE_UPDATING_ACCELERATION) {
+        nbUpdates = 0;
+        mot.acceleration = mot.speed - mot.previousSpeed;
+        mot.previousSpeed = mot.speed;
+    }
     
     mot.superAverageCurrent = ((SUPER_AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.superAverageCurrent + mot.averageCurrent) / SUPER_AVERAGE_FACTOR_FOR_CURRENT;
+    
+    nbUpdates++;
 }
 
 void motor_readCurrent() {

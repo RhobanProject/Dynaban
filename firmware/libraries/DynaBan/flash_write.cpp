@@ -1,5 +1,4 @@
 #include <flash.h>
-#include <terminal.h>
 #include "flash_write.h"
 
 #define FLASH_KEY1     0x45670123

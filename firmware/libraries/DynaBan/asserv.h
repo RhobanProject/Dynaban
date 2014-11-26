@@ -4,32 +4,27 @@
 #include "motorManager.h"
 #include "magneticEncoder.h"
 
-
-const int P_COEF = 70;// 2 pour mémé //30 excellent // 200 coup sec que l'on sent être mauvais pour la méca // 1000 instabilité et endommagement matériel
-const int I_COEF = 0;
+const int INITIAL_P_COEF = 40;
+const int INITIAL_I_COEF = 0;
 const int I_PRESCALE = 1;
 const int MAX_DELTA_SUM = 1000;
 //Would be good to wait a few reads before calculating the derivate :
-const int D_COEF = 0;
+const int INITIAL_D_COEF = 0;
 
-const int TORQUE_P_COEF = 45;
-const int MIN_COMMAND_BEFORE_COMPLIANT = 100;
-
-typedef enum _asservState_ {
-    ARRIVED     = 0,
-    IN_ACTION   = 1,
-} asservState;
+const int INITIAL_TORQUE_P_COEF = 45;
 
 typedef struct _asserv_ {
     long deltaAngle;
-    asservState state;
     int32 sumOfDeltas;
     int deltaAverageCurrent;
+    int pCoef;
+    int iCoef;
+    int dCoef;
+    int torquePCoef;
 } asserv;
 
 void asserv_init();
 void asserv_tickP(motor * pMot);
-void asserv_tickPI(motor * pMot);
 void asserv_tickPID(motor * pMot);
 void asserv_tickPIDOnTorque(motor * pMot);
 void asserv_printAsserv();

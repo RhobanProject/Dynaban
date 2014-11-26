@@ -4,6 +4,19 @@
 #include "magneticEncoder.h"
 
 
+const bool HAS_CURRENT_SENSING = true;
+const int CURRENT_ADC_PIN = 33;// PB1
+const int AVERAGE_FACTOR_FOR_CURRENT = 16;
+const int SUPER_AVERAGE_FACTOR_FOR_CURRENT = 16;
+// 90% of 3000 (PWM period) :
+const long MAX_COMMAND = 2700;
+const long MAX_ANGLE = 3600;
+const int PWM_1_PIN = 27; // PA8 --> Negative rotation
+const int PWM_2_PIN = 26; // PA9 --> Positive rotation
+const int SHUT_DOWN_PIN = 23; // PA12
+const int NB_TICKS_BEFORE_UPDATING_SPEED = 8;
+const int NB_TICKS_BEFORE_UPDATING_ACCELERATION = 8 * NB_TICKS_BEFORE_UPDATING_SPEED;
+
 typedef enum _motorState_ {
     COMPLIANT       = 0,
     BRAKE           = 1,
@@ -16,13 +29,17 @@ typedef struct _motor_ {
     long angle;
     long previousAngle;
     long targetAngle;
+    long speed;
+    long previousSpeed;
+    long targetSpeed;
+    long acceleration;
+    long targetAcceleration;
     motorState state;
     long current;
     long averageCurrent;
     long superAverageCurrent;
     long targetCurrent;
 } motor;
-
 
 void motor_init(encoder * pEnc);
 
