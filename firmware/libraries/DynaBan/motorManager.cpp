@@ -2,13 +2,16 @@
 #include "asserv.h";
 
 // 90% of 3000 (PWM period) :
+const bool HAS_CURRENT_SENSING = true;
+const int CURRENT_ADC_PIN = 33;// PB1
+const int AVERAGE_FACTOR_FOR_CURRENT = 16;
+const int SUPER_AVERAGE_FACTOR_FOR_CURRENT = 16;
 const long MAX_COMMAND = 2700;
 const long MAX_ANGLE = 3600;
 const int PWM_1_PIN = 27; // PA8 --> Negative rotation
 const int PWM_2_PIN = 26; // PA9 --> Positive rotation
 const int SHUT_DOWN_PIN = 23; // PA12
 static motor mot;
-
 
 void motor_securePwmWrite(uint8 pPin, uint16 pCommand);
 
@@ -32,33 +35,51 @@ void motor_init(encoder * pEnc) {
     pinMode(PWM_2_PIN, PWM);
     pwmWrite(PWM_2_PIN, 0x0000);
 
+    if (HAS_CURRENT_SENSING) {
+        // ADC pin init
+        pinMode(CURRENT_ADC_PIN, INPUT_ANALOG);
+    }
+
     //Releasing the shutdown
     digitalWrite(SHUT_DOWN_PIN, HIGH);
 
-    mot.currentCommand = pEnc->angle;
+    mot.command = pEnc->angle;
     mot.previousCommand = pEnc->angle;
-    mot.currentAngle = pEnc->angle;
+    mot.angle = pEnc->angle;
     mot.previousAngle = pEnc->angle;
     mot.targetAngle = pEnc->angle;
     mot.state = MOVING;
+    mot.current = 0;
+    mot.averageCurrent = 0;
+    mot.superAverageCurrent = 0;
+    mot.targetCurrent = 0;
 }
 
 void motor_update(encoder * pEnc) {
-    mot.previousAngle = mot.currentAngle;
-    mot.currentAngle = pEnc->angle; 
+    mot.previousAngle = mot.angle;
+    mot.angle = pEnc->angle;
+    
+    mot.superAverageCurrent = ((SUPER_AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.superAverageCurrent + mot.averageCurrent) / SUPER_AVERAGE_FACTOR_FOR_CURRENT;
+}
+
+void motor_readCurrent() {
+    if (HAS_CURRENT_SENSING) {
+        mot.current = analogRead(CURRENT_ADC_PIN) - 2048;
+        mot.averageCurrent = ((AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.averageCurrent + mot.current) / AVERAGE_FACTOR_FOR_CURRENT;
+    }
 }
 
 void motor_setCommand(long pCommand) {
-    mot.previousCommand = mot.currentCommand;
+    mot.previousCommand = mot.command;
     if (pCommand > MAX_COMMAND) {
-        mot.currentCommand = MAX_COMMAND;
+        mot.command = MAX_COMMAND;
     } else if (pCommand < (-MAX_COMMAND)) {
-        mot.currentCommand = -MAX_COMMAND;
+        mot.command = -MAX_COMMAND;
     } else {
-        mot.currentCommand = pCommand;
+        mot.command = pCommand;
     }
     
-    long command = mot.currentCommand;
+    long command = mot.command;
     long previousCommand = mot.previousCommand;
     if (mot.state == COMPLIANT) {
         mot.state = MOVING;
@@ -106,13 +127,19 @@ void motor_setTargetAngle(long pAngle) {
     }
 }
 
+void motor_setTargetCurrent(int pCurrent) {
+    //Reseting asserv to avoid inertia
+    asserv_init();
+    mot.targetCurrent = pCurrent;
+}
+
 /**
    Will make the engine brake
  */
 void motor_brake() {
     mot.state = BRAKE;
-    mot.previousCommand = mot.currentCommand;
-    mot.currentCommand = 0;
+    mot.previousCommand = mot.command;
+    mot.command = 0;
     pwmWrite(PWM_2_PIN, 0);
     pwmWrite(PWM_1_PIN, 0);
 }
@@ -122,8 +149,8 @@ void motor_brake() {
  */
 void motor_compliant() {
     mot.state = COMPLIANT;
-    mot.previousCommand = mot.currentCommand;
-    mot.currentCommand = 0;
+    mot.previousCommand = mot.command;
+    mot.command = 0;
     digitalWrite(SHUT_DOWN_PIN, LOW);
     pwmWrite(PWM_2_PIN, 0);
     pwmWrite(PWM_1_PIN, 0);
@@ -135,13 +162,14 @@ void motor_restart() {
 
 #if BOARD_HAVE_SERIALUSB
 void motor_printMotor() {
+    SerialUSB.println();
     SerialUSB.println("*** Motor :");
-    SerialUSB.print("currentCommand : ");
-    SerialUSB.println(mot.currentCommand);
+    SerialUSB.print("command : ");
+    SerialUSB.println(mot.command);
     SerialUSB.print("previousCommand : ");
     SerialUSB.println(mot.previousCommand);
-    SerialUSB.print("currentAngle : ");
-    SerialUSB.println(mot.currentAngle);
+    SerialUSB.print("angle : ");
+    SerialUSB.println(mot.angle);
     SerialUSB.print("previousAngle : ");
     SerialUSB.println(mot.previousAngle);
     SerialUSB.print("targetAngle : ");
@@ -151,18 +179,25 @@ void motor_printMotor() {
 }
 #else 
 void motor_printMotor() {
+    Serial1.println();
     Serial1.println("*** Motor :");
-    Serial1.print("currentCommand : ");
-    Serial1.println(mot.currentCommand);
+    Serial1.print("command : ");
+    Serial1.println(mot.command);
     Serial1.print("previousCommand : ");
     Serial1.println(mot.previousCommand);
-    Serial1.print("currentAngle : ");
-    Serial1.println(mot.currentAngle);
+    Serial1.print("angle : ");
+    Serial1.println(mot.angle);
     Serial1.print("previousAngle : ");
     Serial1.println(mot.previousAngle);
     Serial1.print("targetAngle : ");
     Serial1.println(mot.targetAngle);
     Serial1.print("state : ");
     Serial1.println(mot.state);
+    Serial1.print("current : ");
+    Serial1.println(mot.current);
+    Serial1.print("averageCurrent : ");
+    Serial1.println(mot.averageCurrent);
+    Serial1.print("targetCurrent : ");
+    Serial1.println(mot.targetCurrent);
 }
 #endif

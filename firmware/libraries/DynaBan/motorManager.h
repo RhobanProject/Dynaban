@@ -11,17 +11,24 @@ typedef enum _motorState_ {
 } motorState;
 
 typedef struct _motor_ {
-    long currentCommand;
+    long command;
     long previousCommand;
-    long currentAngle;
+    long angle;
     long previousAngle;
     long targetAngle;
     motorState state;
+    long current;
+    long averageCurrent;
+    long superAverageCurrent;
+    long targetCurrent;
 } motor;
+
 
 void motor_init(encoder * pEnc);
 
 void motor_update(encoder * pEnc);
+
+void motor_readCurrent();
 
 void motor_setCommand(long pCommand);
 
@@ -29,6 +36,9 @@ void motor_setCommand(long pCommand);
    /!\ pAngle must actually be 10x angle in degrees (1800 = 180°)
  */
 void motor_setTargetAngle(long pAngle);
+
+void motor_setTargetCurrent(int pCurrent);
+
 /**
    Will make the engine brake
  */

@@ -10,7 +10,10 @@ const int I_COEF = 0;
 const int I_PRESCALE = 1;
 const int MAX_DELTA_SUM = 1000;
 //Would be good to wait a few reads before calculating the derivate :
-const int D_COEF = 50;
+const int D_COEF = 0;
+
+const int TORQUE_P_COEF = 45;
+const int MIN_COMMAND_BEFORE_COMPLIANT = 100;
 
 typedef enum _asservState_ {
     ARRIVED     = 0,
@@ -21,12 +24,14 @@ typedef struct _asserv_ {
     long deltaAngle;
     asservState state;
     int32 sumOfDeltas;
+    int deltaAverageCurrent;
 } asserv;
 
 void asserv_init();
 void asserv_tickP(motor * pMot);
 void asserv_tickPI(motor * pMot);
 void asserv_tickPID(motor * pMot);
+void asserv_tickPIDOnTorque(motor * pMot);
 void asserv_printAsserv();
 
 #endif /* _ASSERV_H_ */
