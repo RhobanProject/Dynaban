@@ -16,14 +16,18 @@ void dxl_persist()
     flashWrite((int)dxl_zone, (void*)&dxl_regs.eeprom, sizeof(struct dxl_eeprom));
 }
 
-void dxl_tick()
+bool dxl_tick()
 {
+    bool changed = false;
+
     if (!dxl_sending()) {
         while (dxl_data_available()) {
             dxl_push_byte(dxl_data_byte());
 
             if (dxl_packet.process) {
-                dxl_process();
+                if (dxl_process()) {
+                    changed = true;
+                }
 
                 if (dxl_packet.answer) {
                     int n = dxl_write(dxl_buffer);
@@ -37,6 +41,8 @@ void dxl_tick()
         dxl_regs.eeprom_dirty = false;
         dxl_persist();
     }
+
+    return changed;
 }
 
 void dxl_init()
@@ -210,8 +216,9 @@ static void dxl_read_data(ui8 addr, ui8 *values, ui8 length, ui8 *error)
     memcpy(values, ((ui8*)&dxl_regs)+addr, length);
 }
 
-void dxl_process()
+bool dxl_process()
 {
+    bool changed = false;
     dxl_packet.process = false;
     dxl_packet.answer = false;
 
@@ -227,6 +234,7 @@ void dxl_process()
                 break;
             case DXL_WRITE_DATA:
                 // Write data
+                changed = true;
                 dxl_write_data(dxl_packet.parameters[0],
                         (ui8 *)&dxl_packet.parameters[1],
                         dxl_packet.parameter_nb-1);
@@ -240,6 +248,7 @@ void dxl_process()
 
                                      for (i=0; i<K; i++) {
                                          if (dxl_packet.parameters[2+i*length] == dxl_regs.eeprom.id) {
+                                            changed = true;
                                              dxl_write_data(addr,
                                                      (ui8 *)&dxl_packet.parameters[2+i*length+1],
                                                      (ui8)(length-1));
@@ -264,4 +273,6 @@ void dxl_process()
                                  }
         }
     }
+
+    return changed;
 }

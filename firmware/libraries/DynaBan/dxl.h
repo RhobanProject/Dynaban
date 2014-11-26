@@ -51,9 +51,9 @@ bool dxl_sending();
 
 // Call init to init the dynamixel structures, and then tick it periodically
 void dxl_init();
-void dxl_tick();
+bool dxl_tick();
 
-void dxl_process();
+bool dxl_process();
 void dxl_init_regs();
 void dxl_push_byte(ui8 b);
 int dxl_write(ui8 *buffer);
