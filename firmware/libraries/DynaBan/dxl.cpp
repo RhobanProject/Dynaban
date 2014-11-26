@@ -168,7 +168,6 @@ void dxl_packet_push_byte(volatile struct dxl_packet *packet, ui8 b)
             packet->instruction = b;
             break;
         default:
-            digitalWrite(BOARD_LED_PIN, HIGH);
             if (packet->dxl_state - 4 > packet->parameter_nb) {
                 goto pc_ended;
 
@@ -185,7 +184,6 @@ void dxl_packet_push_byte(volatile struct dxl_packet *packet, ui8 b)
     return;
 
 pc_ended:
-    digitalWrite(BOARD_LED_PIN, LOW);
     if (dxl_compute_checksum(packet) == b) {
         packet->process = true;
         packet->answer = false;
