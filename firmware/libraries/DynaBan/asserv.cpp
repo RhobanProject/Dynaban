@@ -56,6 +56,19 @@ void asserv_tickPID(motor * pMot) {
                      + (pMot->angle - pMot->previousAngle) * D_COEF);
 }
 
+void asserv_tickPIDOnTorque(motor * pMot) {
+    asservStruct.deltaAverageCurrent = pMot->targetCurrent - pMot->superAverageCurrent;
+    
+    // /!\ the -1 conspiracy continues
+    long command = - asservStruct.deltaAverageCurrent * TORQUE_P_COEF;
+    
+    if (abs(command) < MIN_COMMAND_BEFORE_COMPLIANT) {
+        motor_compliant();
+    } else {
+        motor_setCommand(command);
+    }
+}
+
 #if BOARD_HAVE_SERIALUSB
 void asserv_printAsserv() {
     SerialUSB.println("***Asserv :");
@@ -66,6 +79,7 @@ void asserv_printAsserv() {
 }
 #else 
 void asserv_printAsserv() {
+    Serial1.println();
     Serial1.println("***Asserv :");
     Serial1.print("deltaAngle : ");
     Serial1.println(asservStruct.deltaAngle);
@@ -73,5 +87,7 @@ void asserv_printAsserv() {
     Serial1.println(asservStruct.state);
     Serial1.print("sumOfDeltas : ");
     Serial1.println(asservStruct.sumOfDeltas);
+    Serial1.print("deltaAverageCurrent : ");
+    Serial1.println(asservStruct.deltaAverageCurrent);
 }
 #endif
