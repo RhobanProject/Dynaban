@@ -1,4 +1,4 @@
-# Alternative firmware for Dynamixel servos
+![Dynaban: An alternative firmware for Dynamixel servos](docs/logo.png)
 
 This repository contains an open-source alternative firmware for Dynamixel servos.
 
