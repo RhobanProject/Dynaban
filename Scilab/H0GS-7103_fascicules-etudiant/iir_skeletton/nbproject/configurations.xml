@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="95">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <logicalFolder name="HeaderFiles"
+                   displayName="Header Files"
+                   projectFiles="true">
+      <itemPath>iir.h</itemPath>
+      <itemPath>statistics.h</itemPath>
+      <itemPath>util.h</itemPath>
+    </logicalFolder>
+    <logicalFolder name="ResourceFiles"
+                   displayName="Resource Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="SourceFiles"
+                   displayName="Source Files"
+                   projectFiles="true">
+      <itemPath>iir.c</itemPath>
+      <itemPath>main.c</itemPath>
+      <itemPath>statistics.c</itemPath>
+      <itemPath>util.c</itemPath>
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Debug" type="1">
+      <toolsSet>
+        <compilerSet>GNU|GNU</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <commandLine>-std=c99</commandLine>
+          <warningLevel>2</warningLevel>
+        </cTool>
+        <linkerTool>
+          <linkerLibItems>
+            <linkerLibStdlibItem>Mathematics</linkerLibStdlibItem>
+          </linkerLibItems>
+        </linkerTool>
+      </compileType>
+      <item path="iir.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="iir.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="main.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="statistics.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="statistics.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="util.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="util.h" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+    <conf name="Release" type="1">
+      <toolsSet>
+        <compilerSet>GNU|GNU</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>5</developmentMode>
+        </cTool>
+        <ccTool>
+          <developmentMode>5</developmentMode>
+        </ccTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+        </fortranCompilerTool>
+      </compileType>
+      <item path="iir.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="iir.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="main.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="statistics.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="statistics.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="util.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="util.h" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>

@@ -1,0 +1,3 @@
+- Faire le filtre en p dans laBaseDelUnivers.sce
+- Ce fichier est inclu dans "transfer_function_laBaseDeLunivers.sce", exéctuer ce fichier sous scilab régénère l'implémentation du filtre sous le nom "H0GS-7103_fascicules-etudiant/toolbox_fixed_point_filter/arbitrary_int.c"
+- Il faut refaire une passe dessus pour voir bien comment marche le code en C. Y'a une fonction init pour allouer la mémoire, c'est la fonciton step qui fait le vrai travail.

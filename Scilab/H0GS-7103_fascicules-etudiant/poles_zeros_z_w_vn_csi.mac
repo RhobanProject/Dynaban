@@ -1,0 +1,13 @@
+kill(all);
+pw:vn*exp(%i*theta);
+pz:(1+pw)/(1-pw);
+pz_z0:factor(pz-z0);
+re:realpart(pz_z0);
+im:imagpart(pz_z0);
+R2:re^2+im^2;
+R2:trigsimp(R2);
+R2:subst([cos(theta)=-csi*vn],R2);
+/* lieu des points a pseudo-pulsation propre vn=cte*/
+sol_z0_vn:solve(diff(R2,csi)=0,z0);
+R2_vn:factor(subst(sol_z0_vn,R2));
+z0_vn:rhs(part(sol_z0_vn,1));

@@ -1,0 +1,357 @@
+NOMBRE DE BLOCS :6
+NOMBRE DE VRAIS BLOCS :6
+VERSION PCAXE10
+Periode Ech(ms)1
+Periode Rafraichissement Ecran (s) 1.01000000000000E+002
+Duree Execution(s) 1.00000000000000E+003
+Type de Carte5
+NbSortie_Card19
+NbCODEUR_Card3
+TypeModeCodeur_Card[1]1
+TypeModeCodeur_Card[2]1
+TypeModeCodeur_Card[3]1
+NbCAN_Card16
+TypeModeCAN_Card[1]1
+TypeModeCAN_Card[2]1
+TypeModeCAN_Card[3]1
+TypeModeCAN_Card[4]1
+TypeModeCAN_Card[5]1
+TypeModeCAN_Card[6]1
+TypeModeCAN_Card[7]1
+TypeModeCAN_Card[8]1
+TypeModeCAN_Card[9]1
+TypeModeCAN_Card[10]1
+TypeModeCAN_Card[11]1
+TypeModeCAN_Card[12]1
+TypeModeCAN_Card[13]1
+TypeModeCAN_Card[14]1
+TypeModeCAN_Card[15]1
+TypeModeCAN_Card[16]1
+NbEntree_Card4
+NbCNA_Card4
+TypeModeCNA_Card[1]1
+TypeModeCNA_Card[2]1
+TypeModeCNA_Card[3]1
+TypeModeCNA_Card[4]1
+Nombre de Courbes:0
+TEch min(ms) 1.00000000000000E-002
+TEch Max(ms) 1.00000000000000E+008
+Longueur des tableaux de donnees100000
+FORME NUMERO : 1
+->PREC: 0
+->SUIV: 2
+->CHILDS: 0
+->Parent: 0
+->Moi: 1
+->Msg: cel1
+->Left16: 11143
+->Right16: 12453
+->Top16: 10981
+->Bottom16: 12548
+->Selected: True
+->TypeForme: 1|
+->ColorBrush: 192|192|192|0|
+->StyleBrush: 0|0|0|0|
+->ColorBord: 0|0|0|0|
+->StyleBord: 0|0|0|0|
+->ModeBord: 4|0|0|0|
+->WidthBord: 1|0|0|0|
+->NbInputs: 1
+->NbOutputs: 1
+->NumDansBuff: 1
+->Num_IN_OUT : 0
+->NumBranche: 0
+->Orientation: 0
+->Entree numero 1->AddBloc: 0
+->Entree numero 1->NumOutput: 1
+ SOUS-BLOC NUMERO :1
+-> NOM :cel1
+-> TYPE:FILTRE
+-> NIVEAU EXEC:INDETERMINE
+-> MODIF PARAM:NON MODIFIABLE
+-> NUM EXEC :150
+-> PREC :0
+-> SUIV :2
+ PARAMS.Code16446
+ PARAMS.NbEntrees1
+ PARAMS.NbSorties1
+ PARAMS.MsgFILTRE
+Param.Entree[1] :0
+->Flt.N0Decim1
+->Flt.NbDecim1
+->Flt.Val Initiale Entree : 0.00000000000000E+000
+->Flt.Val Initiale Sortie : 0.00000000000000E+000
+->Flt.TypeSaisie:Coeffs en W
+->Flt.Nb2
+ ->Flt.Na2
+->Flt.B[0] : 0.03185190975578057
+->Flt.B[1] : 0
+->Flt.B[2] : 0.4641588548922096
+->Flt.A[0] : 0.00620540707396086
+->Flt.A[1] : 0.00020844604390796
+->Flt.A[2] : 1
+FORME NUMERO : 2
+->PREC: 1
+->SUIV: 3
+->CHILDS: 0
+->Parent: 0
+->Moi: 2
+->Msg: cel2
+->Left16: 11143
+->Right16: 12453
+->Top16: 10981
+->Bottom16: 12548
+->Selected: True
+->TypeForme: 1|
+->ColorBrush: 192|192|192|0|
+->StyleBrush: 0|0|0|0|
+->ColorBord: 0|0|0|0|
+->StyleBord: 0|0|0|0|
+->ModeBord: 4|0|0|0|
+->WidthBord: 1|0|0|0|
+->NbInputs: 1
+->NbOutputs: 1
+->NumDansBuff: 1
+->Num_IN_OUT : 0
+->NumBranche: 0
+->Orientation: 0
+->Entree numero 1->AddBloc: 1
+->Entree numero 1->NumOutput: 1
+ SOUS-BLOC NUMERO :1
+-> NOM :cel2
+-> TYPE:FILTRE
+-> NIVEAU EXEC:INDETERMINE
+-> MODIF PARAM:NON MODIFIABLE
+-> NUM EXEC :150
+-> PREC :1
+-> SUIV :3
+ PARAMS.Code16446
+ PARAMS.NbEntrees1
+ PARAMS.NbSorties1
+ PARAMS.MsgFILTRE
+Param.Entree[1] :1
+->Flt.N0Decim1
+->Flt.NbDecim1
+->Flt.Val Initiale Entree : 0.00000000000000E+000
+->Flt.Val Initiale Sortie : 0.00000000000000E+000
+->Flt.TypeSaisie:Coeffs en W
+->Flt.Nb2
+ ->Flt.Na2
+->Flt.B[0] : 0.00539546316850736
+->Flt.B[1] : 0
+->Flt.B[2] : 0.4641588548922096
+->Flt.A[0] : 0.00617535582228006
+->Flt.A[1] : 0.00098867790822550
+->Flt.A[2] : 1
+FORME NUMERO : 3
+->PREC: 2
+->SUIV: 4
+->CHILDS: 0
+->Parent: 0
+->Moi: 3
+->Msg: cel3
+->Left16: 11143
+->Right16: 12453
+->Top16: 10981
+->Bottom16: 12548
+->Selected: True
+->TypeForme: 1|
+->ColorBrush: 192|192|192|0|
+->StyleBrush: 0|0|0|0|
+->ColorBord: 0|0|0|0|
+->StyleBord: 0|0|0|0|
+->ModeBord: 4|0|0|0|
+->WidthBord: 1|0|0|0|
+->NbInputs: 1
+->NbOutputs: 1
+->NumDansBuff: 1
+->Num_IN_OUT : 0
+->NumBranche: 0
+->Orientation: 0
+->Entree numero 1->AddBloc: 2
+->Entree numero 1->NumOutput: 1
+ SOUS-BLOC NUMERO :1
+-> NOM :cel3
+-> TYPE:FILTRE
+-> NIVEAU EXEC:INDETERMINE
+-> MODIF PARAM:NON MODIFIABLE
+-> NUM EXEC :150
+-> PREC :2
+-> SUIV :4
+ PARAMS.Code16446
+ PARAMS.NbEntrees1
+ PARAMS.NbSorties1
+ PARAMS.MsgFILTRE
+Param.Entree[1] :2
+->Flt.N0Decim1
+->Flt.NbDecim1
+->Flt.Val Initiale Entree : 0.00000000000000E+000
+->Flt.Val Initiale Sortie : 0.00000000000000E+000
+->Flt.TypeSaisie:Coeffs en W
+->Flt.Nb2
+ ->Flt.Na2
+->Flt.B[0] : 0.00345437013438035
+->Flt.B[1] : 0
+->Flt.B[2] : 0.4641588548922096
+->Flt.A[0] : 0.00606383267362516
+->Flt.A[1] : 0.00347214518017339
+->Flt.A[2] : 1
+FORME NUMERO : 4
+->PREC: 3
+->SUIV: 5
+->CHILDS: 0
+->Parent: 0
+->Moi: 4
+->Msg: cel4
+->Left16: 11143
+->Right16: 12453
+->Top16: 10981
+->Bottom16: 12548
+->Selected: True
+->TypeForme: 1|
+->ColorBrush: 192|192|192|0|
+->StyleBrush: 0|0|0|0|
+->ColorBord: 0|0|0|0|
+->StyleBord: 0|0|0|0|
+->ModeBord: 4|0|0|0|
+->WidthBord: 1|0|0|0|
+->NbInputs: 1
+->NbOutputs: 1
+->NumDansBuff: 1
+->Num_IN_OUT : 0
+->NumBranche: 0
+->Orientation: 0
+->Entree numero 1->AddBloc: 3
+->Entree numero 1->NumOutput: 1
+ SOUS-BLOC NUMERO :1
+-> NOM :cel4
+-> TYPE:FILTRE
+-> NIVEAU EXEC:INDETERMINE
+-> MODIF PARAM:NON MODIFIABLE
+-> NUM EXEC :150
+-> PREC :3
+-> SUIV :5
+ PARAMS.Code16446
+ PARAMS.NbEntrees1
+ PARAMS.NbSorties1
+ PARAMS.MsgFILTRE
+Param.Entree[1] :3
+->Flt.N0Decim1
+->Flt.NbDecim1
+->Flt.Val Initiale Entree : 0.00000000000000E+000
+->Flt.Val Initiale Sortie : 0.00000000000000E+000
+->Flt.TypeSaisie:Coeffs en W
+->Flt.Nb2
+ ->Flt.Na2
+->Flt.B[0] : 0.00304152553026574
+->Flt.B[1] : 0
+->Flt.B[2] : 0.4641588548922096
+->Flt.A[0] : 0.00569094331172433
+->Flt.A[1] : 0.01166973250722467
+->Flt.A[2] : 1
+FORME NUMERO : 5
+->PREC: 4
+->SUIV: 6
+->CHILDS: 0
+->Parent: 0
+->Moi: 5
+->Msg: cel5
+->Left16: 11143
+->Right16: 12453
+->Top16: 10981
+->Bottom16: 12548
+->Selected: True
+->TypeForme: 1|
+->ColorBrush: 192|192|192|0|
+->StyleBrush: 0|0|0|0|
+->ColorBord: 0|0|0|0|
+->StyleBord: 0|0|0|0|
+->ModeBord: 4|0|0|0|
+->WidthBord: 1|0|0|0|
+->NbInputs: 1
+->NbOutputs: 1
+->NumDansBuff: 1
+->Num_IN_OUT : 0
+->NumBranche: 0
+->Orientation: 0
+->Entree numero 1->AddBloc: 4
+->Entree numero 1->NumOutput: 1
+ SOUS-BLOC NUMERO :1
+-> NOM :cel5
+-> TYPE:FILTRE
+-> NIVEAU EXEC:INDETERMINE
+-> MODIF PARAM:NON MODIFIABLE
+-> NUM EXEC :150
+-> PREC :4
+-> SUIV :6
+ PARAMS.Code16446
+ PARAMS.NbEntrees1
+ PARAMS.NbSorties1
+ PARAMS.MsgFILTRE
+Param.Entree[1] :4
+->Flt.N0Decim1
+->Flt.NbDecim1
+->Flt.Val Initiale Entree : 0.00000000000000E+000
+->Flt.Val Initiale Sortie : 0.00000000000000E+000
+->Flt.TypeSaisie:Coeffs en W
+->Flt.Nb2
+ ->Flt.Na2
+->Flt.B[0] : 0.00293263675737752
+->Flt.B[1] : 0
+->Flt.B[2] : 0.4641588548922096
+->Flt.A[0] : 0.00458679128409370
+->Flt.A[1] : 0.03591657940896126
+->Flt.A[2] : 1
+FORME NUMERO : 6
+->PREC: 5
+->SUIV: 0
+->CHILDS: 0
+->Parent: 0
+->Moi: 6
+->Msg: cel6
+->Left16: 11143
+->Right16: 12453
+->Top16: 10981
+->Bottom16: 12548
+->Selected: True
+->TypeForme: 1|
+->ColorBrush: 192|192|192|0|
+->StyleBrush: 0|0|0|0|
+->ColorBord: 0|0|0|0|
+->StyleBord: 0|0|0|0|
+->ModeBord: 4|0|0|0|
+->WidthBord: 1|0|0|0|
+->NbInputs: 1
+->NbOutputs: 1
+->NumDansBuff: 1
+->Num_IN_OUT : 0
+->NumBranche: 0
+->Orientation: 0
+->Entree numero 1->AddBloc: 5
+->Entree numero 1->NumOutput: 1
+ SOUS-BLOC NUMERO :1
+-> NOM :cel6
+-> TYPE:FILTRE
+-> NIVEAU EXEC:INDETERMINE
+-> MODIF PARAM:NON MODIFIABLE
+-> NUM EXEC :150
+-> PREC :5
+-> SUIV :0
+ PARAMS.Code16446
+ PARAMS.NbEntrees1
+ PARAMS.NbSorties1
+ PARAMS.MsgFILTRE
+Param.Entree[1] :5
+->Flt.N0Decim1
+->Flt.NbDecim1
+->Flt.Val Initiale Entree : 0.00000000000000E+000
+->Flt.Val Initiale Sortie : 0.00000000000000E+000
+->Flt.TypeSaisie:Coeffs en W
+->Flt.Nb2
+ ->Flt.Na2
+->Flt.B[0] : 0.00290430088377728
+->Flt.B[1] : 0
+->Flt.B[2] : 0.4641588548922096
+->Flt.A[0] : 0.00256104094213002
+->Flt.A[1] : 0.08039694392846850
+->Flt.A[2] : 1
