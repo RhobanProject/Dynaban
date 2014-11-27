@@ -1,5 +1,5 @@
 #include "motorManager.h"
-#include "asserv.h";
+#include "asserv.h"
 
 static motor mot;
 static int nbUpdates = 0;
@@ -72,7 +72,7 @@ void motor_update(encoder * pEnc) {
 
 void motor_readCurrent() {
     if (HAS_CURRENT_SENSING) {
-        mot.current = analogRead(CURRENT_ADC_PIN) - 2048;
+        mot.current = analogRead(CURRENT_ADC_PIN) - 2048;//((short) (analogRead(CURRENT_ADC_PIN) << 4))/16;
         mot.averageCurrent = ((AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.averageCurrent + mot.current) / AVERAGE_FACTOR_FOR_CURRENT;
     }
 }
@@ -104,12 +104,10 @@ void motor_setCommand(long pCommand) {
         if (command > 0) {
             motor_securePwmWrite(PWM_1_PIN, 0);
             motor_securePwmWrite(PWM_2_PIN, 0);
-            delay(1); // This is not necessary, to be reduced or deleted
             motor_securePwmWrite(PWM_2_PIN, command);
         } else {
             motor_securePwmWrite(PWM_2_PIN, 0);
             motor_securePwmWrite(PWM_1_PIN, 0);
-            delay(1); // This is not necessary, to be reduced or deleted
             motor_securePwmWrite(PWM_1_PIN, -command);
         }
     }
@@ -165,6 +163,7 @@ void motor_compliant() {
 }
 
 void motor_restart() {
+    mot.state = MOVING;
     digitalWrite(SHUT_DOWN_PIN, HIGH);
 }
 

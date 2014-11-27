@@ -4,15 +4,19 @@ static asserv asservStruct;
 
 void asserv_init() {
     asservStruct.deltaAngle = 0;
-    asservStruct.sumOfDeltas = 0;
+    asservStruct.deltaSpeed = 0;
+    asservStruct.deltaAcceleration = 0;
     asservStruct.deltaAverageCurrent = 0;
+    
+    asservStruct.sumOfDeltas = 0;
+    
     asservStruct.pCoef = INITIAL_P_COEF;
     asservStruct.iCoef = INITIAL_I_COEF;
     asservStruct.dCoef = INITIAL_D_COEF;
     asservStruct.torquePCoef = INITIAL_TORQUE_P_COEF;
 }
 
-void asserv_tickP(motor * pMot) {
+void asserv_tickPOnPosition(motor * pMot) {
     asservStruct.deltaAngle = pMot->targetAngle - pMot->angle;
     if (asservStruct.deltaAngle > 1800) {
         // There is a shorter way, engine bro
@@ -22,7 +26,7 @@ void asserv_tickP(motor * pMot) {
     motor_setCommand(asservStruct.deltaAngle * asservStruct.pCoef);
 }
 
-void asserv_tickPID(motor * pMot) {
+void asserv_tickPIDOnPosition(motor * pMot) {
     asservStruct.deltaAngle = pMot->targetAngle - pMot->angle;
 
     if (asservStruct.deltaAngle > 1800) {
@@ -39,7 +43,19 @@ void asserv_tickPID(motor * pMot) {
     
     motor_setCommand(asservStruct.deltaAngle * asservStruct.pCoef 
                      + (asservStruct.sumOfDeltas * asservStruct.iCoef) / I_PRESCALE
-                     + (pMot->angle - pMot->previousAngle) * asservStruct.dCoef);
+                     + pMot->speed * asservStruct.dCoef);
+}
+
+void asserv_tickPIDOnSpeed(motor * pMot) {
+    asservStruct.deltaSpeed = pMot->targetSpeed - pMot->speed;
+    
+    motor_setCommand(asservStruct.deltaSpeed * asservStruct.speedPCoef);
+}
+
+void asserv_tickPIDOnAcceleration(motor * pMot) {
+    asservStruct.deltaAcceleration = pMot->targetAcceleration - pMot->acceleration;
+    
+    motor_setCommand(asservStruct.deltaAcceleration * asservStruct.accelerationPCoef);
 }
 
 void asserv_tickPIDOnTorque(motor * pMot) {
