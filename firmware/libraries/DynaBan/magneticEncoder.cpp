@@ -207,8 +207,7 @@ void encoder_readAnglesSharingPinsMode() {
         // shifting 18-digit angle right 6 digits to form 12-digit value
         enc->angle = (enc->angle >> 6); 
         
-        // /!\ warning, x10 :
-        enc->angle = enc->angle * 0.8789; //0.08789 == angle * (360/4096) == actual degrees
+        enc->angle = enc->angle; //0.08789 == angle * (360/4096) == actual degrees
         
         if (debug) {
             statusbits = enc->inputLong & STATUS_MASK;
@@ -301,7 +300,7 @@ long encoder_readAngleSequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {
     angle = (angle >> 6); // shift 18-digit angle right 6 digits to form 12-digit value
     
     // /!\ warning, x10 :
-    angle = angle * 0.8789; //0.08789 == angle * (360/4096) == actual degrees
+    angle = angle;// * 0.8789; //0.08789 == angle * (360/4096) == actual degrees
     if (debug) {
             statusbits = inputLong & STATUS_MASK;
             //DECn = statusbits & 2; // goes high if magnet moved away from IC

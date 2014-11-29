@@ -3,14 +3,13 @@
 #include <wirish/wirish.h>
 #include "magneticEncoder.h"
 
-
 const bool HAS_CURRENT_SENSING = true;
 const int CURRENT_ADC_PIN = 33;// PB1
+const int PRESCALE = 1 << 10;
 const int AVERAGE_FACTOR_FOR_CURRENT = 16;
-const int SUPER_AVERAGE_FACTOR_FOR_CURRENT = 16;
 // 90% of 3000 (PWM period) :
 const long MAX_COMMAND = 2700;
-const long MAX_ANGLE = 3600;
+const long MAX_ANGLE = 4096;
 const int PWM_1_PIN = 27; // PA8 --> Negative rotation
 const int PWM_2_PIN = 26; // PA9 --> Positive rotation
 const int SHUT_DOWN_PIN = 23; // PA12
@@ -40,7 +39,6 @@ typedef struct _motor_ {
     motorState state;
     long current;
     long averageCurrent;
-    long superAverageCurrent;
     long targetCurrent;
 } motor;
 

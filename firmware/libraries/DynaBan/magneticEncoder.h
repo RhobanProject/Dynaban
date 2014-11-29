@@ -38,7 +38,7 @@ long encoder_getAngle(uint8 pEncoderId);
 //void encoder_start();
 
 /**
-   Return 10x an encoder angle in an one shot fashion (no need to call init, addEncoder or start). 
+   Returns the encoder angle in an one shot fashion (no need to call init, addEncoder or start). 
  */
 long encoder_readAngleSequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin);
 

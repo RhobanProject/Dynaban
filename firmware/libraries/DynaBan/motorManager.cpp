@@ -47,7 +47,6 @@ void motor_init(encoder * pEnc) {
     mot.state = MOVING;
     mot.current = 0;
     mot.averageCurrent = 0;
-    mot.superAverageCurrent = 0;
     mot.targetCurrent = 0;
 }
 
@@ -77,15 +76,13 @@ void motor_update(encoder * pEnc) {
         mot.previousSpeed = mot.speed;
     }
     
-    mot.superAverageCurrent = ((SUPER_AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.superAverageCurrent + mot.averageCurrent) / SUPER_AVERAGE_FACTOR_FOR_CURRENT;
-    
     nbUpdates++;
 }
 
 void motor_readCurrent() {
     if (HAS_CURRENT_SENSING) {
         mot.current = analogRead(CURRENT_ADC_PIN) - 2048;//((short) (analogRead(CURRENT_ADC_PIN) << 4))/16;
-        mot.averageCurrent = ((AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.averageCurrent + mot.current) / AVERAGE_FACTOR_FOR_CURRENT;
+        mot.averageCurrent = ((AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.averageCurrent * PRESCALE + mot.current) / (AVERAGE_FACTOR_FOR_CURRENT * PRESCALE);
     }
 }
 
@@ -207,8 +204,6 @@ void motor_printMotor() {
     SerialUSB.println(mot.current);
     SerialUSB.print("averageCurrent : ");
     SerialUSB.println(mot.averageCurrent);
-    SerialUSB.print("superAverageCurrent : ");
-    SerialUSB.println(mot.superAverageCurrent);
 }
 #else 
 void motor_printMotor() {
@@ -238,7 +233,5 @@ void motor_printMotor() {
     Serial1.println(mot.current);
     Serial1.print("averageCurrent : ");
     Serial1.println(mot.averageCurrent);
-    Serial1.print("superAverageCurrent : ");
-    Serial1.println(mot.superAverageCurrent);
 }
 #endif

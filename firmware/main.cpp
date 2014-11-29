@@ -19,6 +19,7 @@ To do
 unsigned short terribleSignConvention(long pInput, long pIamZeroISwear);
 void initDxlRam();
 void updateDxlRam();
+void readDxlRam();
 void printDebug();
 
 typedef struct _hardware__ {
@@ -158,13 +159,15 @@ void hardwareTick() {
         motor_update(hardwareStruct.enc);
          
         //Updating asserv
+        /*
         if (controlMode == POSITION_CONTROL) {
             asserv_tickPIDOnPosition(hardwareStruct.mot);
         } else if (controlMode == TORQUE_CONTROL) {
             asserv_tickPIDOnTorque(hardwareStruct.mot);
         } else {
             //asserv_tickPIDOnPosition(hardwareStruct.mot);
-        }
+            }*/
+        asserv_tickPIDOnPosition(hardwareStruct.mot);
         
         //asserv_tickPIDOnSpeed(hardwareStruct.mot);
         //asserv_tickPIDOnAcceleration(hardwareStruct.mot);
@@ -212,17 +215,18 @@ void loop() {
         readyToUpdateHardware = false;
         hardwareTick();
         updateDxlRam();
+        readDxlRam();
     }
     
-    if (counter % (100*200) == 0) {
-        toggleLED();
-        //printDebug();
+    /*if (counter % (100*200) == 0) {
+        //toggleLED();
+        printDebug();
                
-    }
+        }*/
     
     if (counter % (100*2000*2) == 0) {
         counter = 0;
-        //motor_setTargetAngle(900 * posCounter);
+        //motor_setTargetAngle(1000 * posCounter);
         /*if (counter % 2 == 0) {
             controlMode = TORQUE_CONTROL;
         } else {
@@ -261,7 +265,7 @@ void updateDxlRam() {
     dxl_regs.ram.presentPosition = hardwareStruct.mot->angle;
     dxl_regs.ram.presentSpeed = terribleSignConvention(hardwareStruct.mot->speed, 1024);
     
-    dxl_regs.ram.presentLoad = terribleSignConvention(hardwareStruct.mot->superAverageCurrent, 1024);
+    dxl_regs.ram.presentLoad = terribleSignConvention(hardwareStruct.mot->averageCurrent, 1024);
     dxl_regs.ram.presentVoltage = -1;
     dxl_regs.ram.presentTemperature = -1;
     //dxl_regs.ram.registeredInstruction = ;
@@ -271,7 +275,7 @@ void updateDxlRam() {
         dxl_regs.ram.moving = 0;
     }
     
-    dxl_regs.ram.current = terribleSignConvention(hardwareStruct.mot->superAverageCurrent, 2048);
+    dxl_regs.ram.current = terribleSignConvention(hardwareStruct.mot->averageCurrent, 2048);
 }
 
 void readDxlRam() {
@@ -281,10 +285,11 @@ void readDxlRam() {
     //asservStruct->dCoef = dxl_regs.ram.servoKd;
     //asservStruct->iCoef = dxl_regs.ram.servoKi;                 
     //asservStruct->pCoef = dxl_regs.ram.servoKp;
-    if (hardwareStruct.mot->targetAngle != dxl_regs.ram.goalPosition) {
+    hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;     
+    /*if (hardwareStruct.mot->targetAngle != dxl_regs.ram.goalPosition) {
         hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;     
         controlMode = POSITION_CONTROL;
-    }
+        }*/
     
     hardwareStruct.mot->targetSpeed = dxl_regs.ram.movingSpeed;             
     //To do : //dxl_regs.ram.torqueLimit;       
@@ -292,10 +297,12 @@ void readDxlRam() {
     //To do : //dxl_regs.ram.punch;                   
                      
     //To do : //dxl_regs.ram.torqueMode;              
+    hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalTorque;     
+    /*
     if (hardwareStruct.mot->targetCurrent != dxl_regs.ram.goalTorque) {
         hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalTorque;     
         controlMode = TORQUE_CONTROL;
-    } 
+        } */
     
     hardwareStruct.mot->targetAcceleration = dxl_regs.ram.goalAcceleration;
     

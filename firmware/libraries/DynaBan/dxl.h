@@ -14,7 +14,7 @@
 #define DXL_RAM_BEGIN   0x18
 
 // Model number
-#define DXL_MODEL       29
+#define DXL_MODEL       0x136
 
 #define DXL_PING        0x01
 #define DXL_READ_DATA   0x02

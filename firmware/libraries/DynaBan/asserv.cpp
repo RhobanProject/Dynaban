@@ -69,7 +69,7 @@ void asserv_tickPIDOnAcceleration(motor * pMot) {
 }
 
 void asserv_tickPIDOnTorque(motor * pMot) {
-    asservStruct.deltaAverageCurrent = pMot->targetCurrent - pMot->superAverageCurrent;
+    asservStruct.deltaAverageCurrent = pMot->targetCurrent - pMot->averageCurrent;
     
     // /!\ the -1 conspiracy continues
     long command = - asservStruct.deltaAverageCurrent * asservStruct.torquePCoef;
