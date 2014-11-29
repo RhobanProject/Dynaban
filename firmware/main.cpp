@@ -19,18 +19,26 @@ To do
 unsigned short terribleSignConvention(long pInput, long pIamZeroISwear);
 void initDxlRam();
 void updateDxlRam();
+void printDebug();
 
 typedef struct _hardware__ {
     encoder * enc;
     motor * mot;
 } hardware;
 
+typedef enum _controlModeEnum_ {
+    POSITION_CONTROL       = 0,
+    TORQUE_CONTROL         = 1,
+} controlModeEnum;
+
 const int OVER_FLOW = 3000;
 
 long counter = 0;
+int posCounter = 0;
 int hardwareCounter = 0;
 long debugCounter = 0;
 bool readyToUpdateHardware = false;
+bool controlMode = POSITION_CONTROL;
 void setReadyToUpdateHardware();
 hardware hardwareStruct;
 
@@ -109,11 +117,12 @@ void setup() {
     
     //Dxl struct init
     initDxlRam();
-
-    //motor_setCommand(-400); // 300 => 1800, -300 => 2100
+    
+    //motor_setCommand(2700); // 300 => 1800, -300 => 2100
     //motor_setTargetAngle(1800);
     //motor_setTargetCurrent(-20);
-    //hardwareStruct.mot->targetSpeed = 30;
+    //hardwareStruct.mot->targetSpeed = 450;
+    //hardwareStruct.mot->targetAcceleration = 5;
     //motor_compliant();
 
     /* Recherche d'une série de bits en mémoire
@@ -149,22 +158,84 @@ void hardwareTick() {
         motor_update(hardwareStruct.enc);
          
         //Updating asserv
-        //asserv_tickPIDOnPosition(hardwareStruct.mot);
-        //asserv_tickPIDOnTorque(hardwareStruct.mot);
-        //asserv_tickPIDOnSpeed(hardwareStruct.mot);
-        /*
-        digitalWrite(BOARD_TX_ENABLE, HIGH);
-        Serial1.println();
-        Serial1.print(debugCounter++);
-        Serial1.print(" ");
-        Serial1.print(hardwareStruct.mot->superAverageCurrent);
+        if (controlMode == POSITION_CONTROL) {
+            asserv_tickPIDOnPosition(hardwareStruct.mot);
+        } else if (controlMode == TORQUE_CONTROL) {
+            asserv_tickPIDOnTorque(hardwareStruct.mot);
+        } else {
+            //asserv_tickPIDOnPosition(hardwareStruct.mot);
+        }
         
-        Serial1.waitDataToBeSent();
-        digitalWrite(BOARD_TX_ENABLE, LOW);
-        */
+        //asserv_tickPIDOnSpeed(hardwareStruct.mot);
+        //asserv_tickPIDOnAcceleration(hardwareStruct.mot);
+
+        //printDebug();
+        
     }
 
     hardwareCounter++;
+}
+
+void printDebug() {
+    digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.println();
+    Serial1.print("-----------------------:");
+    motor_printMotor();
+    asserv_printAsserv();
+    Serial1.waitDataToBeSent();
+    digitalWrite(BOARD_TX_ENABLE, LOW);
+}
+
+/**
+   From a signed convention to a unsigned convention
+ */
+unsigned short terribleSignConvention(long pInput, long pIamZeroISwear) {
+    if (pInput > 0) {
+        return (unsigned short) pInput;
+    } else {
+        return (unsigned short) (pIamZeroISwear - pInput);
+    }
+}
+
+void loop() {
+    //delay(1);
+    //delay(10);
+    //delayMicroseconds(10);
+    counter++;
+    //toggleLED();
+    
+    if (dxl_tick()) {
+        digitalWrite(BOARD_LED_PIN, (dxl_regs.ram.led!=0) ? HIGH : LOW);
+    }
+
+    if (readyToUpdateHardware) {
+        readyToUpdateHardware = false;
+        hardwareTick();
+        updateDxlRam();
+    }
+    
+    if (counter % (100*200) == 0) {
+        toggleLED();
+        //printDebug();
+               
+    }
+    
+    if (counter % (100*2000*2) == 0) {
+        counter = 0;
+        //motor_setTargetAngle(900 * posCounter);
+        /*if (counter % 2 == 0) {
+            controlMode = TORQUE_CONTROL;
+        } else {
+            controlMode = POSITION_CONTROL;
+        }*/
+        
+        if (posCounter == 3) {
+            posCounter = 0;
+        } else {
+            posCounter++;
+        }
+    }
+    
 }
 
 void initDxlRam() {
@@ -209,16 +280,24 @@ void readDxlRam() {
     //Asserv struct à rajouter dans hardwareStruct
     //asservStruct->dCoef = dxl_regs.ram.servoKd;
     //asservStruct->iCoef = dxl_regs.ram.servoKi;                 
-    //asservStruct->pCoef = dxl_regs.ram.servoKp;                 
-    hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;            
+    //asservStruct->pCoef = dxl_regs.ram.servoKp;
+    if (hardwareStruct.mot->targetAngle != dxl_regs.ram.goalPosition) {
+        hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;     
+        controlMode = POSITION_CONTROL;
+    }
+    
     hardwareStruct.mot->targetSpeed = dxl_regs.ram.movingSpeed;             
     //To do : //dxl_regs.ram.torqueLimit;       
     //To do  : //dxl_regs.ram.lock;                    
     //To do : //dxl_regs.ram.punch;                   
                      
     //To do : //dxl_regs.ram.torqueMode;              
-    hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalTorque;              
-    hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalAcceleration;
+    if (hardwareStruct.mot->targetCurrent != dxl_regs.ram.goalTorque) {
+        hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalTorque;     
+        controlMode = TORQUE_CONTROL;
+    } 
+    
+    hardwareStruct.mot->targetAcceleration = dxl_regs.ram.goalAcceleration;
     
     if (dxl_regs.ram.torqueEnable) {
         if (hardwareStruct.mot->state == COMPLIANT) {
@@ -229,52 +308,6 @@ void readDxlRam() {
             motor_compliant();
         }
     }
-}
-
-/**
-   From a signed convention to a unsigned convention
- */
-unsigned short terribleSignConvention(long pInput, long pIamZeroISwear) {
-    if (pInput > 0) {
-        return (unsigned short) pInput;
-    } else {
-        return (unsigned short) (pIamZeroISwear - pInput);
-    }
-}
-
-void loop() {
-    //delay(1);
-    //delay(10);
-    //delayMicroseconds(10);
-    counter++;
-    //toggleLED();
-    
-    if (dxl_tick()) {
-        digitalWrite(BOARD_LED_PIN, (dxl_regs.ram.led!=0) ? HIGH : LOW);
-    }
-
-    if (readyToUpdateHardware) {
-        readyToUpdateHardware = false;
-        hardwareTick();
-        updateDxlRam();
-    }
-
-    //Debug
-    // if (counter % (100*200) == 0) {
-    //    toggleLED();
-    // }
-    /*if (counter % (100*200) == 0) {
-        toggleLED();
-            
-        digitalWrite(BOARD_TX_ENABLE, HIGH);
-        Serial1.println();
-        Serial1.print("-----------------------:");
-        motor_printMotor();
-        asserv_printAsserv();
-        Serial1.waitDataToBeSent();
-        digitalWrite(BOARD_TX_ENABLE, LOW);       
-        }*/
-    
 }
 
 

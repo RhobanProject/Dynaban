@@ -55,11 +55,23 @@ void motor_update(encoder * pEnc) {
     mot.angle = pEnc->angle;
 
     if (nbUpdates % NB_TICKS_BEFORE_UPDATING_SPEED == 0) {
-        mot.speed = mot.angle - mot.previousAngle;
+        mot.speedUpdated = true;
+        //Normal case 
+        mot.speed = (mot.angle - mot.previousAngle) * SPEED_GAIN;
+        if (abs(mot.speed) > MAX_SPEED) {
+            //Position went from near max to near 0 or vice-versa
+            if (mot.angle > mot.previousAngle) {
+                mot.speed = (mot.previousSpeed + MAX_ANGLE - mot.angle) * SPEED_GAIN;
+            } else if (mot.angle < mot.previousAngle) {
+                mot.speed = (mot.previousSpeed - MAX_ANGLE + mot.angle) * SPEED_GAIN;
+            }
+        }
+                
         mot.previousAngle = mot.angle;
     }
 
     if (nbUpdates == NB_TICKS_BEFORE_UPDATING_ACCELERATION) {
+        mot.accelerationUpdated = true;
         nbUpdates = 0;
         mot.acceleration = mot.speed - mot.previousSpeed;
         mot.previousSpeed = mot.speed;
@@ -183,6 +195,20 @@ void motor_printMotor() {
     SerialUSB.println(mot.targetAngle);
     SerialUSB.print("state : ");
     SerialUSB.println(mot.state);
+    SerialUSB.print("speed : ");
+    SerialUSB.println(mot.speed);
+    SerialUSB.print("target speed : ");
+    SerialUSB.println(mot.targetSpeed);
+    SerialUSB.print("acceleration : ");
+    SerialUSB.println(mot.acceleration);
+    SerialUSB.print("target acceleration : ");
+    SerialUSB.println(mot.targetAcceleration);
+    SerialUSB.print("current : ");
+    SerialUSB.println(mot.current);
+    SerialUSB.print("averageCurrent : ");
+    SerialUSB.println(mot.averageCurrent);
+    SerialUSB.print("superAverageCurrent : ");
+    SerialUSB.println(mot.superAverageCurrent);
 }
 #else 
 void motor_printMotor() {
@@ -200,11 +226,19 @@ void motor_printMotor() {
     Serial1.println(mot.targetAngle);
     Serial1.print("state : ");
     Serial1.println(mot.state);
+    Serial1.print("speed : ");
+    Serial1.println(mot.speed);
+    Serial1.print("target speed : ");
+    Serial1.println(mot.targetSpeed);
+    Serial1.print("acceleration : ");
+    Serial1.println(mot.acceleration);
+    Serial1.print("target acceleration : ");
+    Serial1.println(mot.targetAcceleration);
     Serial1.print("current : ");
     Serial1.println(mot.current);
     Serial1.print("averageCurrent : ");
     Serial1.println(mot.averageCurrent);
-    Serial1.print("targetCurrent : ");
-    Serial1.println(mot.targetCurrent);
+    Serial1.print("superAverageCurrent : ");
+    Serial1.println(mot.superAverageCurrent);
 }
 #endif

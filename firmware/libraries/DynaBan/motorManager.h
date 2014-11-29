@@ -16,6 +16,7 @@ const int PWM_2_PIN = 26; // PA9 --> Positive rotation
 const int SHUT_DOWN_PIN = 23; // PA12
 const int NB_TICKS_BEFORE_UPDATING_SPEED = 8;
 const int NB_TICKS_BEFORE_UPDATING_ACCELERATION = 8 * NB_TICKS_BEFORE_UPDATING_SPEED;
+const int MAX_SPEED = 1023;
 
 typedef enum _motorState_ {
     COMPLIANT       = 0,
@@ -32,8 +33,10 @@ typedef struct _motor_ {
     long speed;
     long previousSpeed;
     long targetSpeed;
+    bool speedUpdated;
     long acceleration;
     long targetAcceleration;
+    bool accelerationUpdated;
     motorState state;
     long current;
     long averageCurrent;

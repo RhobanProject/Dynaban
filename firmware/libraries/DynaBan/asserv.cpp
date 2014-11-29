@@ -13,12 +13,14 @@ void asserv_init() {
     asservStruct.pCoef = INITIAL_P_COEF;
     asservStruct.iCoef = INITIAL_I_COEF;
     asservStruct.dCoef = INITIAL_D_COEF;
+    asservStruct.speedPCoef = INITIAL_SPEED_P_COEF;
+    asservStruct.accelerationPCoef = INITIAL_ACCELERATION_P_COEF;
     asservStruct.torquePCoef = INITIAL_TORQUE_P_COEF;
 }
 
 void asserv_tickPOnPosition(motor * pMot) {
     asservStruct.deltaAngle = pMot->targetAngle - pMot->angle;
-    if (asservStruct.deltaAngle > 1800) {
+    if (abs(asservStruct.deltaAngle) > 1800) {
         // There is a shorter way, engine bro
         asservStruct.deltaAngle = pMot->angle - pMot->targetAngle;
     }
@@ -29,7 +31,7 @@ void asserv_tickPOnPosition(motor * pMot) {
 void asserv_tickPIDOnPosition(motor * pMot) {
     asservStruct.deltaAngle = pMot->targetAngle - pMot->angle;
 
-    if (asservStruct.deltaAngle > 1800) {
+    if (abs(asservStruct.deltaAngle) > 1800) {
         // There is a shorter way, engine bro
         asservStruct.deltaAngle = pMot->angle - pMot->targetAngle;
     }
@@ -47,15 +49,23 @@ void asserv_tickPIDOnPosition(motor * pMot) {
 }
 
 void asserv_tickPIDOnSpeed(motor * pMot) {
-    asservStruct.deltaSpeed = pMot->targetSpeed - pMot->speed;
+    if (pMot->speedUpdated == true) {
+        pMot->speedUpdated = false;
+        asservStruct.deltaSpeed = pMot->targetSpeed - pMot->speed;
     
-    motor_setCommand(asservStruct.deltaSpeed * asservStruct.speedPCoef);
+        motor_setCommand(asservStruct.deltaSpeed * asservStruct.speedPCoef);
+    }
+    
 }
 
 void asserv_tickPIDOnAcceleration(motor * pMot) {
-    asservStruct.deltaAcceleration = pMot->targetAcceleration - pMot->acceleration;
+    if (pMot->accelerationUpdated == true) {
+        pMot->accelerationUpdated = false;
+        asservStruct.deltaAcceleration = pMot->targetAcceleration - pMot->acceleration;
+        
+        motor_setCommand(asservStruct.deltaAcceleration * asservStruct.accelerationPCoef);
+    }
     
-    motor_setCommand(asservStruct.deltaAcceleration * asservStruct.accelerationPCoef);
 }
 
 void asserv_tickPIDOnTorque(motor * pMot) {
