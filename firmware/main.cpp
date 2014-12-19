@@ -16,11 +16,16 @@ To do
 #include <DynaBan/asserv.h>
 #include <DynaBan/dxl.h>
 
+const bool DXL_COM_ON = false;
+
 unsigned short terribleSignConvention(long pInput, long pIamZeroISwear);
 void initDxlRam();
 void updateDxlRam();
 void readDxlRam();
 void printDebug();
+void printCurrentDebug();
+void printDetailedCurrentDebug();
+void hardwareTick();
 
 typedef struct _hardware__ {
     encoder * enc;
@@ -33,6 +38,7 @@ typedef enum _controlModeEnum_ {
 } controlModeEnum;
 
 const int OVER_FLOW = 3000;
+//const int OVER_FLOW = 13000;//3000;
 
 long counter = 0;
 int posCounter = 0;
@@ -101,7 +107,7 @@ void setup() {
     //Motor init
     motor_init(encoder_getEncoder(0));
     asserv_init();
-    
+
     //Dxl
     dxl_init();
     
@@ -110,7 +116,8 @@ void setup() {
     
     HardwareTimer timer2(2);
     // The hardware will be read at ~~48Khz
-    timer2.setPeriod(21);
+    //timer2.setPeriod(21);
+    timer2.setPeriod(7);
     timer2.setChannel1Mode(TIMER_OUTPUT_COMPARE);
     //Interrupt 1 count after each update
     timer2.setCompare(TIMER_CH1, 1);
@@ -119,6 +126,11 @@ void setup() {
     //Dxl struct init
     initDxlRam();
     
+    
+    //motor_securePwmWrite(PWM_1_PIN, 500);
+    //motor_securePwmWrite(PWM_2_PIN, 500);
+
+    //printDetailedCurrentDebug();
     //motor_setCommand(2700); // 300 => 1800, -300 => 2100
     //motor_setTargetAngle(1800);
     //motor_setTargetCurrent(-20);
@@ -145,13 +157,73 @@ void setReadyToUpdateHardware() {
     readyToUpdateHardware = true;
 }
 
+void loop() {
+    //delay(1);
+    //delay(10);
+    //delayMicroseconds(10);
+    //toggleLED();
+    
+    if (dxl_tick()) {
+        //digitalWrite(BOARD_LED_PIN, (dxl_regs.ram.led!=0) ? HIGH : LOW);
+    }
+    
+    if (readyToUpdateHardware) {
+        readyToUpdateHardware = false;
+        hardwareTick();
+        if (DXL_COM_ON) {
+            updateDxlRam();
+            readDxlRam();
+        }
+    }
+    
+    if (counter % (100*200) == 0) {
+        if (DXL_COM_ON == false) {
+            //toggleLED();
+            printCurrentDebug();
+            //printDebug();
+        }
+    }
+    
+    if (counter % (100*2000) == 0) {
+        counter = 0;
+        //motor_setTargetAngle(1000 * posCounter);
+        
+        if (posCounter == 0) {
+            motor_securePwmWrite(PWM_2_PIN, 0);
+            motor_securePwmWrite(PWM_1_PIN, 500);
+            posCounter = 1;
+            digitalWrite(BOARD_LED_PIN, HIGH);
+            //hardwareStruct.mot->targetSpeed = -20;
+            //motor_setTargetAngle(1020);
+        } else if (posCounter == 1) {
+            motor_securePwmWrite(PWM_1_PIN, 0);
+            motor_securePwmWrite(PWM_2_PIN, 500);
+            posCounter = 0;
+            digitalWrite(BOARD_LED_PIN, LOW);
+            //hardwareStruct.mot->targetSpeed = -40;
+            //motor_setTargetAngle(2040);
+        } else if (posCounter == 2) {
+            posCounter = 3;
+            //hardwareStruct.mot->targetSpeed = -60;
+            //motor_setTargetAngle(3060);
+        } else {
+            posCounter = 0;
+            //hardwareStruct.mot->targetSpeed = -80;
+            //motor_setTargetAngle(4095);
+        }
+    }
+
+    counter++;
+}
+
 void hardwareTick() {
     //The current must be read as often as possible because it's so noisy that it requires a lot of averaging for it to be usable
     motor_readCurrent();
     
-    if (hardwareCounter > 47) {
+    if (hardwareCounter > (48*3 - 1)) {
+        //48*3 - 1 => 6 measures per PWM cycle
         hardwareCounter = 0;
-        //These actions are performed at a rate of 1KHz if the hardware tick is at 48KHz  
+        //These actions are performed at a rate of 1KHz  
         //Updating the encoder
         encoder_readAnglesSharingPinsMode();
         
@@ -167,13 +239,14 @@ void hardwareTick() {
         } else {
             //asserv_tickPIDOnPosition(hardwareStruct.mot);
             }*/
-        asserv_tickPIDOnPosition(hardwareStruct.mot);
+        //asserv_tickPIDOnTorque(hardwareStruct.mot);
+        //asserv_tickPIDOnPosition(hardwareStruct.mot);
         
         //asserv_tickPIDOnSpeed(hardwareStruct.mot);
         //asserv_tickPIDOnAcceleration(hardwareStruct.mot);
-
+        //motor_compliant();
         //printDebug();
-        
+        //printCurrentDebug();
     }
 
     hardwareCounter++;
@@ -189,6 +262,52 @@ void printDebug() {
     digitalWrite(BOARD_TX_ENABLE, LOW);
 }
 
+void printCurrentDebug() {
+    digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.print(hardwareStruct.mot->current);
+    Serial1.print(" ");
+    Serial1.println(hardwareStruct.mot->averageCurrent);
+    Serial1.waitDataToBeSent();
+    digitalWrite(BOARD_TX_ENABLE, LOW);
+}
+
+void printDetailedCurrentDebug() {
+    //This replaces the loop
+    long detailedCounter = 0;
+    while(true) {
+        detailedCounter++;
+        delay(1);
+        currentDetailedDebugOn = true;
+        //Waiting for the measures tu be made
+        while(currentDetailedDebugOn != false) {                
+            delayMicroseconds(1);
+            if (readyToUpdateHardware) {
+                hardwareTick();
+                readyToUpdateHardware = false;
+            }
+        }
+        
+        digitalWrite(BOARD_TX_ENABLE, HIGH);
+        Serial1.println("");
+        for (int i = 0; i < C_NB_RAW_MEASURES; i++) {
+            Serial1.println(currentRawMeasures[i]);
+        }
+    
+        Serial1.waitDataToBeSent();
+        digitalWrite(BOARD_TX_ENABLE, LOW);
+        if (detailedCounter == 50) {
+            motor_securePwmWrite(PWM_1_PIN, 0);
+            motor_securePwmWrite(PWM_2_PIN, 500);
+            digitalWrite(BOARD_LED_PIN, LOW);
+        } else if (detailedCounter == 100) {
+            detailedCounter = 0;
+            motor_securePwmWrite(PWM_2_PIN, 0);
+            motor_securePwmWrite(PWM_1_PIN, 500);
+            digitalWrite(BOARD_LED_PIN, HIGH);
+        }
+    }
+}
+
 /**
    From a signed convention to a unsigned convention
  */
@@ -200,47 +319,7 @@ unsigned short terribleSignConvention(long pInput, long pIamZeroISwear) {
     }
 }
 
-void loop() {
-    //delay(1);
-    //delay(10);
-    //delayMicroseconds(10);
-    counter++;
-    //toggleLED();
-    
-    if (dxl_tick()) {
-        digitalWrite(BOARD_LED_PIN, (dxl_regs.ram.led!=0) ? HIGH : LOW);
-    }
 
-    if (readyToUpdateHardware) {
-        readyToUpdateHardware = false;
-        hardwareTick();
-        updateDxlRam();
-        readDxlRam();
-    }
-    
-    /*if (counter % (100*200) == 0) {
-        //toggleLED();
-        printDebug();
-               
-        }*/
-    
-    if (counter % (100*2000*2) == 0) {
-        counter = 0;
-        //motor_setTargetAngle(1000 * posCounter);
-        /*if (counter % 2 == 0) {
-            controlMode = TORQUE_CONTROL;
-        } else {
-            controlMode = POSITION_CONTROL;
-        }*/
-        
-        if (posCounter == 3) {
-            posCounter = 0;
-        } else {
-            posCounter++;
-        }
-    }
-    
-}
 
 void initDxlRam() {
     dxl_regs.ram.torqueEnable = 0;           

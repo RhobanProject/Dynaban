@@ -2,6 +2,7 @@
 #define _MOTOR_MANAGER_H_
 #include <wirish/wirish.h>
 #include "magneticEncoder.h"
+#include "circularBuffer.h"
 
 const bool HAS_CURRENT_SENSING = true;
 const int CURRENT_ADC_PIN = 33;// PB1
@@ -13,9 +14,15 @@ const long MAX_ANGLE = 4096;
 const int PWM_1_PIN = 27; // PA8 --> Negative rotation
 const int PWM_2_PIN = 26; // PA9 --> Positive rotation
 const int SHUT_DOWN_PIN = 23; // PA12
-const int NB_TICKS_BEFORE_UPDATING_SPEED = 8;
-const int NB_TICKS_BEFORE_UPDATING_ACCELERATION = 8 * NB_TICKS_BEFORE_UPDATING_SPEED;
+const int NB_TICKS_BEFORE_UPDATING_SPEED = BUFF_SIZE;
+const int NB_TICKS_BEFORE_UPDATING_ACCELERATION = 32 * NB_TICKS_BEFORE_UPDATING_SPEED;
 const int MAX_SPEED = 1023;
+
+const int C_NB_RAW_MEASURES = 60;
+extern long currentRawMeasures[C_NB_RAW_MEASURES];
+extern int currentMeasureIndex;
+extern bool currentDetailedDebugOn;
+
 
 typedef enum _motorState_ {
     COMPLIANT       = 0,
@@ -28,6 +35,7 @@ typedef struct _motor_ {
     long previousCommand;
     long angle;
     long previousAngle;
+    buffer angleBuffer;
     long targetAngle;
     long speed;
     long previousSpeed;
@@ -57,6 +65,7 @@ void motor_setTargetAngle(long pAngle);
 
 void motor_setTargetCurrent(int pCurrent);
 
+void motor_securePwmWrite(uint8 pPin, uint16 pCommand);
 /**
    Will make the engine brake
  */

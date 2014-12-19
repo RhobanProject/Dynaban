@@ -20,7 +20,7 @@ void asserv_init() {
 
 void asserv_tickPOnPosition(motor * pMot) {
     asservStruct.deltaAngle = pMot->targetAngle - pMot->angle;
-    if (abs(asservStruct.deltaAngle) > 1800) {
+    if (abs(asservStruct.deltaAngle) > (MAX_ANGLE/2)) {
         // There is a shorter way, engine bro
         asservStruct.deltaAngle = pMot->angle - pMot->targetAngle;
     }
@@ -31,7 +31,7 @@ void asserv_tickPOnPosition(motor * pMot) {
 void asserv_tickPIDOnPosition(motor * pMot) {
     asservStruct.deltaAngle = pMot->targetAngle - pMot->angle;
 
-    if (abs(asservStruct.deltaAngle) > 1800) {
+    if (abs(asservStruct.deltaAngle) > (MAX_ANGLE/2)) {
         // There is a shorter way, engine bro
         asservStruct.deltaAngle = pMot->angle - pMot->targetAngle;
     }
@@ -53,7 +53,7 @@ void asserv_tickPIDOnSpeed(motor * pMot) {
         pMot->speedUpdated = false;
         asservStruct.deltaSpeed = pMot->targetSpeed - pMot->speed;
     
-        motor_setCommand(asservStruct.deltaSpeed * asservStruct.speedPCoef);
+        motor_setCommand(asservStruct.deltaSpeed * asservStruct.speedPCoef * NB_TICKS_BEFORE_UPDATING_SPEED);
     }
     
 }

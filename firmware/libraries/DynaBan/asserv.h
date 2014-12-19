@@ -25,12 +25,10 @@ const int INITIAL_TORQUE_P_COEF = 45;
   1 unit of speed = 0.114rpm
   max range speed = 1023 => 117.07 rpm
   526 speed unit ~= 60 rpm = 1 rps
-  => K * NB_TICK_BEFORE_UPDATING_SPEED * 4096/(NB_TICKS_PER_SECOND) = 526 
-  => SPEED_GAIN = K = NB_TICKS_PER_SECOND * 526 / (NB_TICKS_BEFORE_UPDATING_SPEED * 4096)
-Very poor precision tho, to be changed
- */
-const int SPEED_GAIN = 1;//NB_TICKS_PER_SECOND * 526 / (NB_TICKS_BEFORE_UPDATING_SPEED * 4096); == 16,061
+  => NB_TICK_BEFORE_UPDATING_SPEED * 4096/(NB_TICKS_PER_SECOND) = 526 
+  => NB_TICK_BEFORE_UPDATING_SPEED = 526 * NB_TICKS_PER_SECOND / 4096 ~~ 128
 
+ */
 
 typedef struct _asserv_ {
     int deltaAngle;

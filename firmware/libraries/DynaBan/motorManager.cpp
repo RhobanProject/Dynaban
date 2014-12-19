@@ -3,8 +3,11 @@
 
 static motor mot;
 static int nbUpdates = 0;
+static buffer previousAngleBuffer;
 
-void motor_securePwmWrite(uint8 pPin, uint16 pCommand);
+long currentRawMeasures[C_NB_RAW_MEASURES];
+int currentMeasureIndex = 0;
+bool currentDetailedDebugOn = false;
 
 motor * motor_getMotor() {
     return &mot;
@@ -16,12 +19,12 @@ void motor_init(encoder * pEnc) {
     pinMode(SHUT_DOWN_PIN, OUTPUT);
     digitalWrite(SHUT_DOWN_PIN, LOW);
 
-    //Procedure to safely prepare the first PWM signal
+    //Preparing the first PWM signal
     digitalWrite(PWM_1_PIN, LOW);
     pinMode(PWM_1_PIN, PWM);
     pwmWrite(PWM_1_PIN, 0x0000);
 
-    //Procedure to safely prepare the second PWM signal
+    //Preparing the second PWM signal
     digitalWrite(PWM_2_PIN, LOW);
     pinMode(PWM_2_PIN, PWM);
     pwmWrite(PWM_2_PIN, 0x0000);
@@ -38,6 +41,8 @@ void motor_init(encoder * pEnc) {
     mot.previousCommand = pEnc->angle;
     mot.angle = pEnc->angle;
     mot.previousAngle = pEnc->angle;
+    //mot.angleBuffer = previousAngleBuffer;  
+    buffer_init(&(mot.angleBuffer));
     mot.targetAngle = pEnc->angle;
     mot.speed = 0;
     mot.previousSpeed = 0;
@@ -51,22 +56,24 @@ void motor_init(encoder * pEnc) {
 }
 
 void motor_update(encoder * pEnc) {
+    //buffer_printBuffer(&(mot.angleBuffer));
+    buffer_add(&(mot.angleBuffer), mot.angle);
+    mot.previousAngle = mot.angle;
     mot.angle = pEnc->angle;
-
+        
     if (nbUpdates % NB_TICKS_BEFORE_UPDATING_SPEED == 0) {
         mot.speedUpdated = true;
         //Normal case 
-        mot.speed = (mot.angle - mot.previousAngle) * SPEED_GAIN;
+        mot.speed = mot.angle - buffer_get(&(mot.angleBuffer));
         if (abs(mot.speed) > MAX_SPEED) {
             //Position went from near max to near 0 or vice-versa
             if (mot.angle > mot.previousAngle) {
-                mot.speed = (mot.previousSpeed + MAX_ANGLE - mot.angle) * SPEED_GAIN;
+                mot.speed = (buffer_get(&(mot.angleBuffer)) + MAX_ANGLE - mot.angle);
             } else if (mot.angle < mot.previousAngle) {
-                mot.speed = (mot.previousSpeed - MAX_ANGLE + mot.angle) * SPEED_GAIN;
+                mot.speed = (buffer_get(&(mot.angleBuffer)) - MAX_ANGLE + mot.angle);
             }
         }
                 
-        mot.previousAngle = mot.angle;
     }
 
     if (nbUpdates == NB_TICKS_BEFORE_UPDATING_ACCELERATION) {
@@ -81,8 +88,21 @@ void motor_update(encoder * pEnc) {
 
 void motor_readCurrent() {
     if (HAS_CURRENT_SENSING) {
-        mot.current = analogRead(CURRENT_ADC_PIN) - 2048;//((short) (analogRead(CURRENT_ADC_PIN) << 4))/16;
-        mot.averageCurrent = ((AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.averageCurrent * PRESCALE + mot.current) / (AVERAGE_FACTOR_FOR_CURRENT * PRESCALE);
+        mot.current = analogRead(CURRENT_ADC_PIN) - 2048; //analogRead(CURRENT_ADC_PIN) - 2048;//((short) (analogRead(CURRENT_ADC_PIN) << 4))/16;
+        
+        mot.averageCurrent = ((AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.averageCurrent * PRESCALE + mot.current * PRESCALE) / (AVERAGE_FACTOR_FOR_CURRENT * PRESCALE);
+        /*digitalWrite(BOARD_TX_ENABLE, HIGH);
+            Serial1.println("yop");
+            Serial1.waitDataToBeSent();
+            digitalWrite(BOARD_TX_ENABLE, LOW);*/
+
+        if (currentDetailedDebugOn == true) {
+            currentRawMeasures[currentMeasureIndex++] = mot.current;
+            if (currentMeasureIndex > (C_NB_RAW_MEASURES-1)) {
+                currentDetailedDebugOn = false;
+                currentMeasureIndex = 0;
+            }
+        }
     }
 }
 
@@ -107,7 +127,7 @@ void motor_setCommand(long pCommand) {
         //No need to change the spin direction
         motor_securePwmWrite(PWM_2_PIN, command);
     } else if (command <= 0 && previousCommand <= 0) {
-        motor_securePwmWrite(PWM_1_PIN, -command);
+        motor_securePwmWrite(PWM_1_PIN, abs(command));
     } else {
         // Change of spin direction procedure
         if (command > 0) {
@@ -117,7 +137,7 @@ void motor_setCommand(long pCommand) {
         } else {
             motor_securePwmWrite(PWM_2_PIN, 0);
             motor_securePwmWrite(PWM_1_PIN, 0);
-            motor_securePwmWrite(PWM_1_PIN, -command);
+            motor_securePwmWrite(PWM_1_PIN, abs(command));
         }
     }
 }

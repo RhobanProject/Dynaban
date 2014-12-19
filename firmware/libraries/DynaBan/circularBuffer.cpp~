@@ -1,0 +1,3 @@
+void buffer_init() {
+    
+}

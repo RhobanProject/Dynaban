@@ -1,0 +1,685 @@
+usAngle : 1702
+targetAngle : 0
+state : 2
+speed : -455
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -47
+averageCurrent : -77
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 2145
+previousAngle : 2141
+targetAngle : 0
+state : 2
+speed : 439
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -2034
+averageCurrent : -1569
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 2120
+previousAngle : 2141
+targetAngle : 0
+state : 2
+speed : 439
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : 4
+averageCurrent : 1
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1944
+previousAngle : 2141
+targetAngle : 0
+state : 2
+speed : 439
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : 113
+averageCurrent : 68
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1697
+previousAngle : 2141
+targetAngle : 0
+state : 2
+speed : 439
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : 127
+averageCurrent : 93
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1429
+previousAngle : 1449
+targetAngle : 0
+state : 2
+speed : -692
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -851
+averageCurrent : -945
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1488
+previousAngle : 1449
+targetAngle : 0
+state : 2
+speed : -692
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : 0
+averageCurrent : -39
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1671
+previousAngle : 1449
+targetAngle : 0
+state : 2
+speed : -692
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -74
+averageCurrent : -377
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1909
+previousAngle : 1888
+targetAngle : 0
+state : 2
+speed : 439
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -2045
+averageCurrent : -1891
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1852
+previousAngle : 1888
+targetAngle : 0
+state : 2
+speed : 439
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : 6
+averageCurrent : 2
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1667
+previousAngle : 1888
+targetAngle : 0
+state : 2
+speed : 439
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -55
+averageCurrent : 15
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1425
+previousAngle : 1442
+targetAngle : 0
+state : 2
+speed : -446
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -1065
+averageCurrent : -1192
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1471
+previousAngle : 1442
+targetAngle : 0
+state : 2
+speed : -446
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -145
+averageCurrent : -307
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1649
+previousAngle : 1442
+targetAngle : 0
+state : 2
+speed : -446
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -78
+averageCurrent : -81
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1890
+previousAngle : 1877
+targetAngle : 0
+state : 2
+speed : 435
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -1784
+averageCurrent : -1340
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1848
+previousAngle : 1877
+targetAngle : 0
+state : 2
+speed : 435
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : 2
+averageCurrent : 21
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1670
+previousAngle : 1877
+targetAngle : 0
+state : 2
+speed : 435
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : 76
+averageCurrent : 89
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1426
+previousAngle : 1434
+targetAngle : 0
+state : 2
+speed : -443
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -1271
+averageCurrent : -1313
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1454
+previousAngle : 1434
+targetAngle : 0
+state : 2
+speed : -443
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : 1
+averageCurrent : 0
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1624
+previousAngle : 1434
+targetAngle : 0
+state : 2
+speed : -443
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -85
+averageCurrent : -175
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1866
+previousAngle : 1866
+targetAngle : 0
+state : 2
+speed : 432
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -1289
+averageCurrent : -882
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1846
+previousAngle : 1866
+targetAngle : 0
+state : 2
+speed : 432
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : 3
+averageCurrent : 39
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1675
+previousAngle : 1866
+targetAngle : 0
+state : 2
+speed : 432
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -74
+averageCurrent : 16
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1432
+previousAngle : 1866
+targetAngle : 0
+state : 2
+speed : 432
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : 112
+averageCurrent : 48
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1161
+previousAngle : 1182
+targetAngle : 0
+state : 2
+speed : -684
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -1150
+averageCurrent : -985
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1220
+previousAngle : 1182
+targetAngle : 0
+state : 2
+speed : -684
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -2
+averageCurrent : -209
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1400
+previousAngle : 1182
+targetAngle : 0
+state : 2
+speed : -684
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -96
+averageCurrent : -280
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1635
+previousAngle : 1617
+targetAngle : 0
+state : 2
+speed : 435
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -2043
+averageCurrent : -1773
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1584
+previousAngle : 1617
+targetAngle : 0
+state : 2
+speed : 435
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : 286
+averageCurrent : 233
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1403
+previousAngle : 1617
+targetAngle : 0
+state : 2
+speed : 435
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : 122
+averageCurrent : 56
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1162
+previousAngle : 1178
+targetAngle : 0
+state : 2
+speed : -439
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -1119
+averageCurrent : -1194
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1208
+previousAngle : 1178
+targetAngle : 0
+state : 2
+speed : -439
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -3
+averageCurrent : -53
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : 2700
+previousCommand : -2700
+angle : 1384
+previousAngle : 1178
+targetAngle : 0
+state : 2
+speed : -439
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -80
+averageCurrent : -290
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+
+-----------------------:
+*** Motor :
+command : -2700
+previousCommand : 2700
+angle : 1627
+previousAngle : 1613
+targetAngle : 0
+state : 2
+speed : 435
+target speed : 20
+acceleration : 667
+target acceleration : 0
+current : -2029
+averageCurrent : -1485
+
+***Asserv :
+deltaAngle : 0
+sumOfDeltas : 0
+deltaAverageCurrent : 0
+@    <ê è¬ L @ @ Ú·Ä
+@    A  àÄâ %DUF  !Ä8Ä á    	  C êÇ†Ç$  8Ä  @ÑDB—! 	@ I   Å Fâ!º@ÑAú.
+
+∫  0   00 "	HÇ *  Å+– Ä@"ƒAë	 RÑ RIí ¿HH$ÅB§I  @*¿¬£@ ¿ @<0)íU    Aí$ÄÄ à «  L  PÄÄ  Ú  "  Ñ ÇÄà  úÄÄ      â"!ÑRJêHP  PV(JP  §  òHÑA@ 8@Å B   Ä 0<¿ @   ÑÄà$H1ê (
+D†à°ê°RàÅî" †%AHP°@@P ÇJ°ÇDëòB)h  Ä ¡¿Ä  „  ¿ 
+D  @  x∞p  BÄ¿ @‡   \8¿0 # @ÉC » AçÅ	 ê "(LPDB@ vPÉÄ H$ Ñ Ç0DÅ¿     Ä   $     à       † P     å Ñ   "     Hä0        B@  Ä   d  ,
+A J	 Ä       Ç    ‡    "        L"  #                 @    &  D 8   + p! 0 Ñ$ÿ @9 ÄAB      @Ä  @ê @ `Jê%@P    0     H  R B  à     "( @   ÅA! AÄ  !    "@         >  ê     Ä          Ä   D@ @   @ 0@j 0  Ä   "   Ñ @ Ä !"  H$      	Ç    A    í  	 $ @($	 P@   à †  Ñ Ñ Ä   Ç  à@ ÄÄ HH  @ @ 	        !    @  )ï @   	 Ñ 
+   Å   ™        P@   @@     P ™@$       Ñ  @   Ä            @B  ÇH(  $       `    Ä      " ê$  !Ä   @$DÄ     ¿  "  Ñ  @     !     b%A   Ä   @Ñ    Å  (   "          Å¡Â     `        @¿   @B       A@ H    ~.Connected.
+Connected.
+
+Disconnected.
