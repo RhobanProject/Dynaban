@@ -20,9 +20,12 @@ const int MAX_SPEED = 1023;
 
 const int C_NB_RAW_MEASURES = 60;
 extern long currentRawMeasures[C_NB_RAW_MEASURES];
+extern long currentTimming[C_NB_RAW_MEASURES];
 extern int currentMeasureIndex;
 extern bool currentDetailedDebugOn;
 
+//Debug timer, to be supressed : *************************************************************************************
+extern HardwareTimer timer3;
 
 typedef enum _motorState_ {
     COMPLIANT       = 0,

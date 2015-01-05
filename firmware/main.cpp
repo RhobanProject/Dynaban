@@ -114,6 +114,10 @@ void setup() {
     hardwareStruct.enc = encoder_getEncoder(0);
     hardwareStruct.mot = motor_getMotor();
     
+    // This function will block the rest of the program
+    //printDetailedCurrentDebug();
+
+
     HardwareTimer timer2(2);
     // The hardware will be read at ~~48Khz
     //timer2.setPeriod(21);
@@ -130,7 +134,6 @@ void setup() {
     //motor_securePwmWrite(PWM_1_PIN, 500);
     //motor_securePwmWrite(PWM_2_PIN, 500);
 
-    //printDetailedCurrentDebug();
     //motor_setCommand(2700); // 300 => 1800, -300 => 2100
     //motor_setTargetAngle(1800);
     //motor_setTargetCurrent(-20);
@@ -274,23 +277,33 @@ void printCurrentDebug() {
 void printDetailedCurrentDebug() {
     //This replaces the loop
     long detailedCounter = 0;
+    timer3.pause();
+    timer3.refresh();
+
     while(true) {
         detailedCounter++;
-        delay(1);
+        delay(50);
+        timer3.resume();
         currentDetailedDebugOn = true;
         //Waiting for the measures tu be made
+        
         while(currentDetailedDebugOn != false) {                
-            delayMicroseconds(1);
-            if (readyToUpdateHardware) {
+            //delayMicroseconds(1);
+            motor_readCurrent();
+            
+            /*if (readyToUpdateHardware) {
                 hardwareTick();
                 readyToUpdateHardware = false;
-            }
+                }*/
         }
         
+        timer3.pause();
         digitalWrite(BOARD_TX_ENABLE, HIGH);
         Serial1.println("");
         for (int i = 0; i < C_NB_RAW_MEASURES; i++) {
-            Serial1.println(currentRawMeasures[i]);
+            Serial1.print(currentRawMeasures[i]);
+            Serial1.print(" ");
+            Serial1.println(currentTimming[i]);
         }
     
         Serial1.waitDataToBeSent();

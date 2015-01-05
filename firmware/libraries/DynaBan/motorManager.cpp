@@ -6,8 +6,12 @@ static int nbUpdates = 0;
 static buffer previousAngleBuffer;
 
 long currentRawMeasures[C_NB_RAW_MEASURES];
+long currentTimming[C_NB_RAW_MEASURES];
 int currentMeasureIndex = 0;
 bool currentDetailedDebugOn = false;
+
+//Debug timer, to be supressed : *************************************************************************************
+HardwareTimer timer3(3);    
 
 motor * motor_getMotor() {
     return &mot;
@@ -53,6 +57,9 @@ void motor_init(encoder * pEnc) {
     mot.current = 0;
     mot.averageCurrent = 0;
     mot.targetCurrent = 0;
+
+    timer3.setPrescaleFactor(1);
+    timer3.setOverflow(65535);
 }
 
 void motor_update(encoder * pEnc) {
@@ -90,14 +97,16 @@ void motor_readCurrent() {
     if (HAS_CURRENT_SENSING) {
         mot.current = analogRead(CURRENT_ADC_PIN) - 2048; //analogRead(CURRENT_ADC_PIN) - 2048;//((short) (analogRead(CURRENT_ADC_PIN) << 4))/16;
         
-        mot.averageCurrent = ((AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.averageCurrent * PRESCALE + mot.current * PRESCALE) / (AVERAGE_FACTOR_FOR_CURRENT * PRESCALE);
+        //mot.averageCurrent = ((AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.averageCurrent * PRESCALE + mot.current * PRESCALE) / (AVERAGE_FACTOR_FOR_CURRENT * PRESCALE);
         /*digitalWrite(BOARD_TX_ENABLE, HIGH);
             Serial1.println("yop");
             Serial1.waitDataToBeSent();
             digitalWrite(BOARD_TX_ENABLE, LOW);*/
-
+        
         if (currentDetailedDebugOn == true) {
-            currentRawMeasures[currentMeasureIndex++] = mot.current;
+            currentRawMeasures[currentMeasureIndex] = mot.current;
+            currentTimming[currentMeasureIndex] = timer3.getCount();
+            currentMeasureIndex++;
             if (currentMeasureIndex > (C_NB_RAW_MEASURES-1)) {
                 currentDetailedDebugOn = false;
                 currentMeasureIndex = 0;
