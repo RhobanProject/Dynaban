@@ -120,8 +120,8 @@ void setup() {
 
     HardwareTimer timer2(2);
     // The hardware will be read at ~~48Khz
-    //timer2.setPeriod(21);
-    timer2.setPeriod(7);
+    timer2.setPeriod(21);
+    //timer2.setPeriod(7);
     timer2.setChannel1Mode(TIMER_OUTPUT_COMPARE);
     //Interrupt 1 count after each update
     timer2.setCompare(TIMER_CH1, 1);
@@ -187,29 +187,37 @@ void loop() {
         }
     }
     
-    if (counter % (100*2000) == 0) {
+    if (counter % (100*2000*5) == 0) {
         counter = 0;
         //motor_setTargetAngle(1000 * posCounter);
-        
+        //printDebug();
         if (posCounter == 0) {
-            motor_securePwmWrite(PWM_2_PIN, 0);
-            motor_securePwmWrite(PWM_1_PIN, 500);
+            //motor_setTargetAngle(0);
+            motor_setTargetCurrent(20);
+            //motor_securePwmWrite(PWM_2_PIN, 0);
+            //motor_securePwmWrite(PWM_1_PIN, 500);
             posCounter = 1;
             digitalWrite(BOARD_LED_PIN, HIGH);
             //hardwareStruct.mot->targetSpeed = -20;
             //motor_setTargetAngle(1020);
         } else if (posCounter == 1) {
-            motor_securePwmWrite(PWM_1_PIN, 0);
-            motor_securePwmWrite(PWM_2_PIN, 500);
+            //motor_setTargetAngle(1024);
+            motor_setTargetCurrent(-20);
+            //motor_securePwmWrite(PWM_1_PIN, 0);
+            //motor_securePwmWrite(PWM_2_PIN, 500);
             posCounter = 0;
             digitalWrite(BOARD_LED_PIN, LOW);
             //hardwareStruct.mot->targetSpeed = -40;
             //motor_setTargetAngle(2040);
         } else if (posCounter == 2) {
+            //motor_setTargetAngle(2048);
+            
             posCounter = 3;
             //hardwareStruct.mot->targetSpeed = -60;
             //motor_setTargetAngle(3060);
         } else {
+            //motor_setTargetAngle(3072);
+            
             posCounter = 0;
             //hardwareStruct.mot->targetSpeed = -80;
             //motor_setTargetAngle(4095);
@@ -223,8 +231,7 @@ void hardwareTick() {
     //The current must be read as often as possible because it's so noisy that it requires a lot of averaging for it to be usable
     motor_readCurrent();
     
-    if (hardwareCounter > (48*3 - 1)) {
-        //48*3 - 1 => 6 measures per PWM cycle
+    if (hardwareCounter > (48 - 1)) {
         hardwareCounter = 0;
         //These actions are performed at a rate of 1KHz  
         //Updating the encoder
@@ -242,7 +249,7 @@ void hardwareTick() {
         } else {
             //asserv_tickPIDOnPosition(hardwareStruct.mot);
             }*/
-        //asserv_tickPIDOnTorque(hardwareStruct.mot);
+        asserv_tickPIDOnTorque(hardwareStruct.mot);
         //asserv_tickPIDOnPosition(hardwareStruct.mot);
         
         //asserv_tickPIDOnSpeed(hardwareStruct.mot);
@@ -270,10 +277,15 @@ void printCurrentDebug() {
     Serial1.print(hardwareStruct.mot->current);
     Serial1.print(" ");
     Serial1.println(hardwareStruct.mot->averageCurrent);
+    Serial1.print(" ");
+    Serial1.println(hardwareStruct.mot->command);
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
 }
 
+/*
+  Will read a burst of X values of the current as fast as possible and print them
+ */
 void printDetailedCurrentDebug() {
     //This replaces the loop
     long detailedCounter = 0;

@@ -6,8 +6,8 @@
 
 const bool HAS_CURRENT_SENSING = true;
 const int CURRENT_ADC_PIN = 33;// PB1
-const int PRESCALE = 1 << 10;
-const int AVERAGE_FACTOR_FOR_CURRENT = 16;
+const long PRESCALE = 1 << 10;
+const long AVERAGE_FACTOR_FOR_CURRENT = 256;
 // 90% of 3000 (PWM period) :
 const long MAX_COMMAND = 2700;
 const long MAX_ANGLE = 4096;
@@ -61,9 +61,6 @@ void motor_readCurrent();
 
 void motor_setCommand(long pCommand);
 
-/**
-   /!\ pAngle must actually be 10x angle in degrees (1800 = 180°)
- */
 void motor_setTargetAngle(long pAngle);
 
 void motor_setTargetCurrent(int pCurrent);

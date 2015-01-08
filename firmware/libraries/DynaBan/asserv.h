@@ -16,10 +16,10 @@ const int INITIAL_ACCELERATION_P_COEF = 45;
 const int INITIAL_TORQUE_P_COEF = 45;
 
 /*
-  Dxl datasheet says (seems pretty accurate) :
-  58rpm (at 11.1V)
-  63rpm (at 12V)
-  78rpm (at 14.8V)
+  Dxl datasheet says (seems pretty accurate) max speed is :
+  58rpm at 11.1V
+  63rpm at 12V
+  78rpm at 14.8V
   
   We'll follow the same unit convention :
   1 unit of speed = 0.114rpm
@@ -45,11 +45,23 @@ typedef struct _asserv_ {
 } asserv;
 
 void asserv_init();
+
+// Proportional position control
 void asserv_tickPOnPosition(motor * pMot);
+
+// PID position control
 void asserv_tickPIDOnPosition(motor * pMot);
+
+// PID speed control
 void asserv_tickPIDOnSpeed(motor * pMot);
+
+// PID acceleration control
 void asserv_tickPIDOnAcceleration(motor * pMot);
+
+// PID torque control
 void asserv_tickPIDOnTorque(motor * pMot);
+
+// Prints debug info through Serial1
 void asserv_printAsserv();
 
 #endif /* _ASSERV_H_ */

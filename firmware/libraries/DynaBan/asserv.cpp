@@ -75,6 +75,7 @@ void asserv_tickPIDOnTorque(motor * pMot) {
     long command = - asservStruct.deltaAverageCurrent * asservStruct.torquePCoef;
     
     motor_setCommand(command);
+    
 }
 
 #if BOARD_HAVE_SERIALUSB

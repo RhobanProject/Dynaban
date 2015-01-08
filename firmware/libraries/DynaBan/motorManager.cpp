@@ -95,9 +95,14 @@ void motor_update(encoder * pEnc) {
 
 void motor_readCurrent() {
     if (HAS_CURRENT_SENSING) {
-        mot.current = analogRead(CURRENT_ADC_PIN) - 2048; //analogRead(CURRENT_ADC_PIN) - 2048;//((short) (analogRead(CURRENT_ADC_PIN) << 4))/16;
+        mot.current = analogRead(CURRENT_ADC_PIN) - 2048;
+
+        if (abs(mot.current) > 500) {
+            // Values that big are not taken into account
+        } else {
+            mot.averageCurrent = ((AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.averageCurrent * PRESCALE + mot.current * PRESCALE) / (AVERAGE_FACTOR_FOR_CURRENT * PRESCALE);
+        }
         
-        //mot.averageCurrent = ((AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.averageCurrent * PRESCALE + mot.current * PRESCALE) / (AVERAGE_FACTOR_FOR_CURRENT * PRESCALE);
         /*digitalWrite(BOARD_TX_ENABLE, HIGH);
             Serial1.println("yop");
             Serial1.waitDataToBeSent();
