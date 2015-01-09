@@ -14,6 +14,6 @@ typedef struct _buffer_ {
 void buffer_init(buffer * pBuf);
 void buffer_add(buffer * pBuf, long pValue);
 long buffer_get(buffer * pBuf);
-void buffer_printBuffer(buffer * pBuf);
+void buffer_print(buffer * pBuf);
 
 #endif /* _CIRCULAR_BUFFER_H_*/

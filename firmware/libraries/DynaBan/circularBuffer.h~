@@ -1,7 +1,0 @@
-const int BUFF_SIZE = NB_TICKS_BEFORE_UPDATING_SPEED;
-typedef struct _buffer_ {
-    long buf[BUFF_SIZE];
-    int start;
-    int end;
-    int count;
-} buffer;

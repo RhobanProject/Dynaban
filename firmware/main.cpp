@@ -1,35 +1,68 @@
 /*
-To do 
+To do
 - Lire la capteur de température
 - Essayer d'asservir le moteur en utilisant la mesure de courant comme mesure de rétro-action
 - Reproduire toutes les fonctionnalités dynamixel
  */
 
-// Sample main.cpp file. Blinks the built-in LED, sends a message out
-// USART2, and turns on PWM on pin 2.
-
 #include <wirish/wirish.h>
 #include <libmaple/adc.h>
 #include <libmaple/timer.h>
-#include <DynaBan/magneticEncoder.h>
-#include <DynaBan/motorManager.h>
-#include <DynaBan/asserv.h>
+#include <DynaBan/magnetic_encoder.h>
+#include <DynaBan/motor.h>
+#include <DynaBan/control.h>
 #include <DynaBan/dxl.h>
 
-const bool DXL_COM_ON = false;
+#define POWER_SUPPLY_ADC_PIN PA2
+#define TEMPERATURE_ADC_PIN PA1
 
-unsigned short terribleSignConvention(long pInput, long pIamZeroISwear);
-void initDxlRam();
-void updateDxlRam();
-void readDxlRam();
-void printDebug();
-void printCurrentDebug();
-void printDetailedCurrentDebug();
-void hardwareTick();
+/**
+   From a signed convention to the dynamiel's unsigned convention
+ */
+unsigned short terrible_sign_convention(long pInput, long pIamZeroISwear);
+
+void init_dxl_ram();
+
+/**
+ * Updates the dynamixel ram with the new state of the motor (such as current position)
+ */
+void update_dxl_ram();
+
+/**
+ * Reads the dynamixel ram and applies modifications (such as goad position)
+ */
+void read_dxl_ram();
+
+/**
+ * Generic debug print. Will show info on the current state of the motor and its control.
+ */
+void print_debug();
+
+/**
+ * Prints detailed current info in a csv format.
+ */
+void print_current_debug();
+
+/*
+ * Reads bursts of X values of the current as fast as possible and prints them.
+ * This function will block the rest of the program.
+ */
+void print_detailed_current_debug();
+
+/**
+ * Scheduling of the hardware tasks
+ */
+void hardware_tick();
+
+void set_ready_to_update_hardware();
+
+void adc_debug();
 
 typedef struct _hardware__ {
     encoder * enc;
     motor * mot;
+    unsigned char voltage;
+    unsigned char temperature;
 } hardware;
 
 typedef enum _controlModeEnum_ {
@@ -37,8 +70,9 @@ typedef enum _controlModeEnum_ {
     TORQUE_CONTROL         = 1,
 } controlModeEnum;
 
+
+const bool DXL_COM_ON = false;
 const int OVER_FLOW = 3000;
-//const int OVER_FLOW = 13000;//3000;
 
 long counter = 0;
 int posCounter = 0;
@@ -46,10 +80,31 @@ int hardwareCounter = 0;
 long debugCounter = 0;
 bool readyToUpdateHardware = false;
 bool controlMode = POSITION_CONTROL;
-void setReadyToUpdateHardware();
 hardware hardwareStruct;
-
 int16 current;
+
+void adc_debug() {
+    int input = 0;
+    
+    while(1) {
+        input = analogRead(TEMPERATURE_ADC_PIN);
+        digitalWrite(BOARD_TX_ENABLE, HIGH);
+        Serial1.println();
+        Serial1.print(input);
+        Serial1.print(" ");
+        float thermistor = 47000*(input*33/40960)/(33 - 10*(input*33/40960));
+        Serial1.print((-3225*log(thermistor) + 29737)/100);
+        Serial1.waitDataToBeSent();
+        digitalWrite(BOARD_TX_ENABLE, LOW);
+        
+        delay(100);
+    }
+    
+}
+
+void set_ready_to_update_hardware() {
+    readyToUpdateHardware = true;
+}
 
 unsigned int dxl_data_available() {
     return Serial1.available();
@@ -72,22 +127,22 @@ bool dxl_sending() {
     return false;
 }
 
-void setup() {   
+void setup() {
     disableDebugPorts();
 
     afio_remap(AFIO_REMAP_USART1);
     gpio_set_mode(GPIOB, 6, GPIO_AF_OUTPUT_PP);
-    gpio_set_mode(GPIOB, 7, GPIO_INPUT_FLOATING);    
-    
+    gpio_set_mode(GPIOB, 7, GPIO_INPUT_FLOATING);
+
     Serial1.begin(57600);
-    
-    //Setting the timer's prescale to get a 24KHz PWM. The 2 pins share the same timer, channel 1 and 2.
+
+    //Setting the timer's prescale to get a 24KHz PWM. The 2 PWM share the same timer, channel 1 and 2.
     HardwareTimer timer1(1);
     timer1.setPrescaleFactor(1);
     timer1.setOverflow(OVER_FLOW);
 
     pinMode(BOARD_LED_PIN, OUTPUT);
-    
+
     // Initialization of USART
     digitalWrite(BOARD_TX_ENABLE, LOW);
     pinMode(BOARD_TX_ENABLE, OUTPUT);
@@ -96,41 +151,47 @@ void setup() {
     digitalWrite(BOARD_RX_ENABLE, LOW);
     pinMode(BOARD_RX_ENABLE, OUTPUT);
     digitalWrite(BOARD_RX_ENABLE, HIGH);
-   
+
     // ADC pin init
     pinMode(CURRENT_ADC_PIN, INPUT_ANALOG);
+    pinMode(POWER_SUPPLY_ADC_PIN, INPUT_ANALOG);
+    pinMode(TEMPERATURE_ADC_PIN, INPUT_ANALOG);
 
     //Encoder init
-    encoder_initSharingPinsMode(7, 8);
-    encoder_addEncoderSharingPinsMode(6);
-    
+    encoder_init_sharing_pins_mode(7, 8);
+    encoder_add_encoder_sharing_pins_mode(6);
+
     //Motor init
-    motor_init(encoder_getEncoder(0));
-    asserv_init();
+    motor_init(encoder_get_encoder(0));
+    control_init();
 
     //Dxl
     dxl_init();
-    
-    hardwareStruct.enc = encoder_getEncoder(0);
+
+    hardwareStruct.enc = encoder_get_encoder(0);
     hardwareStruct.mot = motor_getMotor();
-    
-    // This function will block the rest of the program
+
+    // This function will block the rest of the program and print detailed current debug
     //printDetailedCurrentDebug();
 
 
     HardwareTimer timer2(2);
     // The hardware will be read at ~~48Khz
     timer2.setPeriod(21);
-    //timer2.setPeriod(7);
     timer2.setChannel1Mode(TIMER_OUTPUT_COMPARE);
     //Interrupt 1 count after each update
     timer2.setCompare(TIMER_CH1, 1);
-    timer2.attachCompare1Interrupt(setReadyToUpdateHardware);
-    
+    timer2.attachCompare1Interrupt(set_ready_to_update_hardware);
+
     //Dxl struct init
-    initDxlRam();
-    
-    
+    init_dxl_ram();
+
+    for (int i = 0; i < 5; i++) {
+        toggleLED();
+        delay(250);
+    }
+
+    adc_debug();
     //motor_securePwmWrite(PWM_1_PIN, 500);
     //motor_securePwmWrite(PWM_2_PIN, 500);
 
@@ -140,60 +201,42 @@ void setup() {
     //hardwareStruct.mot->targetSpeed = 450;
     //hardwareStruct.mot->targetAcceleration = 5;
     //motor_compliant();
-
-    /* Recherche d'une série de bits en mémoire
-    unsigned int *ptr = (unsigned int*)0x08000000;
-    unsigned int *end = (unsigned int*)0x08020000;
-    unsigned int value = 0x36012401;
-    for (; ptr<end; ptr++) {
-        if (*ptr == value) {
-            digitalWrite(BOARD_TX_ENABLE, HIGH);
-            Serial1.println("Found");
-            Serial1.println((unsigned int)ptr);
-            Serial1.waitDataToBeSent();
-            digitalWrite(BOARD_TX_ENABLE, LOW);
-	}
-                                                  }*/
-}
-
-void setReadyToUpdateHardware() {
-    readyToUpdateHardware = true;
 }
 
 void loop() {
     //delay(1);
-    //delay(10);
     //delayMicroseconds(10);
     //toggleLED();
-    
-    if (dxl_tick()) {
-        //digitalWrite(BOARD_LED_PIN, (dxl_regs.ram.led!=0) ? HIGH : LOW);
-    }
-    
-    if (readyToUpdateHardware) {
-        readyToUpdateHardware = false;
-        hardwareTick();
-        if (DXL_COM_ON) {
-            updateDxlRam();
-            readDxlRam();
+
+    if (DXL_COM_ON) {
+        if (dxl_tick()) {
+            read_dxl_ram();
         }
     }
-    
+
+    if (readyToUpdateHardware) {
+        readyToUpdateHardware = false;
+        hardware_tick();
+        if (DXL_COM_ON) {
+            update_dxl_ram();
+        }
+    }
+    /*
     if (counter % (100*200) == 0) {
         if (DXL_COM_ON == false) {
             //toggleLED();
-            printCurrentDebug();
+            print_current_debug();
             //printDebug();
         }
     }
-    
+
     if (counter % (100*2000*5) == 0) {
         counter = 0;
         //motor_setTargetAngle(1000 * posCounter);
         //printDebug();
         if (posCounter == 0) {
-            //motor_setTargetAngle(0);
-            motor_setTargetCurrent(20);
+            motor_set_target_angle(0);
+            //motor_set_target_current(20);
             //motor_securePwmWrite(PWM_2_PIN, 0);
             //motor_securePwmWrite(PWM_1_PIN, 500);
             posCounter = 1;
@@ -201,45 +244,50 @@ void loop() {
             //hardwareStruct.mot->targetSpeed = -20;
             //motor_setTargetAngle(1020);
         } else if (posCounter == 1) {
-            //motor_setTargetAngle(1024);
-            motor_setTargetCurrent(-20);
+            motor_set_target_angle(1024);
+            //motor_set_target_current(-20);
             //motor_securePwmWrite(PWM_1_PIN, 0);
             //motor_securePwmWrite(PWM_2_PIN, 500);
-            posCounter = 0;
+            posCounter = 2;
             digitalWrite(BOARD_LED_PIN, LOW);
             //hardwareStruct.mot->targetSpeed = -40;
             //motor_setTargetAngle(2040);
         } else if (posCounter == 2) {
-            //motor_setTargetAngle(2048);
-            
+            motor_set_target_angle(2048);
             posCounter = 3;
             //hardwareStruct.mot->targetSpeed = -60;
             //motor_setTargetAngle(3060);
         } else {
-            //motor_setTargetAngle(3072);
-            
+            motor_set_target_angle(3072);
             posCounter = 0;
             //hardwareStruct.mot->targetSpeed = -80;
             //motor_setTargetAngle(4095);
         }
     }
-
+    */
     counter++;
 }
 
-void hardwareTick() {
-    //The current must be read as often as possible because it's so noisy that it requires a lot of averaging for it to be usable
-    motor_readCurrent();
-    
-    if (hardwareCounter > (48 - 1)) {
+void hardware_tick() {
+    /* The current must be read as often as possible because it's so noisy that
+     * it requires an averaging for it to be usable */
+    motor_read_current();
+
+    if (hardwareCounter > 47) {
         hardwareCounter = 0;
-        //These actions are performed at a rate of 1KHz  
-        //Updating the encoder
-        encoder_readAnglesSharingPinsMode();
+        //These actions are performed at a rate of 1KHz
         
+        //Updating power supply value (the value is 10 times than the real value)
+        hardwareStruct.voltage = (unsigned char)((analogRead(POWER_SUPPLY_ADC_PIN) * 33 *766)/409600);
+       //Updating the temperature
+       //hardwareStruct.temperature = ;
+        
+        //Updating the encoder
+        encoder_read_angles_sharing_pins_mode();
+
         //Updating the motor
         motor_update(hardwareStruct.enc);
-         
+
         //Updating asserv
         /*
         if (controlMode == POSITION_CONTROL) {
@@ -249,9 +297,9 @@ void hardwareTick() {
         } else {
             //asserv_tickPIDOnPosition(hardwareStruct.mot);
             }*/
-        asserv_tickPIDOnTorque(hardwareStruct.mot);
-        //asserv_tickPIDOnPosition(hardwareStruct.mot);
-        
+        //control_tick_PID_on_torque(hardwareStruct.mot);
+        control_tick_PID_on_position(hardwareStruct.mot);
+
         //asserv_tickPIDOnSpeed(hardwareStruct.mot);
         //asserv_tickPIDOnAcceleration(hardwareStruct.mot);
         //motor_compliant();
@@ -262,17 +310,99 @@ void hardwareTick() {
     hardwareCounter++;
 }
 
-void printDebug() {
+unsigned short terrible_sign_convention(long pInput, long pIamZeroISwear) {
+    if (pInput > 0) {
+        return (unsigned short) pInput;
+    } else {
+        return (unsigned short) (pIamZeroISwear - pInput);
+    }
+}
+
+void init_dxl_ram() {
+    dxl_regs.ram.torqueEnable = 0;
+    dxl_regs.ram.led = 0;
+    dxl_regs.ram.servoKd = INITIAL_D_COEF;
+    dxl_regs.ram.servoKi = INITIAL_I_COEF;
+    dxl_regs.ram.servoKp = INITIAL_P_COEF;
+    dxl_regs.ram.torqueLimit = dxl_regs.eeprom.maxTorque;
+    dxl_regs.ram.lock = 0;
+    dxl_regs.ram.punch = 0;
+    dxl_regs.ram.torqueMode = 0;
+    dxl_regs.ram.goalTorque = 0;
+    dxl_regs.ram.goalAcceleration = 0;
+
+    //The other registers are updated here :
+    update_dxl_ram();
+}
+
+void update_dxl_ram() {
+    dxl_regs.ram.presentPosition = hardwareStruct.mot->angle;
+    dxl_regs.ram.presentSpeed = terrible_sign_convention(hardwareStruct.mot->speed, 1024);
+
+    dxl_regs.ram.presentLoad = terrible_sign_convention(hardwareStruct.mot->averageCurrent, 1024);
+    dxl_regs.ram.presentVoltage = -1; // To do
+    dxl_regs.ram.presentTemperature = -1; // To do
+    //dxl_regs.ram.registeredInstruction = ; // To do?
+    if (hardwareStruct.mot->speed != 0) {
+        dxl_regs.ram.moving = 1;
+    } else {
+        dxl_regs.ram.moving = 0;
+    }
+
+    dxl_regs.ram.current = terrible_sign_convention(hardwareStruct.mot->averageCurrent, 2048);
+}
+
+void read_dxl_ram() {
+
+    digitalWrite(BOARD_LED_PIN, (dxl_regs.ram.led!=0) ? HIGH : LOW);
+    //Asserv struct à rajouter dans hardwareStruct
+    //asservStruct->dCoef = dxl_regs.ram.servoKd;
+    //asservStruct->iCoef = dxl_regs.ram.servoKi;
+    //asservStruct->pCoef = dxl_regs.ram.servoKp;
+    hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;
+    /*if (hardwareStruct.mot->targetAngle != dxl_regs.ram.goalPosition) {
+        hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;
+        controlMode = POSITION_CONTROL;
+        }*/
+
+    hardwareStruct.mot->targetSpeed = dxl_regs.ram.movingSpeed; //moving speed actually means "goalSpeed"
+    //To do : //dxl_regs.ram.torqueLimit;
+    //To do  : //dxl_regs.ram.lock;
+    //To do : //dxl_regs.ram.punch;
+
+    //To do : //dxl_regs.ram.torqueMode;
+    hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalTorque;
+    /*
+    if (hardwareStruct.mot->targetCurrent != dxl_regs.ram.goalTorque) {
+        hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalTorque;
+        controlMode = TORQUE_CONTROL;
+        } */
+
+    hardwareStruct.mot->targetAcceleration = dxl_regs.ram.goalAcceleration;
+
+    if (dxl_regs.ram.torqueEnable) {
+        if (hardwareStruct.mot->state == COMPLIANT) {
+            motor_restart();
+        }
+    } else {
+        if(hardwareStruct.mot->state != COMPLIANT) {
+            motor_compliant();
+        }
+    }
+}
+
+
+void print_debug() {
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.println();
     Serial1.print("-----------------------:");
     motor_printMotor();
-    asserv_printAsserv();
+    control_print();
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
 }
 
-void printCurrentDebug() {
+void print_current_debug() {
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.print(hardwareStruct.mot->current);
     Serial1.print(" ");
@@ -283,11 +413,7 @@ void printCurrentDebug() {
     digitalWrite(BOARD_TX_ENABLE, LOW);
 }
 
-/*
-  Will read a burst of X values of the current as fast as possible and print them
- */
-void printDetailedCurrentDebug() {
-    //This replaces the loop
+void print_detailed_current_debug() {
     long detailedCounter = 0;
     timer3.pause();
     timer3.refresh();
@@ -298,17 +424,17 @@ void printDetailedCurrentDebug() {
         timer3.resume();
         currentDetailedDebugOn = true;
         //Waiting for the measures tu be made
-        
-        while(currentDetailedDebugOn != false) {                
+
+        while(currentDetailedDebugOn != false) {
             //delayMicroseconds(1);
-            motor_readCurrent();
-            
+            motor_read_current();
+
             /*if (readyToUpdateHardware) {
                 hardwareTick();
                 readyToUpdateHardware = false;
                 }*/
         }
-        
+
         timer3.pause();
         digitalWrite(BOARD_TX_ENABLE, HIGH);
         Serial1.println("");
@@ -317,106 +443,18 @@ void printDetailedCurrentDebug() {
             Serial1.print(" ");
             Serial1.println(currentTimming[i]);
         }
-    
+
         Serial1.waitDataToBeSent();
         digitalWrite(BOARD_TX_ENABLE, LOW);
         if (detailedCounter == 50) {
-            motor_securePwmWrite(PWM_1_PIN, 0);
-            motor_securePwmWrite(PWM_2_PIN, 500);
+            motor_secure_pwm_write(PWM_1_PIN, 0);
+            motor_secure_pwm_write(PWM_2_PIN, 500);
             digitalWrite(BOARD_LED_PIN, LOW);
         } else if (detailedCounter == 100) {
             detailedCounter = 0;
-            motor_securePwmWrite(PWM_2_PIN, 0);
-            motor_securePwmWrite(PWM_1_PIN, 500);
+            motor_secure_pwm_write(PWM_2_PIN, 0);
+            motor_secure_pwm_write(PWM_1_PIN, 500);
             digitalWrite(BOARD_LED_PIN, HIGH);
-        }
-    }
-}
-
-/**
-   From a signed convention to a unsigned convention
- */
-unsigned short terribleSignConvention(long pInput, long pIamZeroISwear) {
-    if (pInput > 0) {
-        return (unsigned short) pInput;
-    } else {
-        return (unsigned short) (pIamZeroISwear - pInput);
-    }
-}
-
-
-
-void initDxlRam() {
-    dxl_regs.ram.torqueEnable = 0;           
-    dxl_regs.ram.led = 0;                    
-    dxl_regs.ram.servoKd = INITIAL_D_COEF;                
-    dxl_regs.ram.servoKi = INITIAL_I_COEF;                
-    dxl_regs.ram.servoKp = INITIAL_P_COEF;                
-    // //dxl_regs.ram.goalPosition;           
-    // //dxl_regs.ram.movingSpeed;   -->Actually means "goalSpeed"         
-    dxl_regs.ram.torqueLimit = dxl_regs.eeprom.maxTorque;            
-    dxl_regs.ram.lock = 0;                   
-    dxl_regs.ram.punch = 0;                  
-    dxl_regs.ram.torqueMode = 0;             
-    dxl_regs.ram.goalTorque = 0;             
-    dxl_regs.ram.goalAcceleration = 0;
-
-    //THe other registers are updated here :
-    updateDxlRam();
-}
-
-void updateDxlRam() {
-    dxl_regs.ram.presentPosition = hardwareStruct.mot->angle;
-    dxl_regs.ram.presentSpeed = terribleSignConvention(hardwareStruct.mot->speed, 1024);
-    
-    dxl_regs.ram.presentLoad = terribleSignConvention(hardwareStruct.mot->averageCurrent, 1024);
-    dxl_regs.ram.presentVoltage = -1;
-    dxl_regs.ram.presentTemperature = -1;
-    //dxl_regs.ram.registeredInstruction = ;
-    if (hardwareStruct.mot->speed != 0) {
-        dxl_regs.ram.moving = 1;
-    } else {
-        dxl_regs.ram.moving = 0;
-    }
-    
-    dxl_regs.ram.current = terribleSignConvention(hardwareStruct.mot->averageCurrent, 2048);
-}
-
-void readDxlRam() {
-                
-    digitalWrite(BOARD_LED_PIN, (dxl_regs.ram.led!=0) ? HIGH : LOW);                     
-    //Asserv struct à rajouter dans hardwareStruct
-    //asservStruct->dCoef = dxl_regs.ram.servoKd;
-    //asservStruct->iCoef = dxl_regs.ram.servoKi;                 
-    //asservStruct->pCoef = dxl_regs.ram.servoKp;
-    hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;     
-    /*if (hardwareStruct.mot->targetAngle != dxl_regs.ram.goalPosition) {
-        hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;     
-        controlMode = POSITION_CONTROL;
-        }*/
-    
-    hardwareStruct.mot->targetSpeed = dxl_regs.ram.movingSpeed;             
-    //To do : //dxl_regs.ram.torqueLimit;       
-    //To do  : //dxl_regs.ram.lock;                    
-    //To do : //dxl_regs.ram.punch;                   
-                     
-    //To do : //dxl_regs.ram.torqueMode;              
-    hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalTorque;     
-    /*
-    if (hardwareStruct.mot->targetCurrent != dxl_regs.ram.goalTorque) {
-        hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalTorque;     
-        controlMode = TORQUE_CONTROL;
-        } */
-    
-    hardwareStruct.mot->targetAcceleration = dxl_regs.ram.goalAcceleration;
-    
-    if (dxl_regs.ram.torqueEnable) {
-        if (hardwareStruct.mot->state == COMPLIANT) {
-            motor_restart();
-        }
-    } else {
-        if(hardwareStruct.mot->state != COMPLIANT) {
-            motor_compliant();
         }
     }
 }

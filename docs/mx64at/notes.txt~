@@ -1,0 +1,43 @@
+- Processeur: STM32F103CBT6 (exactement le même que la Maple mini)
+
+- Current sensing : 5 mOhms suivi d’un MAX9918
+http://datasheets.maximintegrated.com/en/ds/MAX9918-MAX9920.pdf
+Mapping : 
+	- Output: PB1
+
+- Encodeur : AS5045
+http://www.ams.com/eng/content/download/1288/7223/AS5045_Datasheet_v1_7.pdf
+Mode branché sur +5V (Sampling à 10khz)
+Mapping : 
+	- Chip select: PA3
+	- CLK: PA4
+	- DO:  PA5
+	- DI:  PA6
+
+- Régulateurs de tension:
+78M05 (5V): probablement utile pour avoir la com en TTL @5V
+GH17M (3.3V): pour le processeur
+
+- Puissance:
+	- 2 Drivers de demi ponts en H
+	http://www.irf.com/product-info/datasheets/data/ir2104.pdf
+
+	- 2 6690 (Mosfet)
+	https://www.fairchildsemi.com/datasheets/FD/FDS6990A.pdf
+Mapping :
+	- PA9: IN1
+	- PA8: IN2
+	- PA12: /SD des deux
+
+- Communication série 3 états:
+http://www.nxp.com/documents/data_sheet/74HC_HCT126_CNV.pdf
+Signal série branché sur 4A et 2Y
+4Y: PB7 (RX1: Device remappée)
+2A: PB6 (TX1)
+2OE: PA14
+4OE: PA15
+
+Voltage: division de tension
+Trouver les pins?
+
+Températeur: thermistor soudé au plus près du moteur

@@ -1,4 +1,4 @@
-#include "circularBuffer.h"
+#include "circular_buffer.h"
 
 void buffer_init(buffer * pBuf) {
     pBuf->start = 0;
@@ -31,7 +31,7 @@ long buffer_get(buffer * pBuf) {
     
 }
 
-void buffer_printBuffer(buffer * pBuf) {
+void buffer_print(buffer * pBuf) {
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.print("Start : ");
     Serial1.println(pBuf->start);

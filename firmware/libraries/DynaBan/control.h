@@ -1,8 +1,8 @@
 #ifndef _ASSERV_H_
-#define _ASSERV_H_
+#define _CONTROL_H_
 #include <wirish/wirish.h>
-#include "motorManager.h"
-#include "magneticEncoder.h"
+#include "motor.h"
+#include "magnetic_encoder.h"
 
 const int NB_TICKS_PER_SECOND = 1000;
 const int INITIAL_P_COEF = 32;
@@ -30,7 +30,7 @@ const int INITIAL_TORQUE_P_COEF = 45;
 
  */
 
-typedef struct _asserv_ {
+typedef struct _control_ {
     int deltaAngle;
     int deltaSpeed;
     int deltaAcceleration;
@@ -42,26 +42,26 @@ typedef struct _asserv_ {
     int speedPCoef;
     int accelerationPCoef;
     int torquePCoef;
-} asserv;
+} control;
 
-void asserv_init();
-
-// Proportional position control
-void asserv_tickPOnPosition(motor * pMot);
+void control_init();
 
 // PID position control
-void asserv_tickPIDOnPosition(motor * pMot);
+void control_tick_PID_on_position(motor * pMot);
+
+// P-only position control cos let's be honest
+void control_tick_P_on_position(motor * pMot);
 
 // PID speed control
-void asserv_tickPIDOnSpeed(motor * pMot);
+void control_tick_PID_on_speed(motor * pMot);
 
 // PID acceleration control
-void asserv_tickPIDOnAcceleration(motor * pMot);
+void control_tick_PID_on_acceleration(motor * pMot);
 
 // PID torque control
-void asserv_tickPIDOnTorque(motor * pMot);
+void control_tick_PID_on_torque(motor * pMot);
 
 // Prints debug info through Serial1
-void asserv_printAsserv();
+void control_print();
 
 #endif /* _ASSERV_H_ */

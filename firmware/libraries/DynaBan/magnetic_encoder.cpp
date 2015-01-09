@@ -1,25 +1,28 @@
-#include "magneticEncoder.h"
+#include "magnetic_encoder.h"
 
 /**
-   Example code using this interface with 1 encoder :
+   Example code using this interface with 2 encoders :
    
    //In setup()
-   initSharingPinsMode(1, 7, 8);
-   addEncoderSharingPinsMode(6);
-   start();
+   encoder_init_sharing_pins_mode(7, 8);
+   encoder_add_encoder_sharing_pins_mode(6);
+   encoder_add_encoder_sharing_pins_mode(5);
 
    //In loop()
-   while(isReadyToRead() == false);
-    //toggleLED();
-    readAnglesSharingPinsMode();
-    encoder0 = getEncoder(0);
+    encoder_read_angles_sharing_pins_mode();
+    encoder0 = encoder_get_encoder(0);
+    encoder1 = encoder_get_encoder(1);
+
     if (encoder0->isDataInvalid) {
         SerialUSB.println("Data invalid :(");
     } else {
-        SerialUSB.print("Angle = ");
-        SerialUSB.println(encoder0->tenTimesAngle);
-        SerialUSB.print("Questionnable? : ");
-        SerialUSB.println(encoder0->isDataQuestionable);
+        printEncoder(0);
+    }
+
+    if (encoder1->isDataInvalid) {
+        SerialUSB.println("Data invalid :(");
+    } else {
+        printEncoder(1);
     }
  */
 
@@ -35,58 +38,26 @@ static long STATUS_MASK = 63;
 static int inputBit = 0;
 // holds status/error information
 static long statusbits;
-// bit holding decreasing magnet field error data
-//static int DECn; 
-// bit holding increasing magnet field error data
-//static int INCn;
-// bit holding startup-valid bit
-//static int OCF;
-// bit holding cordic DSP processing error data
+
 static int COF; 
-// bit holding magnet field displacement error data
 static int LIN; 
 
 static bool debug = 0;
 static int nbEncoders = 0;
-//static int state = 0;
-static bool readyToRead = true;
-
-static long arrayOfTimeStamps[30];
 
 HardwareTimer * timer;
 const int NB_ENCODERS_MAX = 10;
-static encoder arrayOfEncoders[10];
+static encoder arrayOfEncoders[NB_ENCODERS_MAX];
 
-void setReadyToRead();
-long * getArrayOfTimeStamps();
-void printEncoder(encoder * pEncoder);
-
-long * getArrayOfTimeStamps() {
-    return arrayOfTimeStamps;
-}
-
-/*bool encoder_isReadyToRead() {
-    return readyToRead;
-    }*/
+// Benchmarking
+static long arrayOfTimeStamps[30];
 
 
-void setReadyToRead() {
-    if (nbEncoders) {
-        readyToRead = true;
-    } else {
-        readyToRead = false;
-    }
-}
-
-encoder * encoder_getEncoder(uint8 pEncoderId) {
+encoder * encoder_get_encoder(uint8 pEncoderId) {
     return &arrayOfEncoders[pEncoderId];
 }
 
-/**
-   /!\ Using this functions implies that all of the encoder you'll connect will share the same CLK pin and the same CS pin.
- */
-void encoder_initSharingPinsMode(uint8 pClkPin, uint8 pCsPin) {
-    //timer = new HardwareTimer(pTimerIndex);
+void encoder_init_sharing_pins_mode(uint8 pClkPin, uint8 pCsPin) {
     nbEncoders = 0;
     CLK_PIN = pClkPin;
     CS_PIN = pCsPin;
@@ -97,21 +68,6 @@ void encoder_initSharingPinsMode(uint8 pClkPin, uint8 pCsPin) {
     // Initial state
     digitalWrite(CS_PIN, LOW);
     digitalWrite(CLK_PIN, HIGH);
-
-    // Pause the timer while we're configuring it
-    //timer->pause();
-    // Set up period
-    //timer->setPeriod(1); // in microseconds
-    //timer->setPrescaleFactor(1); //prescale = 1 => freq = 72MHz, prescale = 65535 => freq = 1099 Hz
-    //timer->setOverflow(10); // 1 to 65535
-    
-    //Set up an interrupt on channel 1
-    //timer->setChannel1Mode(TIMER_OUTPUT_COMPARE);
-    //Interrupt 1 count after each update
-    //timer->setCompare(TIMER_CH1, 1);
-    //timer->attachCompare1Interrupt(setReadyToRead);
-    
-    // The timer shall be restarted  through the "start()" function after all the encoders have been added
     
     // Init of the array of encoders
     for (int i = 0; i < NB_ENCODERS_MAX; i++) {
@@ -125,17 +81,7 @@ void encoder_initSharingPinsMode(uint8 pClkPin, uint8 pCsPin) {
     }
 }
 
-/**
-   Activates the timer so the read cycle can start
- */
-void encoder_start() {
-    // Refresh the timer's count, prescale, and overflow
-    //timer->refresh();
-    // Start the timer counting
-    //timer->resume();
-}
-
-void encoder_addEncoderSharingPinsMode(uint8 pDOPin) {
+void encoder_add_encoder_sharing_pins_mode(uint8 pDOPin) {
     encoder newEncoder;
 
     newEncoder.DOPin = pDOPin;
@@ -151,15 +97,13 @@ void encoder_addEncoderSharingPinsMode(uint8 pDOPin) {
 
     //Setting the pins
     pinMode(DO_PIN, INPUT);
-    //pinMode(CLK_PIN, OUTPUT);
-    //pinMode(CS_PIN, OUTPUT);     
     
     arrayOfEncoders[nbEncoders] = newEncoder;
-    //printEncoder(&arrayOfEncoders[nbEncoders]);
+
     nbEncoders++;
 }
 
-void encoder_readAnglesSharingPinsMode() {    
+void encoder_read_angles_sharing_pins_mode() {
     //arrayOfTimeStamps[0] = timer->getCount();
     int halfClkPeriodUs = 1; // DataSheet says >= 500 ns
     encoder * enc;
@@ -185,8 +129,8 @@ void encoder_readAnglesSharingPinsMode() {
         digitalWrite(CLK_PIN, HIGH);
         delayMicroseconds(halfClkPeriodUs);
         
-        // read one bit of data from pin
         for (int j = 0; j < nbEncoders; j++) {
+        	//Read one bit of data from pin
             enc = &arrayOfEncoders[j];
             inputBit = digitalRead(enc->DOPin);
             
@@ -206,64 +150,29 @@ void encoder_readAnglesSharingPinsMode() {
         enc->angle = enc->inputLong & ANGLE_MASK;
         // shifting 18-digit angle right 6 digits to form 12-digit value
         enc->angle = (enc->angle >> 6); 
-        
-        enc->angle = enc->angle; //0.08789 == angle * (360/4096) == actual degrees
-        
+
         if (debug) {
             statusbits = enc->inputLong & STATUS_MASK;
-            //DECn = statusbits & 2; // goes high if magnet moved away from IC
-            //INCn = statusbits & 4; // goes high if magnet moved towards IC
-            LIN = statusbits & 8; // goes high for linearity alarm
-            COF = statusbits & 16; // goes high for cordic overflow: data invalid
-            //OCF = statusbits & 32; // this is 1 when the chip startup is finished.
-            /*if (DECn && INCn) { 
-                SerialUSB.println("magnet moved out of range"); 
-            } else {
-                    if (DECn) { 
-                        SerialUSB.println("magnet moved away from chip"); 
-                    }
-                    if (INCn) { 
-                        SerialUSB.println("magnet moved towards chip"); 
-                    }
-                    }*/
+            LIN = statusbits & 8;
+            COF = statusbits & 16;
+            //OCF = statusbits & 32; // High when the chip startup is finished.
             
-            if (LIN) { 
+            if (LIN) {
+            	//Linearity alarm. Data questionable.
                 enc->isDataQuestionable = true; 
-                //SerialUSB.println("linearity alarm: magnet misaligned? Data questionable."); 
-            } else if (COF) { 
+            } else if (COF) {
+            	//Cordic overflow. Data invalid.
                 enc->isDataInvalid = true; 
-                //SerialUSB.println("cordic overflow: magnet misaligned? Data invalid."); 
             } else {
                 enc->isDataQuestionable = false; 
                 enc->isDataInvalid = false; 
             }
         }
-        //printEncoder(enc);
     }
-    
-    
     //arrayOfTimeStamps[1] = timer->getCount();    
 }
 
-#if BOARD_HAVE_SERIALUSB
-void printEncoder(encoder * pEncoder) {
-    SerialUSB.print("DOPin : ");
-    SerialUSB.println(pEncoder->DOPin);
-    SerialUSB.print("CLKPin : ");
-    SerialUSB.println(pEncoder->CLKPin);
-    SerialUSB.print("CSPin : ");
-    SerialUSB.println(pEncoder->CSPin);
-    SerialUSB.print("tenTimesAngle : ");
-    SerialUSB.println(pEncoder->angle);
-    SerialUSB.print("inputLong : ");
-    SerialUSB.println(pEncoder->inputLong);
-    SerialUSB.print("isDataQuestionable : ");
-    SerialUSB.println(pEncoder->isDataQuestionable);
-    SerialUSB.print("isDataInvalid : ");
-    SerialUSB.println(pEncoder->isDataInvalid);
-}
-#endif
-long encoder_readAngleSequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {    
+long encoder_read_angle_sequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {
     //arrayOfTimeStamps[0] = timer->getCount();
     int halfClkPeriodUs = 1; // DataSheet says >= 500 ns
     long inputLong = 0;
@@ -290,7 +199,7 @@ long encoder_readAngleSequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {
         //Stacking and shifting the bits to get the int value
         inputLong = ((inputLong << 1) + inputBit);
         if (i != 17) {
-            // Lets de clock up at the end of the communication
+            // Lets the clock up at the end of the communication
             digitalWrite(pCLKPin, LOW);
             delayMicroseconds(halfClkPeriodUs);
         }
@@ -298,41 +207,51 @@ long encoder_readAngleSequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {
 
     angle = inputLong & ANGLE_MASK;
     angle = (angle >> 6); // shift 18-digit angle right 6 digits to form 12-digit value
-    
-    // /!\ warning, x10 :
-    angle = angle;// * 0.8789; //0.08789 == angle * (360/4096) == actual degrees
+
     if (debug) {
-            statusbits = inputLong & STATUS_MASK;
-            //DECn = statusbits & 2; // goes high if magnet moved away from IC
-            //INCn = statusbits & 4; // goes high if magnet moved towards IC
-            LIN = statusbits & 8; // goes high for linearity alarm
-            COF = statusbits & 16; // goes high for cordic overflow: data invalid
-            //OCF = statusbits & 32; // this is 1 when the chip startup is finished.
-            /*if (DECn && INCn) { 
-                SerialUSB.println("magnet moved out of range"); 
-            } else {
-                    if (DECn) { 
-                        SerialUSB.println("magnet moved away from chip"); 
-                    }
-                    if (INCn) { 
-                        SerialUSB.println("magnet moved towards chip"); 
-                    }
-                    }*/
-            
-          if (LIN) {  
-              //SerialUSB.println("linearity alarm: magnet misaligned? Data questionable."); 
-          } else if (COF) { 
-              angle = -1;
-              //SerialUSB.println("cordic overflow: magnet misaligned? Data invalid."); 
-          }
+		statusbits = inputLong & STATUS_MASK;
+		//DECn = statusbits & 2; // goes high if magnet moved away from IC
+		//INCn = statusbits & 4; // goes high if magnet moved towards IC
+		LIN = statusbits & 8; // goes high for linearity alarm
+		COF = statusbits & 16; // goes high for cordic overflow: data invalid
+		//OCF = statusbits & 32; // this is 1 when the chip startup is finished.
+
+		if (LIN) {
+			  //SerialUSB.println("Linearity alarm. Data questionable.");
+		  } else if (COF) {
+			  angle = -1;
+			  //SerialUSB.println("Cordic overflow. Data invalid.");
+		  }
     }
     return angle;
     //arrayOfTimeStamps[1] = timer->getCount();    
 }
 
+#if BOARD_HAVE_SERIALUSB
+void printEncoder(encoder * pEncoder) {
+    SerialUSB.print("DOPin : ");
+    SerialUSB.println(pEncoder->DOPin);
+    SerialUSB.print("CLKPin : ");
+    SerialUSB.println(pEncoder->CLKPin);
+    SerialUSB.print("CSPin : ");
+    SerialUSB.println(pEncoder->CSPin);
+    SerialUSB.print("angle : ");
+    SerialUSB.println(pEncoder->angle);
+    SerialUSB.print("inputLong : ");
+    SerialUSB.println(pEncoder->inputLong);
+    SerialUSB.print("isDataQuestionable : ");
+    SerialUSB.println(pEncoder->isDataQuestionable);
+    SerialUSB.print("isDataInvalid : ");
+    SerialUSB.println(pEncoder->isDataInvalid);
+}
+#endif
+
+
+
+
 
 /**
-   The following code uses a state machine approach to get de encoder's value. 
+   The following code uses a state machine approach to get the encoder's value.
    A timer was used to schedule interruptions every 1us which is the delay between every step of the 
    reading procedure (thus freeing the Uc during the waiting moments).
    Unfortunately, this approach was not viable because the treatment of an interruption procedure every 1us was 

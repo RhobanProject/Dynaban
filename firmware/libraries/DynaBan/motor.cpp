@@ -1,5 +1,5 @@
-#include "motorManager.h"
-#include "asserv.h"
+#include "motor.h"
+#include "control.h"
 
 static motor mot;
 static int nbUpdates = 0;
@@ -10,7 +10,7 @@ long currentTimming[C_NB_RAW_MEASURES];
 int currentMeasureIndex = 0;
 bool currentDetailedDebugOn = false;
 
-//Debug timer, to be supressed : *************************************************************************************
+//Debug timer
 HardwareTimer timer3(3);    
 
 motor * motor_getMotor() {
@@ -93,20 +93,15 @@ void motor_update(encoder * pEnc) {
     nbUpdates++;
 }
 
-void motor_readCurrent() {
+void motor_read_current() {
     if (HAS_CURRENT_SENSING) {
         mot.current = analogRead(CURRENT_ADC_PIN) - 2048;
 
         if (abs(mot.current) > 500) {
-            // Values that big are not taken into account
+            // Values that big are not taken into account. This is a bad hack and can be optimized.
         } else {
             mot.averageCurrent = ((AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.averageCurrent * PRESCALE + mot.current * PRESCALE) / (AVERAGE_FACTOR_FOR_CURRENT * PRESCALE);
         }
-        
-        /*digitalWrite(BOARD_TX_ENABLE, HIGH);
-            Serial1.println("yop");
-            Serial1.waitDataToBeSent();
-            digitalWrite(BOARD_TX_ENABLE, LOW);*/
         
         if (currentDetailedDebugOn == true) {
             currentRawMeasures[currentMeasureIndex] = mot.current;
@@ -120,7 +115,7 @@ void motor_readCurrent() {
     }
 }
 
-void motor_setCommand(long pCommand) {
+void motor_set_command(long pCommand) {
     mot.previousCommand = mot.command;
     if (pCommand > MAX_COMMAND) {
         mot.command = MAX_COMMAND;
@@ -139,24 +134,24 @@ void motor_setCommand(long pCommand) {
     
     if (command >= 0 && previousCommand >= 0) {
         //No need to change the spin direction
-        motor_securePwmWrite(PWM_2_PIN, command);
+        motor_secure_pwm_write(PWM_2_PIN, command);
     } else if (command <= 0 && previousCommand <= 0) {
-        motor_securePwmWrite(PWM_1_PIN, abs(command));
+        motor_secure_pwm_write(PWM_1_PIN, abs(command));
     } else {
         // Change of spin direction procedure
         if (command > 0) {
-            motor_securePwmWrite(PWM_1_PIN, 0);
-            motor_securePwmWrite(PWM_2_PIN, 0);
-            motor_securePwmWrite(PWM_2_PIN, command);
+            motor_secure_pwm_write(PWM_1_PIN, 0);
+            motor_secure_pwm_write(PWM_2_PIN, 0);
+            motor_secure_pwm_write(PWM_2_PIN, command);
         } else {
-            motor_securePwmWrite(PWM_2_PIN, 0);
-            motor_securePwmWrite(PWM_1_PIN, 0);
-            motor_securePwmWrite(PWM_1_PIN, abs(command));
+            motor_secure_pwm_write(PWM_2_PIN, 0);
+            motor_secure_pwm_write(PWM_1_PIN, 0);
+            motor_secure_pwm_write(PWM_1_PIN, abs(command));
         }
     }
 }
 
-void motor_securePwmWrite(uint8 pPin, uint16 pCommand){
+void motor_secure_pwm_write(uint8 pPin, uint16 pCommand){
     if (pCommand > MAX_COMMAND) {
         pwmWrite(pPin, MAX_COMMAND);
     } else {
@@ -164,9 +159,9 @@ void motor_securePwmWrite(uint8 pPin, uint16 pCommand){
     }
 }
 
-void motor_setTargetAngle(long pAngle) {
+void motor_set_target_angle(long pAngle) {
     //Reseting asserv to avoid inertia
-    asserv_init();
+    control_init();
     if (pAngle > MAX_ANGLE) {
         mot.targetAngle = MAX_ANGLE;
     } else if (pAngle < (-MAX_ANGLE)) {
@@ -176,9 +171,9 @@ void motor_setTargetAngle(long pAngle) {
     }
 }
 
-void motor_setTargetCurrent(int pCurrent) {
+void motor_set_target_current(int pCurrent) {
     //Reseting asserv to avoid inertia
-    asserv_init();
+    control_init();
     mot.targetCurrent = pCurrent;
 }
 
@@ -194,7 +189,7 @@ void motor_brake() {
 }
 
 /**
-   Will release the motor. Call restartMotor() to get out of this mode
+   Will release the motor. Call motor_restart() to get out of this mode
  */
 void motor_compliant() {
     mot.state = COMPLIANT;

@@ -10,7 +10,7 @@ CXXFLAGS_$(d) := $(WIRISH_INCLUDES) $(LIBMAPLE_INCLUDES)
 # Local rules and targets
 cSRCS_$(d) :=
 
-cppSRCS_$(d) := magneticEncoder.cpp asserv.cpp motorManager.cpp dxl.cpp flash_write.cpp circularBuffer.cpp
+cppSRCS_$(d) := magnetic_encoder.cpp control.cpp motor.cpp dxl.cpp flash_write.cpp circular_buffer.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)
