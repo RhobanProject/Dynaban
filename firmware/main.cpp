@@ -1,10 +1,3 @@
-/*
-To do
-- Lire la capteur de température
-- Essayer d'asservir le moteur en utilisant la mesure de courant comme mesure de rétro-action
-- Reproduire toutes les fonctionnalités dynamixel
- */
-
 #include <wirish/wirish.h>
 #include <libmaple/adc.h>
 #include <libmaple/timer.h>
@@ -16,10 +9,6 @@ To do
 #define POWER_SUPPLY_ADC_PIN PA2
 #define TEMPERATURE_ADC_PIN PA1
 
-/**
-   From a signed convention to the dynamiel's unsigned convention
- */
-unsigned short terrible_sign_convention(long pInput, long pIamZeroISwear);
 
 void init_dxl_ram();
 
@@ -34,6 +23,24 @@ void update_dxl_ram();
 void read_dxl_ram();
 
 /**
+ * Scheduling of the hardware tasks
+ */
+void hardware_tick();
+
+void set_ready_to_update_hardware();
+
+/**
+ * This function returns the inverted kinematics of the gear box in inches. 
+ * Just kidding, it returns the temperature in degrees celcius. 
+ */
+unsigned char read_temperature();
+
+/**
+   From a signed convention to the dynamiel's unsigned convention
+ */
+unsigned short terrible_sign_convention(long pInput, long pIamZeroISwear);
+
+/**
  * Generic debug print. Will show info on the current state of the motor and its control.
  */
 void print_debug();
@@ -43,20 +50,16 @@ void print_debug();
  */
 void print_current_debug();
 
-/*
+/**
  * Reads bursts of X values of the current as fast as possible and prints them.
  * This function will block the rest of the program.
  */
 void print_detailed_current_debug();
 
-/**
- * Scheduling of the hardware tasks
- */
-void hardware_tick();
+void set_ready_to_update_hardware() {
+    readyToUpdateHardware = true;
+}
 
-void set_ready_to_update_hardware();
-
-void adc_debug();
 
 typedef struct _hardware__ {
     encoder * enc;
@@ -71,61 +74,18 @@ typedef enum _controlModeEnum_ {
 } controlModeEnum;
 
 
-const bool DXL_COM_ON = false;
-const int OVER_FLOW = 3000;
+const bool     DXL_COM_ON = true;
+const int      OVER_FLOW = 3000;
 
-long counter = 0;
-int posCounter = 0;
-int hardwareCounter = 0;
-long debugCounter = 0;
-bool readyToUpdateHardware = false;
-bool controlMode = POSITION_CONTROL;
-hardware hardwareStruct;
-int16 current;
+long           counter               = 0;
+int            posCounter            = 0;
+unsigned char  hardwareCounter       = 0;
+unsigned int   slowHardwareCounter   = 0;
+long           debugCounter          = 0;
+bool           readyToUpdateHardware = false;
+bool           controlMode           = POSITION_CONTROL;
+hardware       hardwareStruct;
 
-void adc_debug() {
-    int input = 0;
-    
-    while(1) {
-        input = analogRead(TEMPERATURE_ADC_PIN);
-        digitalWrite(BOARD_TX_ENABLE, HIGH);
-        Serial1.println();
-        Serial1.print(input);
-        Serial1.print(" ");
-        float thermistor = 47000*(input*33/40960)/(33 - 10*(input*33/40960));
-        Serial1.print((-3225*log(thermistor) + 29737)/100);
-        Serial1.waitDataToBeSent();
-        digitalWrite(BOARD_TX_ENABLE, LOW);
-        
-        delay(100);
-    }
-    
-}
-
-void set_ready_to_update_hardware() {
-    readyToUpdateHardware = true;
-}
-
-unsigned int dxl_data_available() {
-    return Serial1.available();
-}
-
-ui8 dxl_data_byte() {
-    return Serial1.read();
-}
-
-void dxl_send(ui8 *buffer, int n) {
-    digitalWrite(BOARD_RX_ENABLE, LOW);
-    digitalWrite(BOARD_TX_ENABLE, HIGH);
-    Serial1.write(buffer, n);
-    Serial1.waitDataToBeSent();
-    digitalWrite(BOARD_TX_ENABLE, LOW);
-    digitalWrite(BOARD_RX_ENABLE, HIGH);
-}
-
-bool dxl_sending() {
-    return false;
-}
 
 void setup() {
     disableDebugPorts();
@@ -136,7 +96,8 @@ void setup() {
 
     Serial1.begin(57600);
 
-    //Setting the timer's prescale to get a 24KHz PWM. The 2 PWM share the same timer, channel 1 and 2.
+    /*Setting the timer's prescale to get a 24KHz PWM. 
+      PWM1 and PWM2 share the same timer, channel 1 and 2.*/
     HardwareTimer timer1(1);
     timer1.setPrescaleFactor(1);
     timer1.setOverflow(OVER_FLOW);
@@ -174,11 +135,11 @@ void setup() {
     // This function will block the rest of the program and print detailed current debug
     //printDetailedCurrentDebug();
 
-
     HardwareTimer timer2(2);
     // The hardware will be read at ~~48Khz
     timer2.setPeriod(21);
     timer2.setChannel1Mode(TIMER_OUTPUT_COMPARE);
+    
     //Interrupt 1 count after each update
     timer2.setCompare(TIMER_CH1, 1);
     timer2.attachCompare1Interrupt(set_ready_to_update_hardware);
@@ -186,28 +147,15 @@ void setup() {
     //Dxl struct init
     init_dxl_ram();
 
-    for (int i = 0; i < 5; i++) {
+    // Heartbit
+    for (int i = 0; i < 4; i++) {
         toggleLED();
         delay(250);
     }
 
-    adc_debug();
-    //motor_securePwmWrite(PWM_1_PIN, 500);
-    //motor_securePwmWrite(PWM_2_PIN, 500);
-
-    //motor_setCommand(2700); // 300 => 1800, -300 => 2100
-    //motor_setTargetAngle(1800);
-    //motor_setTargetCurrent(-20);
-    //hardwareStruct.mot->targetSpeed = 450;
-    //hardwareStruct.mot->targetAcceleration = 5;
-    //motor_compliant();
 }
 
 void loop() {
-    //delay(1);
-    //delayMicroseconds(10);
-    //toggleLED();
-
     if (DXL_COM_ON) {
         if (dxl_tick()) {
             read_dxl_ram();
@@ -274,13 +222,9 @@ void hardware_tick() {
     motor_read_current();
 
     if (hardwareCounter > 47) {
+        slowHardwareCounter++;
         hardwareCounter = 0;
         //These actions are performed at a rate of 1KHz
-        
-        //Updating power supply value (the value is 10 times than the real value)
-        hardwareStruct.voltage = (unsigned char)((analogRead(POWER_SUPPLY_ADC_PIN) * 33 *766)/409600);
-       //Updating the temperature
-       //hardwareStruct.temperature = ;
         
         //Updating the encoder
         encoder_read_angles_sharing_pins_mode();
@@ -306,16 +250,40 @@ void hardware_tick() {
         //printDebug();
         //printCurrentDebug();
     }
+    
+    if (slowHardwareCounter > 999) {
+        //These actions are performed at 1 Hz
+        slowHardwareCounter = 0;
+        
+        //Updating power supply value (the value is 10 times bigger than the real value)
+        hardwareStruct.voltage = (unsigned char)((analogRead(POWER_SUPPLY_ADC_PIN) * 33 *766)/409600);
+    
+        //Updating the temperature
+        hardwareStruct.temperature = read_temperature();
+    }
 
     hardwareCounter++;
 }
 
-unsigned short terrible_sign_convention(long pInput, long pIamZeroISwear) {
-    if (pInput > 0) {
-        return (unsigned short) pInput;
-    } else {
-        return (unsigned short) (pIamZeroISwear - pInput);
-    }
+unsigned int dxl_data_available() {
+    return Serial1.available();
+}
+
+ui8 dxl_data_byte() {
+    return Serial1.read();
+}
+
+void dxl_send(ui8 *buffer, int n) {
+    digitalWrite(BOARD_RX_ENABLE, LOW);
+    digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.write(buffer, n);
+    Serial1.waitDataToBeSent();
+    digitalWrite(BOARD_TX_ENABLE, LOW);
+    digitalWrite(BOARD_RX_ENABLE, HIGH);
+}
+
+bool dxl_sending() {
+    return false;
 }
 
 void init_dxl_ram() {
@@ -340,8 +308,8 @@ void update_dxl_ram() {
     dxl_regs.ram.presentSpeed = terrible_sign_convention(hardwareStruct.mot->speed, 1024);
 
     dxl_regs.ram.presentLoad = terrible_sign_convention(hardwareStruct.mot->averageCurrent, 1024);
-    dxl_regs.ram.presentVoltage = -1; // To do
-    dxl_regs.ram.presentTemperature = -1; // To do
+    dxl_regs.ram.presentVoltage = hardwareStruct.voltage;
+    dxl_regs.ram.presentTemperature = hardwareStruct.temperature;
     //dxl_regs.ram.registeredInstruction = ; // To do?
     if (hardwareStruct.mot->speed != 0) {
         dxl_regs.ram.moving = 1;
@@ -365,7 +333,8 @@ void read_dxl_ram() {
         controlMode = POSITION_CONTROL;
         }*/
 
-    hardwareStruct.mot->targetSpeed = dxl_regs.ram.movingSpeed; //moving speed actually means "goalSpeed"
+    //Moving speed actually means "goalSpeed"
+    hardwareStruct.mot->targetSpeed = dxl_regs.ram.movingSpeed;
     //To do : //dxl_regs.ram.torqueLimit;
     //To do  : //dxl_regs.ram.lock;
     //To do : //dxl_regs.ram.punch;
@@ -391,6 +360,28 @@ void read_dxl_ram() {
     }
 }
 
+/* Thermistor value is R (~4.7 kOhm at ~ 20°). We approximated the Temperature(Resitance) law as follows :
+   T°(R) = -32.25 * ln(R) + 297.37.
+   The voltage arrives at the adc pin through a bridge : vThermistor = 3.3V * (R)/(4700 + R)
+   => R = 4700*vThermistor / (vThermistor - 3.3)
+*/
+unsigned char read_temperature() {
+    unsigned int input = analogRead(TEMPERATURE_ADC_PIN);
+    
+    float vThermistor = (input*33) / (40960.0);
+    float thermistor = 47000*(vThermistor) / (33 - 10*vThermistor);
+    unsigned char temperature = (-3225*log(thermistor) + 29737) / 100;
+    
+    return temperature;
+}
+
+unsigned short terrible_sign_convention(long pInput, long pIamZeroISwear) {
+    if (pInput > 0) {
+        return (unsigned short) pInput;
+    } else {
+        return (unsigned short) (pIamZeroISwear - pInput);
+    }
+}
 
 void print_debug() {
     digitalWrite(BOARD_TX_ENABLE, HIGH);
