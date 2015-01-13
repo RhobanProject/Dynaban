@@ -1,10 +1,10 @@
 #include <wirish/wirish.h>
 #include <libmaple/adc.h>
 #include <libmaple/timer.h>
-#include <DynaBan/magnetic_encoder.h>
-#include <DynaBan/motor.h>
-#include <DynaBan/control.h>
-#include <DynaBan/dxl.h>
+#include "magnetic_encoder.h"
+#include "motor.h"
+#include "control.h"
+#include "dxl.h"
 
 #define POWER_SUPPLY_ADC_PIN  PA2
 #define TEMPERATURE_ADC_PIN   PA1

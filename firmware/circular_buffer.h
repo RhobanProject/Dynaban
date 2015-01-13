@@ -2,15 +2,13 @@
 #define _CIRCULAR_BUFFER_H_
 #include <wirish/wirish.h>
 
-//const int BUFF_SIZE = 128;
-
-typedef struct _buffer_ {
+struct buffer {
     int size;
     long* buf;
     int start;
     int end;
     int nbElements;
-} buffer;
+};
 
 void buffer_init(buffer * pBuf, int pSize);
 void buffer_add(buffer * pBuf, long pValue);
