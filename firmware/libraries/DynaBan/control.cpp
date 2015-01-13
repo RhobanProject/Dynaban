@@ -2,6 +2,10 @@
  
 static control controlStruct;
 
+control * get_control_struct() {
+    return &controlStruct;
+}
+
 void control_init() {
     controlStruct.deltaAngle = 0;
     controlStruct.deltaSpeed = 0;
@@ -48,34 +52,28 @@ void control_tick_P_on_position(motor * pMot) {
     motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef);
 }
 
-void control_tick_PID_on_speed(motor * pMot) {
-    if (pMot->speedUpdated == true) {
-        pMot->speedUpdated = false;
-        controlStruct.deltaSpeed = pMot->targetSpeed - pMot->speed;
+void control_tick_P_on_speed(motor * pMot) {
+    controlStruct.deltaSpeed = pMot->targetSpeed - pMot->speed;
     
-        motor_set_command(controlStruct.deltaSpeed * controlStruct.speedPCoef * NB_TICKS_BEFORE_UPDATING_SPEED);
-    }
-    
+    motor_set_command(controlStruct.deltaSpeed * INITIAL_SPEED_P_COEF);   
 }
 
-void control_tick_PID_on_acceleration(motor * pMot) {
-    if (pMot->accelerationUpdated == true) {
-        pMot->accelerationUpdated = false;
-        controlStruct.deltaAcceleration = pMot->targetAcceleration - pMot->acceleration;
+/*Desactivated because it does not work well. 
+ *This control loop approach is simplistic and the precision on the speed control loop forces a gigantic delay of 128ms. -> Needs to be worked on.*/
+void control_tick_P_on_acceleration(motor * pMot) {
+    
+    /*controlStruct.deltaAcceleration = pMot->targetAcceleration - pMot->acceleration;
         
-        motor_set_command(controlStruct.deltaAcceleration * controlStruct.accelerationPCoef);
-    }
-    
+      motor_set_command(controlStruct.deltaAcceleration * INITIAL_ACCELERATION_P_COEF);*/
 }
 
-void control_tick_PID_on_torque(motor * pMot) {
+void control_tick_P_on_torque(motor * pMot) {
     controlStruct.deltaAverageCurrent = pMot->targetCurrent - pMot->averageCurrent;
     
     // /!\ the -1 conspiracy continues
-    long command = - controlStruct.deltaAverageCurrent * controlStruct.torquePCoef;
+    long command = - controlStruct.deltaAverageCurrent * INITIAL_TORQUE_P_COEF;
     
     motor_set_command(command);
-    
 }
 
 #if BOARD_HAVE_SERIALUSB

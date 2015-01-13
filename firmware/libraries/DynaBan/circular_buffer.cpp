@@ -1,10 +1,13 @@
+#include <stdlib.h>
 #include "circular_buffer.h"
 
-void buffer_init(buffer * pBuf) {
+void buffer_init(buffer * pBuf, int pSize) {
     pBuf->start = 0;
     pBuf->end = 0;
+    pBuf->size = pSize;
+    pBuf->buf = (long*)malloc(sizeof(long) * pSize);
     
-    for (int i = 0; i < BUFF_SIZE; i++) {
+    for (int i = 0; i < pSize; i++) {
         pBuf->buf[i] = 0;
     }
 }
@@ -12,18 +15,18 @@ void buffer_init(buffer * pBuf) {
 void buffer_add(buffer * pBuf, long pValue) {
     pBuf->buf[pBuf->end] = pValue;
     
-    pBuf->end = (pBuf->end + 1)%BUFF_SIZE;
+    pBuf->end = (pBuf->end + 1)%(pBuf->size);
     
-    if (pBuf->nbElements < BUFF_SIZE) {
+    if (pBuf->nbElements < (pBuf->size)) {
         (pBuf->nbElements)++;
     } else {
-        pBuf->start = (pBuf->start + 1)%BUFF_SIZE;
+        pBuf->start = (pBuf->start + 1)%(pBuf->size);
     }
 
 }
 
 long buffer_get(buffer * pBuf) {
-    if (pBuf->nbElements < BUFF_SIZE) {
+    if (pBuf->nbElements < (pBuf->size)) {
         return 0;
     } else {
         return pBuf->buf[pBuf->start];
@@ -37,7 +40,7 @@ void buffer_print(buffer * pBuf) {
     Serial1.println(pBuf->start);
     Serial1.print("End : ");
     Serial1.println(pBuf->end);
-    for (int i = 0; i < BUFF_SIZE; i++) {
+    for (int i = 0; i < (pBuf->size); i++) {
         Serial1.print(pBuf->buf[i]);
         Serial1.print(", ");
     }

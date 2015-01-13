@@ -16,11 +16,25 @@ const long MAX_ANGLE = 4096;
 const int PWM_1_PIN = 27; // PA8 --> Negative rotation
 const int PWM_2_PIN = 26; // PA9 --> Positive rotation
 
-const int NB_TICKS_BEFORE_UPDATING_SPEED = BUFF_SIZE;
-const int NB_TICKS_BEFORE_UPDATING_ACCELERATION = 32 * NB_TICKS_BEFORE_UPDATING_SPEED;
+/*
+  Dxl datasheet says (seems pretty accurate) max speed is :
+  58rpm at 11.1V
+  63rpm at 12V
+  78rpm at 14.8V
+  
+  We'll follow the same unit convention than dynamixel :
+  1 unit of speed = 0.114rpm
+  max range speed = 1023 => 117.07 rpm (2048 => -117.07)
+  526 speed unit ~= 60 rpm = 1 rps
+  => NB_TICK_BEFORE_UPDATING_SPEED * 4096/(NB_TICKS_PER_SECOND) = 526 
+  => NB_TICK_BEFORE_UPDATING_SPEED = 526 * NB_TICKS_PER_SECOND / 4096
+                                   = 128.418 ~= 128
+ */
+const int NB_TICKS_BEFORE_UPDATING_SPEED = 128;
+const int NB_TICKS_BEFORE_UPDATING_ACCELERATION = 8;//32;
 const int MAX_SPEED = 1023;
-
 const int C_NB_RAW_MEASURES = 60;
+
 extern long currentRawMeasures[C_NB_RAW_MEASURES];
 extern long currentTimming[C_NB_RAW_MEASURES];
 extern int currentMeasureIndex;
@@ -41,6 +55,7 @@ typedef struct _motor_ {
     long angle;
     long previousAngle;
     buffer angleBuffer;
+    buffer speedBuffer;
     long targetAngle;
     long speed;
     long previousSpeed;
@@ -83,5 +98,10 @@ void motor_restart();
 motor * motor_getMotor();
 
 void motor_printMotor();
+
+/**
+ * Puts the motor in compliant mode. You'll need to shut the motor down to get out of this mode.
+ */
+void motor_temperatureIsCritic();
 
 #endif /* _MOTOR_MANAGER_H_ */

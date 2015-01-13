@@ -9,6 +9,7 @@ long currentRawMeasures[C_NB_RAW_MEASURES];
 long currentTimming[C_NB_RAW_MEASURES];
 int currentMeasureIndex = 0;
 bool currentDetailedDebugOn = false;
+bool temperatureIsCritic = false;
 
 //Debug timer
 HardwareTimer timer3(3);    
@@ -46,7 +47,8 @@ void motor_init(encoder * pEnc) {
     mot.angle = pEnc->angle;
     mot.previousAngle = pEnc->angle;
     //mot.angleBuffer = previousAngleBuffer;  
-    buffer_init(&(mot.angleBuffer));
+    buffer_init(&(mot.angleBuffer), NB_TICKS_BEFORE_UPDATING_SPEED);
+    buffer_init(&(mot.speedBuffer), NB_TICKS_BEFORE_UPDATING_ACCELERATION);
     mot.targetAngle = pEnc->angle;
     mot.speed = 0;
     mot.previousSpeed = 0;
@@ -63,32 +65,28 @@ void motor_init(encoder * pEnc) {
 }
 
 void motor_update(encoder * pEnc) {
-    //buffer_printBuffer(&(mot.angleBuffer));
+    //Updating the motor position (ie angle)
     buffer_add(&(mot.angleBuffer), mot.angle);
     mot.previousAngle = mot.angle;
     mot.angle = pEnc->angle;
         
-    if (nbUpdates % NB_TICKS_BEFORE_UPDATING_SPEED == 0) {
-        mot.speedUpdated = true;
-        //Normal case 
-        mot.speed = mot.angle - buffer_get(&(mot.angleBuffer));
-        if (abs(mot.speed) > MAX_SPEED) {
-            //Position went from near max to near 0 or vice-versa
-            if (mot.angle > mot.previousAngle) {
-                mot.speed = (buffer_get(&(mot.angleBuffer)) + MAX_ANGLE - mot.angle);
-            } else if (mot.angle < mot.previousAngle) {
-                mot.speed = (buffer_get(&(mot.angleBuffer)) - MAX_ANGLE + mot.angle);
-            }
+    long oldPosition = buffer_get(&(mot.angleBuffer));
+    
+    //Updating the motor speed 
+    mot.speed = mot.angle - oldPosition;
+    if (abs(mot.speed) > MAX_SPEED) {
+        //Position went from near max to near 0 or vice-versa
+        if (mot.angle >= oldPosition) {
+            mot.speed = mot.speed - MAX_ANGLE;
+        } else if (mot.angle < oldPosition) {
+            mot.speed = mot.speed + MAX_ANGLE;
         }
-                
     }
-
-    if (nbUpdates == NB_TICKS_BEFORE_UPDATING_ACCELERATION) {
-        mot.accelerationUpdated = true;
-        nbUpdates = 0;
-        mot.acceleration = mot.speed - mot.previousSpeed;
-        mot.previousSpeed = mot.speed;
-    }
+    buffer_add(&(mot.speedBuffer), mot.speed);
+    
+    //Updating the motor acceleration
+    long oldSpeed = buffer_get(&(mot.speedBuffer));
+    mot.acceleration = mot.speed - oldSpeed;
     
     nbUpdates++;
 }
@@ -116,6 +114,10 @@ void motor_read_current() {
 }
 
 void motor_set_command(long pCommand) {
+    if (temperatureIsCritic == true) {
+        // Good try but no. Go cool down yourself before you consider spin again, motor bro.
+        return;
+    }
     mot.previousCommand = mot.command;
     if (pCommand > MAX_COMMAND) {
         mot.command = MAX_COMMAND;
@@ -160,7 +162,7 @@ void motor_secure_pwm_write(uint8 pPin, uint16 pCommand){
 }
 
 void motor_set_target_angle(long pAngle) {
-    //Reseting asserv to avoid inertia
+    //Reseting the control to avoid inertia with the integral part
     control_init();
     if (pAngle > MAX_ANGLE) {
         mot.targetAngle = MAX_ANGLE;
@@ -172,13 +174,13 @@ void motor_set_target_angle(long pAngle) {
 }
 
 void motor_set_target_current(int pCurrent) {
-    //Reseting asserv to avoid inertia
+    //Reseting the control to avoid inertia with the integral part
     control_init();
     mot.targetCurrent = pCurrent;
 }
 
 /**
-   Will make the engine brake
+   Will make the engine brake. Note : it brakes hard.
  */
 void motor_brake() {
     mot.state = BRAKE;
@@ -203,6 +205,12 @@ void motor_compliant() {
 void motor_restart() {
     mot.state = MOVING;
     digitalWrite(SHUT_DOWN_PIN, HIGH);
+}
+
+void motor_temperatureIsCritic() {
+    temperatureIsCritic = true;
+    motor_compliant();
+    digitalWrite(BOARD_LED_PIN, HIGH);
 }
 
 #if BOARD_HAVE_SERIALUSB

@@ -6,9 +6,9 @@
 #include <DynaBan/control.h>
 #include <DynaBan/dxl.h>
 
-#define POWER_SUPPLY_ADC_PIN PA2
-#define TEMPERATURE_ADC_PIN PA1
-
+#define POWER_SUPPLY_ADC_PIN  PA2
+#define TEMPERATURE_ADC_PIN   PA1
+#define MAX_TEMPERATURE       70
 
 void init_dxl_ram();
 
@@ -30,8 +30,7 @@ void hardware_tick();
 void set_ready_to_update_hardware();
 
 /**
- * This function returns the inverted kinematics of the gear box in inches. 
- * Just kidding, it returns the temperature in degrees celcius. 
+ * Returns the temperature in degrees celcius. 
  */
 unsigned char read_temperature();
 
@@ -56,11 +55,6 @@ void print_current_debug();
  */
 void print_detailed_current_debug();
 
-void set_ready_to_update_hardware() {
-    readyToUpdateHardware = true;
-}
-
-
 typedef struct _hardware__ {
     encoder * enc;
     motor * mot;
@@ -70,7 +64,10 @@ typedef struct _hardware__ {
 
 typedef enum _controlModeEnum_ {
     POSITION_CONTROL       = 0,
-    TORQUE_CONTROL         = 1,
+    SPEED_CONTROL          = 1,
+    ACCELERATION_CONTROL   = 2,
+    TORQUE_CONTROL         = 3,
+    OFF                    = 4,
 } controlModeEnum;
 
 
@@ -83,7 +80,7 @@ unsigned char  hardwareCounter       = 0;
 unsigned int   slowHardwareCounter   = 0;
 long           debugCounter          = 0;
 bool           readyToUpdateHardware = false;
-bool           controlMode           = POSITION_CONTROL;
+unsigned char  controlMode           = OFF;
 hardware       hardwareStruct;
 
 
@@ -146,13 +143,13 @@ void setup() {
 
     //Dxl struct init
     init_dxl_ram();
-
+    
     // Heartbit
     for (int i = 0; i < 4; i++) {
         toggleLED();
         delay(250);
     }
-
+    controlMode = OFF;
 }
 
 void loop() {
@@ -169,50 +166,15 @@ void loop() {
             update_dxl_ram();
         }
     }
-    /*
+    
     if (counter % (100*200) == 0) {
         if (DXL_COM_ON == false) {
             //toggleLED();
-            print_current_debug();
-            //printDebug();
+            //print_current_debug();
+            print_debug();
         }
+        
     }
-
-    if (counter % (100*2000*5) == 0) {
-        counter = 0;
-        //motor_setTargetAngle(1000 * posCounter);
-        //printDebug();
-        if (posCounter == 0) {
-            motor_set_target_angle(0);
-            //motor_set_target_current(20);
-            //motor_securePwmWrite(PWM_2_PIN, 0);
-            //motor_securePwmWrite(PWM_1_PIN, 500);
-            posCounter = 1;
-            digitalWrite(BOARD_LED_PIN, HIGH);
-            //hardwareStruct.mot->targetSpeed = -20;
-            //motor_setTargetAngle(1020);
-        } else if (posCounter == 1) {
-            motor_set_target_angle(1024);
-            //motor_set_target_current(-20);
-            //motor_securePwmWrite(PWM_1_PIN, 0);
-            //motor_securePwmWrite(PWM_2_PIN, 500);
-            posCounter = 2;
-            digitalWrite(BOARD_LED_PIN, LOW);
-            //hardwareStruct.mot->targetSpeed = -40;
-            //motor_setTargetAngle(2040);
-        } else if (posCounter == 2) {
-            motor_set_target_angle(2048);
-            posCounter = 3;
-            //hardwareStruct.mot->targetSpeed = -60;
-            //motor_setTargetAngle(3060);
-        } else {
-            motor_set_target_angle(3072);
-            posCounter = 0;
-            //hardwareStruct.mot->targetSpeed = -80;
-            //motor_setTargetAngle(4095);
-        }
-    }
-    */
     counter++;
 }
 
@@ -222,33 +184,28 @@ void hardware_tick() {
     motor_read_current();
 
     if (hardwareCounter > 47) {
+        //These actions are performed at a rate of 1KHz
         slowHardwareCounter++;
         hardwareCounter = 0;
-        //These actions are performed at a rate of 1KHz
         
         //Updating the encoder
         encoder_read_angles_sharing_pins_mode();
-
+        
         //Updating the motor
         motor_update(hardwareStruct.enc);
-
-        //Updating asserv
-        /*
+        
+        //Updating control
         if (controlMode == POSITION_CONTROL) {
-            asserv_tickPIDOnPosition(hardwareStruct.mot);
+            control_tick_PID_on_position(hardwareStruct.mot);
+        } else if (controlMode == SPEED_CONTROL) {
+            control_tick_P_on_speed(hardwareStruct.mot);
+        } else if (controlMode == ACCELERATION_CONTROL) {
+            control_tick_P_on_acceleration(hardwareStruct.mot);
         } else if (controlMode == TORQUE_CONTROL) {
-            asserv_tickPIDOnTorque(hardwareStruct.mot);
+            control_tick_P_on_torque(hardwareStruct.mot);
         } else {
-            //asserv_tickPIDOnPosition(hardwareStruct.mot);
-            }*/
-        //control_tick_PID_on_torque(hardwareStruct.mot);
-        control_tick_PID_on_position(hardwareStruct.mot);
-
-        //asserv_tickPIDOnSpeed(hardwareStruct.mot);
-        //asserv_tickPIDOnAcceleration(hardwareStruct.mot);
-        //motor_compliant();
-        //printDebug();
-        //printCurrentDebug();
+            // No control
+        }
     }
     
     if (slowHardwareCounter > 999) {
@@ -260,9 +217,17 @@ void hardware_tick() {
     
         //Updating the temperature
         hardwareStruct.temperature = read_temperature();
+        if (hardwareStruct.temperature > MAX_TEMPERATURE) {
+            motor_temperatureIsCritic();
+        }
     }
 
     hardwareCounter++;
+}
+
+
+void set_ready_to_update_hardware() {
+    readyToUpdateHardware = true;
 }
 
 unsigned int dxl_data_available() {
@@ -299,18 +264,28 @@ void init_dxl_ram() {
     dxl_regs.ram.goalTorque = 0;
     dxl_regs.ram.goalAcceleration = 0;
 
+    dxl_regs.ram.goalPosition = 0;
+    dxl_regs.ram.movingSpeed = 0;
+    dxl_regs.ram.goalAcceleration = 0;
+    dxl_regs.ram.goalTorque = 0;
+    
     //The other registers are updated here :
     update_dxl_ram();
 }
 
 void update_dxl_ram() {
     dxl_regs.ram.presentPosition = hardwareStruct.mot->angle;
+    
     dxl_regs.ram.presentSpeed = terrible_sign_convention(hardwareStruct.mot->speed, 1024);
 
     dxl_regs.ram.presentLoad = terrible_sign_convention(hardwareStruct.mot->averageCurrent, 1024);
+    
     dxl_regs.ram.presentVoltage = hardwareStruct.voltage;
+    
     dxl_regs.ram.presentTemperature = hardwareStruct.temperature;
+    
     //dxl_regs.ram.registeredInstruction = ; // To do?
+    
     if (hardwareStruct.mot->speed != 0) {
         dxl_regs.ram.moving = 1;
     } else {
@@ -323,31 +298,44 @@ void update_dxl_ram() {
 void read_dxl_ram() {
 
     digitalWrite(BOARD_LED_PIN, (dxl_regs.ram.led!=0) ? HIGH : LOW);
-    //Asserv struct à rajouter dans hardwareStruct
-    //asservStruct->dCoef = dxl_regs.ram.servoKd;
-    //asservStruct->iCoef = dxl_regs.ram.servoKi;
-    //asservStruct->pCoef = dxl_regs.ram.servoKp;
-    hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;
-    /*if (hardwareStruct.mot->targetAngle != dxl_regs.ram.goalPosition) {
+    
+    get_control_struct()->dCoef = dxl_regs.ram.servoKd;
+    get_control_struct()->iCoef = dxl_regs.ram.servoKi;
+    get_control_struct()->pCoef = dxl_regs.ram.servoKp;
+    
+    if (hardwareStruct.mot->targetAngle != dxl_regs.ram.goalPosition) {
         hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;
         controlMode = POSITION_CONTROL;
-        }*/
-
+    }
+    
     //Moving speed actually means "goalSpeed"
-    hardwareStruct.mot->targetSpeed = dxl_regs.ram.movingSpeed;
+    if (hardwareStruct.mot->targetSpeed != dxl_regs.ram.movingSpeed) {
+        if (dxl_regs.ram.movingSpeed < 1024) {
+            hardwareStruct.mot->targetSpeed = dxl_regs.ram.movingSpeed;
+        } else {
+            hardwareStruct.mot->targetSpeed = 1024 - dxl_regs.ram.movingSpeed;
+        }
+        
+        controlMode = SPEED_CONTROL;
+    }
+    
     //To do : //dxl_regs.ram.torqueLimit;
     //To do  : //dxl_regs.ram.lock;
     //To do : //dxl_regs.ram.punch;
-
-    //To do : //dxl_regs.ram.torqueMode;
-    hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalTorque;
-    /*
+    
     if (hardwareStruct.mot->targetCurrent != dxl_regs.ram.goalTorque) {
         hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalTorque;
         controlMode = TORQUE_CONTROL;
-        } */
+    }
 
-    hardwareStruct.mot->targetAcceleration = dxl_regs.ram.goalAcceleration;
+    if (hardwareStruct.mot->targetAcceleration != dxl_regs.ram.goalAcceleration) {
+        hardwareStruct.mot->targetAcceleration = dxl_regs.ram.goalAcceleration;
+        controlMode = ACCELERATION_CONTROL;
+    }
+
+    if (dxl_regs.ram.torqueMode) {
+        controlMode = TORQUE_CONTROL;
+    }
 
     if (dxl_regs.ram.torqueEnable) {
         if (hardwareStruct.mot->state == COMPLIANT) {
@@ -360,9 +348,9 @@ void read_dxl_ram() {
     }
 }
 
-/* Thermistor value is R (~4.7 kOhm at ~ 20°). We approximated the Temperature(Resitance) law as follows :
+/* The Thermistor value is R (~4.7 kOhm at ~ 20°). We approximated the Temperature(Resitance) law as follows :
    T°(R) = -32.25 * ln(R) + 297.37.
-   The voltage arrives at the adc pin through a bridge : vThermistor = 3.3V * (R)/(4700 + R)
+   The voltage arrives at the adc pin through a bridge with a 4.7kOhm resistor : vThermistor = 3.3V * (R)/(4700 + R)
    => R = 4700*vThermistor / (vThermistor - 3.3)
 */
 unsigned char read_temperature() {
@@ -376,7 +364,7 @@ unsigned char read_temperature() {
 }
 
 unsigned short terrible_sign_convention(long pInput, long pIamZeroISwear) {
-    if (pInput > 0) {
+    if (pInput >= 0) {
         return (unsigned short) pInput;
     } else {
         return (unsigned short) (pIamZeroISwear - pInput);
@@ -387,6 +375,9 @@ void print_debug() {
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.println();
     Serial1.print("-----------------------:");
+    Serial1.println();
+    Serial1.print("Mode = ");
+    Serial1.println(controlMode);
     motor_printMotor();
     control_print();
     Serial1.waitDataToBeSent();
@@ -419,11 +410,6 @@ void print_detailed_current_debug() {
         while(currentDetailedDebugOn != false) {
             //delayMicroseconds(1);
             motor_read_current();
-
-            /*if (readyToUpdateHardware) {
-                hardwareTick();
-                readyToUpdateHardware = false;
-                }*/
         }
 
         timer3.pause();
