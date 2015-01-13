@@ -5,25 +5,15 @@
 #include "motor.h"
 #include "control.h"
 #include "dxl.h"
+#include "dxl_HAL.h"
 
 #define POWER_SUPPLY_ADC_PIN  PA2
 #define TEMPERATURE_ADC_PIN   PA1
 #define MAX_TEMPERATURE       70
-
-void init_dxl_ram();
-
-/**
- * Updates the dynamixel ram with the new state of the motor (such as current position)
- */
-void update_dxl_ram();
+#define OVER_FLOW             3000
 
 /**
- * Reads the dynamixel ram and applies modifications (such as goad position)
- */
-void read_dxl_ram();
-
-/**
- * Scheduling of the hardware tasks
+ * Schedules the hardware tasks
  */
 void hardware_tick();
 
@@ -34,10 +24,6 @@ void set_ready_to_update_hardware();
  */
 unsigned char read_temperature();
 
-/**
-   From a signed convention to the dynamiel's unsigned convention
- */
-unsigned short terrible_sign_convention(long pInput, long pIamZeroISwear);
 
 /**
  * Generic debug print. Will show info on the current state of the motor and its control.
@@ -55,24 +41,8 @@ void print_current_debug();
  */
 void print_detailed_current_debug();
 
-typedef struct _hardware__ {
-    encoder * enc;
-    motor * mot;
-    unsigned char voltage;
-    unsigned char temperature;
-} hardware;
 
-typedef enum _controlModeEnum_ {
-    POSITION_CONTROL       = 0,
-    SPEED_CONTROL          = 1,
-    ACCELERATION_CONTROL   = 2,
-    TORQUE_CONTROL         = 3,
-    OFF                    = 4,
-} controlModeEnum;
-
-
-const bool     DXL_COM_ON = true;
-const int      OVER_FLOW = 3000;
+static const bool     DXL_COM_ON = true;
 
 long           counter               = 0;
 int            posCounter            = 0;
@@ -80,6 +50,7 @@ unsigned char  hardwareCounter       = 0;
 unsigned int   slowHardwareCounter   = 0;
 long           debugCounter          = 0;
 bool           readyToUpdateHardware = false;
+
 unsigned char  controlMode           = OFF;
 hardware       hardwareStruct;
 
@@ -167,14 +138,6 @@ void loop() {
         }
     }
     
-    if (counter % (100*200) == 0) {
-        if (DXL_COM_ON == false) {
-            //toggleLED();
-            //print_current_debug();
-            print_debug();
-        }
-        
-    }
     counter++;
 }
 
@@ -230,124 +193,6 @@ void set_ready_to_update_hardware() {
     readyToUpdateHardware = true;
 }
 
-unsigned int dxl_data_available() {
-    return Serial1.available();
-}
-
-ui8 dxl_data_byte() {
-    return Serial1.read();
-}
-
-void dxl_send(ui8 *buffer, int n) {
-    digitalWrite(BOARD_RX_ENABLE, LOW);
-    digitalWrite(BOARD_TX_ENABLE, HIGH);
-    Serial1.write(buffer, n);
-    Serial1.waitDataToBeSent();
-    digitalWrite(BOARD_TX_ENABLE, LOW);
-    digitalWrite(BOARD_RX_ENABLE, HIGH);
-}
-
-bool dxl_sending() {
-    return false;
-}
-
-void init_dxl_ram() {
-    dxl_regs.ram.torqueEnable = 0;
-    dxl_regs.ram.led = 0;
-    dxl_regs.ram.servoKd = INITIAL_D_COEF;
-    dxl_regs.ram.servoKi = INITIAL_I_COEF;
-    dxl_regs.ram.servoKp = INITIAL_P_COEF;
-    dxl_regs.ram.torqueLimit = dxl_regs.eeprom.maxTorque;
-    dxl_regs.ram.lock = 0;
-    dxl_regs.ram.punch = 0;
-    dxl_regs.ram.torqueMode = 0;
-    dxl_regs.ram.goalTorque = 0;
-    dxl_regs.ram.goalAcceleration = 0;
-
-    dxl_regs.ram.goalPosition = 0;
-    dxl_regs.ram.movingSpeed = 0;
-    dxl_regs.ram.goalAcceleration = 0;
-    dxl_regs.ram.goalTorque = 0;
-    
-    //The other registers are updated here :
-    update_dxl_ram();
-}
-
-void update_dxl_ram() {
-    dxl_regs.ram.presentPosition = hardwareStruct.mot->angle;
-    
-    dxl_regs.ram.presentSpeed = terrible_sign_convention(hardwareStruct.mot->speed, 1024);
-
-    dxl_regs.ram.presentLoad = terrible_sign_convention(hardwareStruct.mot->averageCurrent, 1024);
-    
-    dxl_regs.ram.presentVoltage = hardwareStruct.voltage;
-    
-    dxl_regs.ram.presentTemperature = hardwareStruct.temperature;
-    
-    //dxl_regs.ram.registeredInstruction = ; // To do?
-    
-    if (hardwareStruct.mot->speed != 0) {
-        dxl_regs.ram.moving = 1;
-    } else {
-        dxl_regs.ram.moving = 0;
-    }
-
-    dxl_regs.ram.current = terrible_sign_convention(hardwareStruct.mot->averageCurrent, 2048);
-}
-
-void read_dxl_ram() {
-
-    digitalWrite(BOARD_LED_PIN, (dxl_regs.ram.led!=0) ? HIGH : LOW);
-    
-    get_control_struct()->dCoef = dxl_regs.ram.servoKd;
-    get_control_struct()->iCoef = dxl_regs.ram.servoKi;
-    get_control_struct()->pCoef = dxl_regs.ram.servoKp;
-    
-    if (hardwareStruct.mot->targetAngle != dxl_regs.ram.goalPosition) {
-        hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;
-        controlMode = POSITION_CONTROL;
-    }
-    
-    //Moving speed actually means "goalSpeed"
-    if (hardwareStruct.mot->targetSpeed != dxl_regs.ram.movingSpeed) {
-        if (dxl_regs.ram.movingSpeed < 1024) {
-            hardwareStruct.mot->targetSpeed = dxl_regs.ram.movingSpeed;
-        } else {
-            hardwareStruct.mot->targetSpeed = 1024 - dxl_regs.ram.movingSpeed;
-        }
-        
-        controlMode = SPEED_CONTROL;
-    }
-    
-    //To do : //dxl_regs.ram.torqueLimit;
-    //To do  : //dxl_regs.ram.lock;
-    //To do : //dxl_regs.ram.punch;
-    
-    if (hardwareStruct.mot->targetCurrent != dxl_regs.ram.goalTorque) {
-        hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalTorque;
-        controlMode = TORQUE_CONTROL;
-    }
-
-    if (hardwareStruct.mot->targetAcceleration != dxl_regs.ram.goalAcceleration) {
-        hardwareStruct.mot->targetAcceleration = dxl_regs.ram.goalAcceleration;
-        controlMode = ACCELERATION_CONTROL;
-    }
-
-    if (dxl_regs.ram.torqueMode) {
-        controlMode = TORQUE_CONTROL;
-    }
-
-    if (dxl_regs.ram.torqueEnable) {
-        if (hardwareStruct.mot->state == COMPLIANT) {
-            motor_restart();
-        }
-    } else {
-        if(hardwareStruct.mot->state != COMPLIANT) {
-            motor_compliant();
-        }
-    }
-}
-
 /* The Thermistor value is R (~4.7 kOhm at ~ 20°). We approximated the Temperature(Resitance) law as follows :
    T°(R) = -32.25 * ln(R) + 297.37.
    The voltage arrives at the adc pin through a bridge with a 4.7kOhm resistor : vThermistor = 3.3V * (R)/(4700 + R)
@@ -361,14 +206,6 @@ unsigned char read_temperature() {
     unsigned char temperature = (-3225*log(thermistor) + 29737) / 100;
     
     return temperature;
-}
-
-unsigned short terrible_sign_convention(long pInput, long pIamZeroISwear) {
-    if (pInput >= 0) {
-        return (unsigned short) pInput;
-    } else {
-        return (unsigned short) (pIamZeroISwear - pInput);
-    }
 }
 
 void print_debug() {
@@ -405,8 +242,8 @@ void print_detailed_current_debug() {
         delay(50);
         timer3.resume();
         currentDetailedDebugOn = true;
-        //Waiting for the measures tu be made
-
+        
+        //Waiting for the measures to be made
         while(currentDetailedDebugOn != false) {
             //delayMicroseconds(1);
             motor_read_current();

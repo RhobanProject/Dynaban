@@ -3,7 +3,7 @@
 
 #include <wirish/wirish.h>
 
-typedef struct _encoder_ {
+struct encoder {
     int DOPin;
     int CLKPin;
     int CSPin;
@@ -11,7 +11,7 @@ typedef struct _encoder_ {
     long inputLong;
     bool isDataQuestionable;
     bool isDataInvalid;
-} encoder;
+};
 
 encoder * encoder_get_encoder(uint8 pEncoderId);
 

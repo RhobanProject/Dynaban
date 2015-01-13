@@ -1,4 +1,4 @@
-#ifndef _ASSERV_H_
+#ifndef _CONTROL_H_
 #define _CONTROL_H_
 #include <wirish/wirish.h>
 #include "motor.h"
@@ -15,7 +15,7 @@ const int INITIAL_SPEED_P_COEF = 6;
 const int INITIAL_ACCELERATION_P_COEF = 20;
 const int INITIAL_TORQUE_P_COEF = 45;
 
-typedef struct _control_ {
+struct control {
     int deltaAngle;
     int deltaSpeed;
     int deltaAcceleration;
@@ -27,7 +27,7 @@ typedef struct _control_ {
     int speedPCoef;
     int accelerationPCoef;
     int torquePCoef;
-} control;
+};
 
 control * get_control_struct();
 
@@ -51,4 +51,4 @@ void control_tick_P_on_torque(motor * pMot);
 // Prints debug info through Serial1
 void control_print();
 
-#endif /* _ASSERV_H_ */
+#endif /* _CONTROL_H_ */

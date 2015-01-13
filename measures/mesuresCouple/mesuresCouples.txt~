@@ -1,0 +1,27 @@
+Mesures de torque du MX-64 avec une poulie de 5cm de rayon
+
+Consommation courant à vide (60 mA)
+
+1) Sens trigo de rotation <=> commande en torque positive
+   Pour lever une bouteille d'eau de 0,5L :
+   Commande de torque :
+   10 -> rien
+   20 -> Arrachement (157 mA)
+
+   Pour lever 2 bouteilles d'eau de 0,5L :
+   Commande de torque :
+   40 -> rien (243 mA)
+   45 -> rien (263 mA)
+   50 -> Arrachement (280 mA)
+
+2) Sens inverse <=> commande en torque négative
+   Commande de torque :
+   -20 arrachement 1 bouteille
+   -40 (240 mA)
+   -50 arrachement 2ème bouteille (274 mA)
+
+
+En redescente :
+26 secondes pour 1 tour pour un couple de 5cm*1kg (R induite = 2,3 ohm)
+
+Lorsque le moteur est en court-circuit, le couple resistif est impressionant. Courant mesuré en forçant à la main < 120 mA

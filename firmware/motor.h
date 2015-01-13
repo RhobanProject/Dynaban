@@ -1,20 +1,18 @@
-#ifndef _MOTOR_MANAGER_H_
-#define _MOTOR_MANAGER_H_
+#ifndef _MOTOR_H_
+#define _MOTOR_H_
+
 #include <wirish/wirish.h>
 #include "magnetic_encoder.h"
 #include "circular_buffer.h"
 
 #define SHUT_DOWN_PIN PA12
-
-const bool HAS_CURRENT_SENSING = true;
-const int CURRENT_ADC_PIN = 33;// PB1
-const long PRESCALE = 1 << 10;
-const long AVERAGE_FACTOR_FOR_CURRENT = 256;
-// 90% of 3000 (PWM period) :
-const long MAX_COMMAND = 2700;
-const long MAX_ANGLE = 4096;
-const int PWM_1_PIN = 27; // PA8 --> Negative rotation
-const int PWM_2_PIN = 26; // PA9 --> Positive rotation
+#define HAS_CURRENT_SENSING true
+#define CURRENT_ADC_PIN 33 // PB1
+#define AVERAGE_FACTOR_FOR_CURRENT 256
+#define MAX_COMMAND 2700 // 90% of 3000 (PWM period)
+#define MAX_ANGLE 4096
+#define PWM_1_PIN 27 // PA8 --> Negative rotation
+#define PWM_2_PIN 26 // PA9 --> Positive rotation
 
 /*
   Dxl datasheet says (seems pretty accurate) max speed is :
@@ -30,26 +28,26 @@ const int PWM_2_PIN = 26; // PA9 --> Positive rotation
   => NB_TICK_BEFORE_UPDATING_SPEED = 526 * NB_TICKS_PER_SECOND / 4096
                                    = 128.418 ~= 128
  */
-const int NB_TICKS_BEFORE_UPDATING_SPEED = 128;
-const int NB_TICKS_BEFORE_UPDATING_ACCELERATION = 8;//32;
-const int MAX_SPEED = 1023;
-const int C_NB_RAW_MEASURES = 60;
+#define NB_TICKS_BEFORE_UPDATING_SPEED 128
+#define NB_TICKS_BEFORE_UPDATING_ACCELERATION 8
+#define MAX_SPEED 1023
+#define C_NB_RAW_MEASURES 60
 
+static const long PRESCALE = 1 << 10;
 extern long currentRawMeasures[C_NB_RAW_MEASURES];
 extern long currentTimming[C_NB_RAW_MEASURES];
 extern int currentMeasureIndex;
 extern bool currentDetailedDebugOn;
-
 //Debug timer
 extern HardwareTimer timer3;
 
-typedef enum _motorState_ {
+enum motorState {
     COMPLIANT       = 0,
     BRAKE           = 1,
     MOVING          = 2,
-} motorState;
+};
 
-typedef struct _motor_ {
+struct motor {
     long command;
     long previousCommand;
     long angle;
@@ -68,7 +66,7 @@ typedef struct _motor_ {
     long current;
     long averageCurrent;
     long targetCurrent;
-} motor;
+};
 
 void motor_init(encoder * pEnc);
 
@@ -104,4 +102,4 @@ void motor_printMotor();
  */
 void motor_temperatureIsCritic();
 
-#endif /* _MOTOR_MANAGER_H_ */
+#endif /* _MOTOR_H_ */
