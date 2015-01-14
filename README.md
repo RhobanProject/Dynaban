@@ -5,7 +5,7 @@ This repository contains an open-source alternative firmware for Dynamixel servo
 **Note 1: A bad firmware can break your servo, we are not responsible for any damage
 that could be caused by these manipulations.**
 
-**Note 2: Using an alternative firmware may voids the warranty of your servo.**
+**Note 2: Using an alternative firmware may void the warranty of your servo.**
 
 ## Supported servos
 
