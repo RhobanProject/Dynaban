@@ -23,7 +23,7 @@ you can get it with:
         python-serial binutils-arm-none-eabi gcc-arm-none-eabi
 ```
 
-Then, go to the `firmware/` directory and edit the `Makefile` to set the appropriate 
+Then, go to the `firmware/` directory and edit the `Makefile` to set the appropriate
 `BOARD` variable, targetting your servo.
 
 You can then run:
@@ -69,7 +69,7 @@ Here is the list of what is and is not currently implemented when you write into
      - Lock : NOT mapped.
      - Punch : NOT mapped.
      - Current : mapped but very hard to exploit because it is very noisy and the noise
-       is not the same if the motor is going CW or CCW.This is the biggest issue we 
+       is not the same if the motor is going CW or CCW.This is the biggest issue we
        encountered, more on that problem in the notes.
      - Torque Control Mode Enable : mapped.
      - Goal Torque : mapped but does not work that well due to the bad current measurement.
@@ -77,25 +77,25 @@ Here is the list of what is and is not currently implemented when you write into
 
 No EEPROM functionality has been mapped yet. Hence, you can't set angle limitations. Will be implemented soon.
 
-What needs to be done :
+## What needs to be done :
 
-     - Enhance current processing by improving the filtering method. 
+     - Enhance current processing by improving the filtering method.
      Currently, we use clipping + first order low-pass filter.
-     - Enhance current measure by synchronizing it with the PWM. The best option seems to be 
+     - Enhance current measure by synchronizing it with the PWM. The best option seems to be
      reading the ADC when the PWM is finishing its high phase.
-     - Map EEPROM functionalities. This mainly means setting up angle limitations and maybe 
+     - Map EEPROM functionalities. This mainly means setting up angle limitations and maybe
      the "Resolution divider".
      - Use the I and D parts of "PID control", because real men are not afraid of them.
-     - Modify how the speed is calculated. The speed ranges from 0 to 1023 (and 1024 to 2047 
+     - Modify how the speed is calculated. The speed ranges from 0 to 1023 (and 1024 to 2047
      for the other direction). 1023 is 117.07rpm, 1 is 0.114rpm which is about 8 steps/s
-     (the magnetic encoder has 4096 steps). Therefore, to be able to measure a speed of 
-     0.114rpm, we need to wait 128ms. That's why, In the current version, the speed is 
+     (the magnetic encoder has 4096 steps). Therefore, to be able to measure a speed of
+     0.114rpm, we need to wait 128ms. That's why, In the current version, the speed is
      updated with a 128ms delay. This is very bad when you think "control loop", since delays
-     create instability. The easy solution is to reduce precision (unless you're using your 
-     MX to build a clock, not sure it's useful to get a precision of  0.114rpm). A better 
-     solution is to reduce precision (ie reduce delay) as speed goes up.    
+     create instability. The easy solution is to reduce precision (unless you're using your
+     MX to build a clock, not sure it's useful to get a precision of  0.114rpm). A better
+     solution is to reduce precision (ie reduce delay) as speed goes up.
      - Make it possible to set a speed in joint mode (connect control loops to each other)
-     
+
 ## License
 
 This is under [CC by-nc-sa](http://creativecommons.org/licenses/by-nc-sa/3.0/) license
