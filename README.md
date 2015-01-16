@@ -96,7 +96,7 @@ No EEPROM functionality has been mapped yet. Hence, you can't set angle limitati
      solution is to reduce precision (ie reduce delay) as speed goes up.
      - Make it possible to set a speed in joint mode (connect control
      loops to each other)
-**     - Implement a spline manager **
+     - Implement a spline manager
 
 ## License
 
