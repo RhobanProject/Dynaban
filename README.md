@@ -94,7 +94,9 @@ No EEPROM functionality has been mapped yet. Hence, you can't set angle limitati
      create instability. The easy solution is to reduce precision (unless you're using your
      MX to build a clock, not sure it's useful to get a precision of  0.114rpm). A better
      solution is to reduce precision (ie reduce delay) as speed goes up.
-     - Make it possible to set a speed in joint mode (connect control loops to each other)
+     - Make it possible to set a speed in joint mode (connect control
+     loops to each other)
+**     - Implement a spline manager
 
 ## License
 
