@@ -1,9 +1,9 @@
 # Sources to compile
-SRC_FILES = main.cpp magnetic_encoder.cpp control.cpp motor.cpp dxl.cpp flash_write.cpp circular_buffer.cpp dxl_HAL.cpp
+SRC_FILES = main.cpp magnetic_encoder.cpp control.cpp motor.cpp dxl.cpp flash_write.cpp circular_buffer.cpp dxl_HAL.cpp trajectory_manager.cpp
 OBJ_FILES = $(addprefix $(BUILD_PATH)/,$(SRC_FILES:.cpp=.o))
 
 $(BUILD_PATH)/%.o: %.cpp
-	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $< 
+	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBMAPLE_INCLUDES) $(WIRISH_INCLUDES) -o $@ -c $<
 
 $(BUILD_PATH)/libmaple.a: $(BUILDDIRS) $(TGT_BIN)
 	- rm -f $@

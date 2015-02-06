@@ -39,24 +39,24 @@ void init_dxl_ram() {
     dxl_regs.ram.movingSpeed = 0;
     dxl_regs.ram.goalAcceleration = 0;
     dxl_regs.ram.goalTorque = 0;
-    
+
     //The other registers are updated here :
     update_dxl_ram();
 }
 
 void update_dxl_ram() {
     dxl_regs.ram.presentPosition = hardwareStruct.mot->angle;
-    
+
     dxl_regs.ram.presentSpeed = terrible_sign_convention(hardwareStruct.mot->speed, 1024);
 
     dxl_regs.ram.presentLoad = terrible_sign_convention(hardwareStruct.mot->averageCurrent, 1024);
-    
+
     dxl_regs.ram.presentVoltage = hardwareStruct.voltage;
-    
+
     dxl_regs.ram.presentTemperature = hardwareStruct.temperature;
-    
+
     //dxl_regs.ram.registeredInstruction = ; // To do?
-    
+
     if (hardwareStruct.mot->speed != 0) {
         dxl_regs.ram.moving = 1;
     } else {
@@ -69,16 +69,16 @@ void update_dxl_ram() {
 void read_dxl_ram() {
 
     digitalWrite(BOARD_LED_PIN, (dxl_regs.ram.led!=0) ? HIGH : LOW);
-    
+
     get_control_struct()->dCoef = dxl_regs.ram.servoKd;
     get_control_struct()->iCoef = dxl_regs.ram.servoKi;
     get_control_struct()->pCoef = dxl_regs.ram.servoKp;
-    
+
     if (hardwareStruct.mot->targetAngle != dxl_regs.ram.goalPosition) {
         hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;
         controlMode = POSITION_CONTROL;
     }
-    
+
     //Moving speed actually means "goalSpeed"
     if (hardwareStruct.mot->targetSpeed != dxl_regs.ram.movingSpeed) {
         if (dxl_regs.ram.movingSpeed < 1024) {
@@ -86,14 +86,14 @@ void read_dxl_ram() {
         } else {
             hardwareStruct.mot->targetSpeed = 1024 - dxl_regs.ram.movingSpeed;
         }
-        
+
         controlMode = SPEED_CONTROL;
     }
-    
+
     //To do : //dxl_regs.ram.torqueLimit;
     //To do  : //dxl_regs.ram.lock;
     //To do : //dxl_regs.ram.punch;
-    
+
     if (hardwareStruct.mot->targetCurrent != dxl_regs.ram.goalTorque) {
         hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalTorque;
         controlMode = TORQUE_CONTROL;

@@ -20,7 +20,7 @@ void hardware_tick();
 void set_ready_to_update_hardware();
 
 /**
- * Returns the temperature in degrees celcius. 
+ * Returns the temperature in degrees celcius.
  */
 unsigned char read_temperature();
 
@@ -41,6 +41,16 @@ void print_current_debug();
  */
 void print_detailed_current_debug();
 
+/**
+ * Prints the trajectory of the motor
+ */
+void print_detailed_trajectory();
+
+/*
+ * Prints the trajectory of the motor (halts the rest of the program)
+ **/
+void print_detailed_trajectory_halt();
+
 
 static const bool     DXL_COM_ON = true;
 
@@ -48,8 +58,9 @@ long           counter               = 0;
 int            posCounter            = 0;
 unsigned char  hardwareCounter       = 0;
 unsigned int   slowHardwareCounter   = 0;
-long           debugCounter          = 0;
 bool           readyToUpdateHardware = false;
+bool           firstTime             = true;
+bool           firstTimePrint        = true;
 
 unsigned char  controlMode           = OFF;
 hardware       hardwareStruct;
@@ -64,7 +75,7 @@ void setup() {
 
     Serial1.begin(57600);
 
-    /*Setting the timer's prescale to get a 24KHz PWM. 
+    /*Setting the timer's prescale to get a 24KHz PWM.
       PWM1 and PWM2 share the same timer, channel 1 and 2.*/
     HardwareTimer timer1(1);
     timer1.setPrescaleFactor(1);
@@ -107,23 +118,30 @@ void setup() {
     // The hardware will be read at ~~48Khz
     timer2.setPeriod(21);
     timer2.setChannel1Mode(TIMER_OUTPUT_COMPARE);
-    
+
     //Interrupt 1 count after each update
     timer2.setCompare(TIMER_CH1, 1);
     timer2.attachCompare1Interrupt(set_ready_to_update_hardware);
 
     //Dxl struct init
     init_dxl_ram();
-    
+
     // Heartbit
     for (int i = 0; i < 4; i++) {
         toggleLED();
         delay(250);
     }
     controlMode = OFF;
+
+
+        //Temp :
+    hardwareStruct.mot->targetAngle = 0;
+    controlMode = POSITION_CONTROL;
+
 }
 
 void loop() {
+
     if (DXL_COM_ON) {
         if (dxl_tick()) {
             read_dxl_ram();
@@ -131,14 +149,32 @@ void loop() {
     }
 
     if (readyToUpdateHardware) {
+        counter++;
         readyToUpdateHardware = false;
         hardware_tick();
         if (DXL_COM_ON) {
             update_dxl_ram();
         }
     }
-    
-    counter++;
+
+
+    if (counter > 48000 && firstTime) {
+        firstTime = false;
+        timer3.pause();
+        timer3.refresh();
+        timer3.resume();
+
+        // hardwareStruct.mot->targetAngle = (hardwareStruct.mot->angle + 2048)%4096;
+        // controlMode = POSITION_CONTROL;
+        positionTrackerOn = true;
+    }
+
+    if (firstTime == false && positionTrackerOn == false && firstTimePrint == true) {
+        hardwareStruct.mot->targetAngle = 0;
+        firstTimePrint = false;
+        print_detailed_trajectory();
+        timer3.pause();
+    }
 }
 
 void hardware_tick() {
@@ -147,16 +183,16 @@ void hardware_tick() {
     motor_read_current();
 
     if (hardwareCounter > 47) {
-        //These actions are performed at a rate of 1KHz
+            //These actions are performed at a rate of 1KHz
         slowHardwareCounter++;
         hardwareCounter = 0;
-        
+
         //Updating the encoder
         encoder_read_angles_sharing_pins_mode();
-        
+
         //Updating the motor
         motor_update(hardwareStruct.enc);
-        
+
         //Updating control
         if (controlMode == POSITION_CONTROL) {
             control_tick_PID_on_position(hardwareStruct.mot);
@@ -170,14 +206,14 @@ void hardware_tick() {
             // No control
         }
     }
-    
+
     if (slowHardwareCounter > 999) {
         //These actions are performed at 1 Hz
         slowHardwareCounter = 0;
-        
+
         //Updating power supply value (the value is 10 times bigger than the real value)
         hardwareStruct.voltage = (unsigned char)((analogRead(POWER_SUPPLY_ADC_PIN) * 33 *766)/409600);
-    
+
         //Updating the temperature
         hardwareStruct.temperature = read_temperature();
         if (hardwareStruct.temperature > MAX_TEMPERATURE) {
@@ -200,11 +236,11 @@ void set_ready_to_update_hardware() {
 */
 unsigned char read_temperature() {
     unsigned int input = analogRead(TEMPERATURE_ADC_PIN);
-    
+
     float vThermistor = (input*33) / (40960.0);
     float thermistor = 47000*(vThermistor) / (33 - 10*vThermistor);
     unsigned char temperature = (-3225*log(thermistor) + 29737) / 100;
-    
+
     return temperature;
 }
 
@@ -242,7 +278,7 @@ void print_detailed_current_debug() {
         delay(50);
         timer3.resume();
         currentDetailedDebugOn = true;
-        
+
         //Waiting for the measures to be made
         while(currentDetailedDebugOn != false) {
             //delayMicroseconds(1);
@@ -273,6 +309,77 @@ void print_detailed_current_debug() {
     }
 }
 
+void print_detailed_trajectory() {
+    digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.println("");
+    for (int i = 0; i < NB_POSITIONS_SAVED; i++) {
+        Serial1.print(timeArray[i]);
+        Serial1.print(" ");
+        Serial1.println(positionArray[i]);
+    }
+
+    Serial1.waitDataToBeSent();
+    digitalWrite(BOARD_TX_ENABLE, LOW);
+}
+
+void print_detailed_trajectory_halt() {
+    delay(3000);
+        //Updating the encoder
+    encoder_read_angles_sharing_pins_mode();
+        //Updating the motor
+    motor_update(hardwareStruct.enc);
+
+    long counter = 0;
+    timer3.pause();
+    timer3.refresh();
+    timer3.resume();
+
+    hardwareStruct.mot->targetAngle = 0;//(hardwareStruct.mot->angle + 2048)%4096;
+    controlMode = POSITION_CONTROL;
+    positionTrackerOn = true;
+
+    digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.println("Start");
+    Serial1.waitDataToBeSent();
+    digitalWrite(BOARD_TX_ENABLE, LOW);
+
+        //Waiting for the measures to be made
+    while(positionTrackerOn == true) {
+        if (readyToUpdateHardware) {
+            counter++;
+            readyToUpdateHardware = false;
+            hardware_tick();
+        }
+        delayMicroseconds(10);
+
+        // if (counter%50 == 0) {
+        //     digitalWrite(BOARD_TX_ENABLE, HIGH);
+        //     Serial1.println(counter);
+        //     Serial1.waitDataToBeSent();
+        //     digitalWrite(BOARD_TX_ENABLE, LOW);
+        // }
+    }
+
+    toggleLED();
+    digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.println("Finished");
+    Serial1.waitDataToBeSent();
+    digitalWrite(BOARD_TX_ENABLE, LOW);
+
+    timer3.pause();
+    digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.println("");
+    for (int i = 0; i < NB_POSITIONS_SAVED; i++) {
+        Serial1.print(timeArray[i]);
+        Serial1.print(" ");
+        Serial1.println(positionArray[i]);
+    }
+
+    Serial1.waitDataToBeSent();
+    digitalWrite(BOARD_TX_ENABLE, LOW);
+    while (true);
+
+}
 
 // Force init to be called *first*, i.e. before static object allocation.
 // Otherwise, statically allocated objects that need libmaple may fail.

@@ -1,5 +1,6 @@
 #include "motor.h"
 #include "control.h"
+#include "trajectory_manager.h"
 
 static motor mot;
 static int nbUpdates = 0;
@@ -11,8 +12,14 @@ int currentMeasureIndex = 0;
 bool currentDetailedDebugOn = false;
 bool temperatureIsCritic = false;
 
+uint16 positionArray[NB_POSITIONS_SAVED];
+long timeArray[NB_POSITIONS_SAVED];
+uint16 positionIndex = 0;
+bool positionTrackerOn = false;
+uint16 counterUpdate = 0;
+
 //Debug timer
-HardwareTimer timer3(3);    
+HardwareTimer timer3(3);
 
 motor * motor_getMotor() {
     return &mot;
@@ -46,7 +53,7 @@ void motor_init(encoder * pEnc) {
     mot.previousCommand = pEnc->angle;
     mot.angle = pEnc->angle;
     mot.previousAngle = pEnc->angle;
-    //mot.angleBuffer = previousAngleBuffer;  
+    //mot.angleBuffer = previousAngleBuffer;
     buffer_init(&(mot.angleBuffer), NB_TICKS_BEFORE_UPDATING_SPEED);
     buffer_init(&(mot.speedBuffer), NB_TICKS_BEFORE_UPDATING_ACCELERATION);
     mot.targetAngle = pEnc->angle;
@@ -60,7 +67,7 @@ void motor_init(encoder * pEnc) {
     mot.averageCurrent = 0;
     mot.targetCurrent = 0;
 
-    timer3.setPrescaleFactor(1);
+    timer3.setPrescaleFactor(7200); // 1 for current debug, 7200 => 10 tick per ms
     timer3.setOverflow(65535);
 }
 
@@ -69,10 +76,26 @@ void motor_update(encoder * pEnc) {
     buffer_add(&(mot.angleBuffer), mot.angle);
     mot.previousAngle = mot.angle;
     mot.angle = pEnc->angle;
-        
+
+    if (positionTrackerOn) {
+        positionArray[positionIndex] = mot.angle;//traj_min_jerk(timer3.getCount()); //mot.angle;
+        timeArray[positionIndex] = timer3.getCount();
+        positionIndex++;
+        if (positionIndex == NB_POSITIONS_SAVED) {
+            positionTrackerOn = false;
+        }
+        if (counterUpdate%40 == 0) {
+                //mot.targetAngle = traj_constant_speed(2048, 10000, timer3.getCount());
+            mot.targetAngle = traj_min_jerk(timer3.getCount());
+        }
+
+        counterUpdate++;
+    }
+
+
     long oldPosition = buffer_get(&(mot.angleBuffer));
-    
-    //Updating the motor speed 
+
+    //Updating the motor speed
     mot.speed = mot.angle - oldPosition;
     if (abs(mot.speed) > MAX_SPEED) {
         //Position went from near max to near 0 or vice-versa
@@ -83,11 +106,11 @@ void motor_update(encoder * pEnc) {
         }
     }
     buffer_add(&(mot.speedBuffer), mot.speed);
-    
+
     //Updating the motor acceleration
     long oldSpeed = buffer_get(&(mot.speedBuffer));
     mot.acceleration = mot.speed - oldSpeed;
-    
+
     nbUpdates++;
 }
 
@@ -100,7 +123,7 @@ void motor_read_current() {
         } else {
             mot.averageCurrent = ((AVERAGE_FACTOR_FOR_CURRENT - 1) * mot.averageCurrent * PRESCALE + mot.current * PRESCALE) / (AVERAGE_FACTOR_FOR_CURRENT * PRESCALE);
         }
-        
+
         if (currentDetailedDebugOn == true) {
             currentRawMeasures[currentMeasureIndex] = mot.current;
             currentTimming[currentMeasureIndex] = timer3.getCount();
@@ -126,14 +149,14 @@ void motor_set_command(long pCommand) {
     } else {
         mot.command = pCommand;
     }
-    
+
     long command = mot.command;
     long previousCommand = mot.previousCommand;
     if (mot.state == COMPLIANT) {
         mot.state = MOVING;
         motor_restart();
     }
-    
+
     if (command >= 0 && previousCommand >= 0) {
         //No need to change the spin direction
         motor_secure_pwm_write(PWM_2_PIN, command);
@@ -242,7 +265,7 @@ void motor_printMotor() {
     SerialUSB.print("averageCurrent : ");
     SerialUSB.println(mot.averageCurrent);
 }
-#else 
+#else
 void motor_printMotor() {
     Serial1.println();
     Serial1.println("*** Motor :");

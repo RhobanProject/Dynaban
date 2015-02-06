@@ -19,12 +19,12 @@
   58rpm at 11.1V
   63rpm at 12V
   78rpm at 14.8V
-  
+
   We'll follow the same unit convention than dynamixel :
   1 unit of speed = 0.114rpm
   max range speed = 1023 => 117.07 rpm (2048 => -117.07)
   526 speed unit ~= 60 rpm = 1 rps
-  => NB_TICK_BEFORE_UPDATING_SPEED * 4096/(NB_TICKS_PER_SECOND) = 526 
+  => NB_TICK_BEFORE_UPDATING_SPEED * 4096/(NB_TICKS_PER_SECOND) = 526
   => NB_TICK_BEFORE_UPDATING_SPEED = 526 * NB_TICKS_PER_SECOND / 4096
                                    = 128.418 ~= 128
  */
@@ -32,12 +32,19 @@
 #define NB_TICKS_BEFORE_UPDATING_ACCELERATION 8
 #define MAX_SPEED 1023
 #define C_NB_RAW_MEASURES 60
+#define NB_POSITIONS_SAVED 1024
 
 static const long PRESCALE = 1 << 10;
 extern long currentRawMeasures[C_NB_RAW_MEASURES];
 extern long currentTimming[C_NB_RAW_MEASURES];
 extern int currentMeasureIndex;
 extern bool currentDetailedDebugOn;
+
+extern uint16 positionArray[NB_POSITIONS_SAVED];
+extern long timeArray[NB_POSITIONS_SAVED];
+extern uint16 positionIndex;
+extern bool positionTrackerOn;
+
 //Debug timer
 extern HardwareTimer timer3;
 
