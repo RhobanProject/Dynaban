@@ -32,7 +32,7 @@
 #define NB_TICKS_BEFORE_UPDATING_ACCELERATION 8
 #define MAX_SPEED 1023
 #define C_NB_RAW_MEASURES 60
-#define NB_POSITIONS_SAVED 1024
+#define NB_POSITIONS_SAVED 1024 // 2048 over flows by 392 bytes
 
 static const long PRESCALE = 1 << 10;
 extern long currentRawMeasures[C_NB_RAW_MEASURES];
@@ -40,7 +40,7 @@ extern long currentTimming[C_NB_RAW_MEASURES];
 extern int currentMeasureIndex;
 extern bool currentDetailedDebugOn;
 
-extern uint16 positionArray[NB_POSITIONS_SAVED];
+extern int16 positionArray[NB_POSITIONS_SAVED];
 extern long timeArray[NB_POSITIONS_SAVED];
 extern uint16 positionIndex;
 extern bool positionTrackerOn;
@@ -56,6 +56,7 @@ enum motorState {
 
 struct motor {
     long command;
+    long predictiveCommand;
     long previousCommand;
     long angle;
     long previousAngle;

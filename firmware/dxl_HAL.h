@@ -19,6 +19,7 @@ enum controlModeEnum {
     ACCELERATION_CONTROL   = 2,
     TORQUE_CONTROL         = 3,
     OFF                    = 4,
+    POSITION_CONTROL_P     = 5,
 };
 
 extern unsigned char  controlMode;

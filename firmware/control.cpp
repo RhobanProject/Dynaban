@@ -1,5 +1,5 @@
 #include "control.h"
- 
+
 static control controlStruct;
 
 control * get_control_struct() {
@@ -11,9 +11,9 @@ void control_init() {
     controlStruct.deltaSpeed = 0;
     controlStruct.deltaAcceleration = 0;
     controlStruct.deltaAverageCurrent = 0;
-    
+
     controlStruct.sumOfDeltas = 0;
-    
+
     controlStruct.pCoef = INITIAL_P_COEF;
     controlStruct.iCoef = INITIAL_I_COEF;
     controlStruct.dCoef = INITIAL_D_COEF;
@@ -36,10 +36,14 @@ void control_tick_PID_on_position(motor * pMot) {
     } else if (controlStruct.sumOfDeltas < -MAX_DELTA_SUM) {
         controlStruct.sumOfDeltas = -MAX_DELTA_SUM;
     }
-    
-    motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef 
-                     + (controlStruct.sumOfDeltas * controlStruct.iCoef) / I_PRESCALE
-                     + pMot->speed * controlStruct.dCoef);
+
+
+    motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef
+                      + (controlStruct.sumOfDeltas * controlStruct.iCoef) / I_PRESCALE
+                      + pMot->speed * controlStruct.dCoef
+                      + pMot->predictiveCommand);
+    //  /!\TEMP
+    // motor_set_command(pMot->predictiveCommand);
 }
 
 void control_tick_P_on_position(motor * pMot) {
@@ -48,31 +52,30 @@ void control_tick_P_on_position(motor * pMot) {
         // There is a shorter way, engine bro
         controlStruct.deltaAngle = pMot->angle - pMot->targetAngle;
     }
-
     motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef);
 }
 
 void control_tick_P_on_speed(motor * pMot) {
     controlStruct.deltaSpeed = pMot->targetSpeed - pMot->speed;
-    
-    motor_set_command(controlStruct.deltaSpeed * INITIAL_SPEED_P_COEF);   
+
+    motor_set_command(controlStruct.deltaSpeed * INITIAL_SPEED_P_COEF);
 }
 
-/*Desactivated because it does not work well. 
+/*Desactivated because it does not work well.
  *This control loop approach is simplistic and the precision on the speed control loop forces a gigantic delay of 128ms. -> Needs to be worked on.*/
 void control_tick_P_on_acceleration(motor * pMot) {
-    
+
     /*controlStruct.deltaAcceleration = pMot->targetAcceleration - pMot->acceleration;
-        
+
       motor_set_command(controlStruct.deltaAcceleration * INITIAL_ACCELERATION_P_COEF);*/
 }
 
 void control_tick_P_on_torque(motor * pMot) {
     controlStruct.deltaAverageCurrent = pMot->targetCurrent - pMot->averageCurrent;
-    
+
     // /!\ the -1 conspiracy continues
     long command = - controlStruct.deltaAverageCurrent * INITIAL_TORQUE_P_COEF;
-    
+
     motor_set_command(command);
 }
 
@@ -82,7 +85,7 @@ void control_print() {
     SerialUSB.print("deltaAngle : ");
     SerialUSB.println(controlStruct.deltaAngle);
 }
-#else 
+#else
 void control_print() {
     Serial1.println();
     Serial1.println("***Control :");

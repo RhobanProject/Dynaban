@@ -6,6 +6,7 @@
 #include "control.h"
 #include "dxl.h"
 #include "dxl_HAL.h"
+#include "trajectory_manager.h"
 
 #define POWER_SUPPLY_ADC_PIN  PA2
 #define TEMPERATURE_ADC_PIN   PA1
@@ -61,6 +62,8 @@ unsigned int   slowHardwareCounter   = 0;
 bool           readyToUpdateHardware = false;
 bool           firstTime             = true;
 bool           firstTimePrint        = true;
+bool           firstTimeNewSpeed     = true;
+
 
 unsigned char  controlMode           = OFF;
 hardware       hardwareStruct;
@@ -126,6 +129,9 @@ void setup() {
     //Dxl struct init
     init_dxl_ram();
 
+        //traj
+    predictive_control_init();
+
     // Heartbit
     for (int i = 0; i < 4; i++) {
         toggleLED();
@@ -136,7 +142,7 @@ void setup() {
 
         //Temp :
     hardwareStruct.mot->targetAngle = 0;
-    controlMode = POSITION_CONTROL;
+    controlMode = POSITION_CONTROL_P;
 
 }
 
@@ -159,6 +165,11 @@ void loop() {
 
 
     if (counter > 48000 && firstTime) {
+            //Taking care of the V(0) problem (static annoying stuff)
+        controlMode = OFF;
+        motor_set_command(100);
+        delay(100);
+
         firstTime = false;
         timer3.pause();
         timer3.refresh();
@@ -166,11 +177,19 @@ void loop() {
 
         // hardwareStruct.mot->targetAngle = (hardwareStruct.mot->angle + 2048)%4096;
         // controlMode = POSITION_CONTROL;
+        controlMode = POSITION_CONTROL; // No asserv
         positionTrackerOn = true;
+            //motor_set_command(2700); // max speed
     }
+
+    // if (counter > 68000 && firstTimeNewSpeed == true) {
+    //     firstTimeNewSpeed = false;
+    //     motor_set_command(2700); // max speed
+    // }
 
     if (firstTime == false && positionTrackerOn == false && firstTimePrint == true) {
         hardwareStruct.mot->targetAngle = 0;
+        motor_compliant();
         firstTimePrint = false;
         print_detailed_trajectory();
         timer3.pause();
@@ -182,7 +201,7 @@ void hardware_tick() {
      * it requires an averaging for it to be usable */
     motor_read_current();
 
-    if (hardwareCounter > 47) {
+    if (hardwareCounter > 47) { //47
             //These actions are performed at a rate of 1KHz
         slowHardwareCounter++;
         hardwareCounter = 0;
@@ -202,6 +221,8 @@ void hardware_tick() {
             control_tick_P_on_acceleration(hardwareStruct.mot);
         } else if (controlMode == TORQUE_CONTROL) {
             control_tick_P_on_torque(hardwareStruct.mot);
+        } else if (controlMode == POSITION_CONTROL_P) {
+            control_tick_P_on_position(hardwareStruct.mot);
         } else {
             // No control
         }

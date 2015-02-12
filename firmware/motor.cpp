@@ -12,7 +12,7 @@ int currentMeasureIndex = 0;
 bool currentDetailedDebugOn = false;
 bool temperatureIsCritic = false;
 
-uint16 positionArray[NB_POSITIONS_SAVED];
+int16 positionArray[NB_POSITIONS_SAVED];
 long timeArray[NB_POSITIONS_SAVED];
 uint16 positionIndex = 0;
 bool positionTrackerOn = false;
@@ -78,15 +78,20 @@ void motor_update(encoder * pEnc) {
     mot.angle = pEnc->angle;
 
     if (positionTrackerOn) {
-        positionArray[positionIndex] = mot.angle;//traj_min_jerk(timer3.getCount()); //mot.angle;
-        timeArray[positionIndex] = timer3.getCount();
-        positionIndex++;
-        if (positionIndex == NB_POSITIONS_SAVED) {
-            positionTrackerOn = false;
+        if (counterUpdate%1 == 0) {
+            predictive_control_tick(&mot, traj_min_jerk_on_speed(timer3.getCount() + 10));
+            mot.targetAngle = traj_min_jerk(timer3.getCount());
+            positionArray[positionIndex] = mot.angle;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount()); //mot.angle;
+            timeArray[positionIndex] = timer3.getCount();
+            positionIndex++;
+            if (positionIndex == NB_POSITIONS_SAVED) {
+                positionTrackerOn = false;
+            }
         }
+
         if (counterUpdate%40 == 0) {
                 //mot.targetAngle = traj_constant_speed(2048, 10000, timer3.getCount());
-            mot.targetAngle = traj_min_jerk(timer3.getCount());
+            // mot.targetAngle = traj_min_jerk(timer3.getCount());
         }
 
         counterUpdate++;
@@ -138,7 +143,7 @@ void motor_read_current() {
 
 void motor_set_command(long pCommand) {
     if (temperatureIsCritic == true) {
-        // Good try but no. Go cool down yourself before you consider spin again, motor bro.
+        // Nope, go cool down yourself before you consider spin again, motor bro.
         return;
     }
     mot.previousCommand = mot.command;
