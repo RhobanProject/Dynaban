@@ -21,6 +21,9 @@ uint16 traj_constant_speed(uint16 pDistance, uint16 pTotalTime, uint16 pTime) {
 }
 
 uint16 traj_min_jerk(uint16 pTime) {
+    if (pTime > 10000) {
+        return 0;
+    }
     float time   = ((float)pTime)/10000.0;
     float time_3 = time*time*time;
     float time_4 = time_3*time;
@@ -65,8 +68,7 @@ void predictive_control_tick(motor * pMot, int16 pVGoal) {
     }
     if (u < -MAX_COMMAND) {
         u = -MAX_COMMAND;
-
     }
     pMot->predictiveCommand = u;
-    pControl.estimatedSpeed = pVGoal; // This is crazy and will never work.
+    pControl.estimatedSpeed = pVGoal; // This is crazy and will never work. Actually it does work quite well.
 }

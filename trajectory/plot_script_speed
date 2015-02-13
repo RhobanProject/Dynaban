@@ -1,0 +1,3 @@
+plot "idealSpeed" using 1:2 title 'idealSpeed' with lines,\
+"actualSpeed" using 1:2 title 'actualSpeed' with lines, \
+"actualSpeedSmoothed" using 1:2 title 'actualSpeedSmoothed' with lines, \

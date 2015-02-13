@@ -13,7 +13,7 @@ bool currentDetailedDebugOn = false;
 bool temperatureIsCritic = false;
 
 int16 positionArray[NB_POSITIONS_SAVED];
-long timeArray[NB_POSITIONS_SAVED];
+int16 timeArray[NB_POSITIONS_SAVED];
 uint16 positionIndex = 0;
 bool positionTrackerOn = false;
 uint16 counterUpdate = 0;
@@ -72,6 +72,8 @@ void motor_init(encoder * pEnc) {
 }
 
 void motor_update(encoder * pEnc) {
+    uint16 time;
+
     //Updating the motor position (ie angle)
     buffer_add(&(mot.angleBuffer), mot.angle);
     mot.previousAngle = mot.angle;
@@ -79,16 +81,16 @@ void motor_update(encoder * pEnc) {
 
     if (positionTrackerOn) {
         if (counterUpdate%1 == 0) {
-            predictive_control_tick(&mot, traj_min_jerk_on_speed(timer3.getCount() + 10));
-            mot.targetAngle = traj_min_jerk(timer3.getCount());
-            positionArray[positionIndex] = mot.angle;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount()); //mot.angle;
-            timeArray[positionIndex] = timer3.getCount();
+            time = timer3.getCount();
+            predictive_control_tick(&mot, traj_min_jerk_on_speed(time + 10));
+            mot.targetAngle = traj_min_jerk(time);
+            positionArray[positionIndex] = mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount()); //mot.angle;
+            timeArray[positionIndex] = time;
             positionIndex++;
-            if (positionIndex == NB_POSITIONS_SAVED) {
+            if (positionIndex == NB_POSITIONS_SAVED || time > 10000) {
                 positionTrackerOn = false;
             }
         }
-
         if (counterUpdate%40 == 0) {
                 //mot.targetAngle = traj_constant_speed(2048, 10000, timer3.getCount());
             // mot.targetAngle = traj_min_jerk(timer3.getCount());
@@ -96,12 +98,10 @@ void motor_update(encoder * pEnc) {
 
         counterUpdate++;
     }
-
-
     long oldPosition = buffer_get(&(mot.angleBuffer));
 
     //Updating the motor speed
-    mot.speed = mot.angle - oldPosition;
+    mot.speed = ((mot.speed*12) + ((mot.angle - oldPosition)*40)*4)/16.0;//(mot.angle - oldPosition)*40; //1000Hz/25 values in buffer = 40
     if (abs(mot.speed) > MAX_SPEED) {
         //Position went from near max to near 0 or vice-versa
         if (mot.angle >= oldPosition) {

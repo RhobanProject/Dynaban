@@ -28,9 +28,9 @@
   => NB_TICK_BEFORE_UPDATING_SPEED = 526 * NB_TICKS_PER_SECOND / 4096
                                    = 128.418 ~= 128
  */
-#define NB_TICKS_BEFORE_UPDATING_SPEED 128
+#define NB_TICKS_BEFORE_UPDATING_SPEED 25
 #define NB_TICKS_BEFORE_UPDATING_ACCELERATION 8
-#define MAX_SPEED 1023
+#define MAX_SPEED 8000
 #define C_NB_RAW_MEASURES 60
 #define NB_POSITIONS_SAVED 1024 // 2048 over flows by 392 bytes
 
@@ -41,7 +41,7 @@ extern int currentMeasureIndex;
 extern bool currentDetailedDebugOn;
 
 extern int16 positionArray[NB_POSITIONS_SAVED];
-extern long timeArray[NB_POSITIONS_SAVED];
+extern int16 timeArray[NB_POSITIONS_SAVED];
 extern uint16 positionIndex;
 extern bool positionTrackerOn;
 

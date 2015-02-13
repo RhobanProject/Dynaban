@@ -118,8 +118,10 @@ void setup() {
     //printDetailedCurrentDebug();
 
     HardwareTimer timer2(2);
-    // The hardware will be read at ~~48Khz
-    timer2.setPeriod(21);
+    // The hardware will be read at 48Khz
+    //timer2.setPeriod(21);
+    timer2.setPrescaleFactor(1);
+    timer2.setOverflow(1500);
     timer2.setChannel1Mode(TIMER_OUTPUT_COMPARE);
 
     //Interrupt 1 count after each update
@@ -139,11 +141,9 @@ void setup() {
     }
     controlMode = OFF;
 
-
         //Temp :
     hardwareStruct.mot->targetAngle = 0;
     controlMode = POSITION_CONTROL_P;
-
 }
 
 void loop() {
@@ -165,12 +165,16 @@ void loop() {
 
 
     if (counter > 48000 && firstTime) {
+        firstTime = false;
             //Taking care of the V(0) problem (static annoying stuff)
         controlMode = OFF;
-        motor_set_command(100);
-        delay(100);
 
-        firstTime = false;
+            // motor_set_command(80);
+        // while (hardwareStruct.mot->angle > 5 && hardwareStruct.mot->angle < 4091) {
+        //     hardware_tick();
+        //     delay(1);
+        // }
+
         timer3.pause();
         timer3.refresh();
         timer3.resume();
@@ -188,6 +192,7 @@ void loop() {
     // }
 
     if (firstTime == false && positionTrackerOn == false && firstTimePrint == true) {
+        controlMode = OFF;
         hardwareStruct.mot->targetAngle = 0;
         motor_compliant();
         firstTimePrint = false;
@@ -202,15 +207,16 @@ void hardware_tick() {
     motor_read_current();
 
     if (hardwareCounter > 47) { //47
-            //These actions are performed at a rate of 1KHz
-        slowHardwareCounter++;
-        hardwareCounter = 0;
+            //These actions are performed at a rate of 1kHz
 
         //Updating the encoder
-        encoder_read_angles_sharing_pins_mode();
+       encoder_read_angles_sharing_pins_mode();
 
         //Updating the motor
         motor_update(hardwareStruct.enc);
+
+        slowHardwareCounter++;
+        hardwareCounter = 0;
 
         //Updating control
         if (controlMode == POSITION_CONTROL) {
