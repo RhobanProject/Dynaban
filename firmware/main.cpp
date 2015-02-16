@@ -140,10 +140,26 @@ void setup() {
         delay(250);
     }
     controlMode = OFF;
+    // motor_set_command(330);
 
         //Temp :
     hardwareStruct.mot->targetAngle = 0;
     controlMode = POSITION_CONTROL_P;
+
+    // int t = 0;
+
+    // while (t < 500) {
+    //     delay(1);
+    //     hardware_tick();
+    //     t++;
+    // }
+    // print_debug();
+    // while (t < 3000) {
+    //     delay(1);
+    //     hardware_tick();
+    //     t++;
+    // }
+
 }
 
 void loop() {
@@ -163,11 +179,14 @@ void loop() {
         }
     }
 
+    // if (counter % 100 == 0) {
+    //     print_debug();
+    // }
 
     if (counter > 48000 && firstTime) {
         firstTime = false;
             //Taking care of the V(0) problem (static annoying stuff)
-        controlMode = OFF;
+        // controlMode = OFF;
 
             // motor_set_command(80);
         // while (hardwareStruct.mot->angle > 5 && hardwareStruct.mot->angle < 4091) {

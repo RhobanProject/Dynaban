@@ -10,9 +10,15 @@
 *************************************************************************/
 
 #include "trajectory_manager.h"
+#include <math.h>
 
-#define kDelta 4.820
+#define kDelta 9.0
+// #define kDelta 4.820
+//#define ke     9.27
 #define ke     0.6426
+#define g      9.80665
+#define m      0.270
+#define L      0.12
 
 static predictiveControl pControl;
 
@@ -62,7 +68,11 @@ void predictive_control_init() {
  */
 void predictive_control_tick(motor * pMot, int16 pVGoal) {
     int16 v = pControl.estimatedSpeed;
-    int16 u = kDelta * (float)(pVGoal - v) + ke * (float)v;
+
+     // int16 u = kDelta * (float)(pVGoal - v) + ke * (float)v;
+    int16 u = kDelta * (float)(pVGoal - v + acceleration_from_weight_calib(pMot->angle)) + ke * (float)v;
+
+    // int16 u = kDelta * ((float)(pVGoal - v) + acceleration_from_weight(pMot->angle, L)) + ke * (float)v;
     if (u > MAX_COMMAND) {
         u = MAX_COMMAND;
     }
@@ -71,4 +81,15 @@ void predictive_control_tick(motor * pMot, int16 pVGoal) {
     }
     pMot->predictiveCommand = u;
     pControl.estimatedSpeed = pVGoal; // This is crazy and will never work. Actually it does work quite well.
+}
+
+float acceleration_from_weight(uint16 angle, float l) {
+    float angleRad = (angle * (float)PI) / 2048.0;
+
+    return (g * cos(angleRad) * 2048)/(l * (float)PI); // *2048/PI to get a in step.s-2 instead of rad.s-2
+}
+
+float acceleration_from_weight_calib(uint16 angle) {
+    float angleRad = (angle * (float)PI) / 2048.0;
+    return (cos(angleRad) * (float)68.47); // Found by measure
 }

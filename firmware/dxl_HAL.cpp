@@ -1,6 +1,7 @@
 #include "dxl.h"
 #include "dxl_HAL.h"
 
+
 unsigned int dxl_data_available() {
     return Serial1.available();
 }

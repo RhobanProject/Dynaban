@@ -84,7 +84,8 @@ void motor_update(encoder * pEnc) {
             time = timer3.getCount();
             predictive_control_tick(&mot, traj_min_jerk_on_speed(time + 10));
             mot.targetAngle = traj_min_jerk(time);
-            positionArray[positionIndex] = mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount()); //mot.angle;
+
+            positionArray[positionIndex] = (cos((mot.angle * (float)PI) / 2048.0) * (float)68.47);//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount()); //mot.angle;
             timeArray[positionIndex] = time;
             positionIndex++;
             if (positionIndex == NB_POSITIONS_SAVED || time > 10000) {
