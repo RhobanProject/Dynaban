@@ -6,4 +6,4 @@ plot "real_position" using 1:2 title '1000Hz' with lines,\
 "traj_speed_control_and_pid" using 1:2 title 'speed_control_and_pid' with lines, \
 "traj_speed_control_and_pid_heavy_arm" using 1:2 title 'speed_control_and_pid_heavy_arm' with lines, \
 "270g_not_compensated" using 1:2 title '270g_not_compensated' with lines, \
-"270g_compensated" using 1:2 title '270g_compensated' with lines, \
+"temp" using 1:2 title 'temp' with lines, \

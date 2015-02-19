@@ -30,10 +30,11 @@
  */
 #define NB_TICKS_BEFORE_UPDATING_SPEED 25
 #define NB_TICKS_BEFORE_UPDATING_ACCELERATION 8
-#define MAX_SPEED 8000
 #define C_NB_RAW_MEASURES 60
 #define NB_POSITIONS_SAVED 1024 // 2048 over flows by 392 bytes
 
+static const uint16 SPEED_COEF = 1000/NB_TICKS_BEFORE_UPDATING_SPEED;
+static const uint16 MAX_SPEED = 8096/SPEED_COEF + 5;
 static const long PRESCALE = 1 << 10;
 extern long currentRawMeasures[C_NB_RAW_MEASURES];
 extern long currentTimming[C_NB_RAW_MEASURES];

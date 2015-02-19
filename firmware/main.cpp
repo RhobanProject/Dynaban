@@ -53,7 +53,7 @@ void print_detailed_trajectory();
 void print_detailed_trajectory_halt();
 
 
-static const bool     DXL_COM_ON = true;
+static const bool     DXL_COM_ON = false; // /!\
 
 long           counter               = 0;
 int            posCounter            = 0;
@@ -103,6 +103,7 @@ void setup() {
     //Encoder init
     encoder_init_sharing_pins_mode(7, 8);
     encoder_add_encoder_sharing_pins_mode(6);
+    encoder_read_angles_sharing_pins_mode();
 
     //Motor init
     motor_init(encoder_get_encoder(0));
@@ -140,11 +141,31 @@ void setup() {
         delay(250);
     }
     controlMode = OFF;
-    // motor_set_command(330);
+
+        // // motor_set_command(330);
+    // motor_set_command(500);
+    // delay(1000);
+    // motor_set_command(100);
+    // hardware_tick();
+    // // long angle = 3000;
+    // long angle = hardwareStruct.mot->angle;
+    // while(angle > 100) {
+    //     delayMicroseconds(21);
+    //     hardware_tick();
+    //     angle = hardwareStruct.mot->angle;
+    // }
+    // counter = 48000;
+    // return;
+
+    // motor_set_command(95);
+    // while(true);
 
         //Temp :
     hardwareStruct.mot->targetAngle = 0;
     controlMode = POSITION_CONTROL_P;
+
+    // hardwareStruct.mot->targetSpeed = 500;
+    // controlMode = SPEED_CONTROL;
 
     // int t = 0;
 
@@ -179,7 +200,7 @@ void loop() {
         }
     }
 
-    // if (counter % 100 == 0) {
+    // if (counter % 4800 == 0) {
     //     print_debug();
     // }
 
@@ -217,7 +238,11 @@ void loop() {
         firstTimePrint = false;
         print_detailed_trajectory();
         timer3.pause();
+        hardwareStruct.mot->targetAngle = 0;
+        controlMode = POSITION_CONTROL_P;
     }
+
+
 }
 
 void hardware_tick() {
@@ -359,7 +384,10 @@ void print_detailed_trajectory() {
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.println("");
     for (int i = 0; i < NB_POSITIONS_SAVED; i++) {
-        Serial1.print(timeArray[i]);
+        if (i > 100 && timeArray[i] == 0) {
+            break;
+        }
+        Serial1.print(timeArray[i] - 250); // Taking into account the speed update delay
         Serial1.print(" ");
         Serial1.println(positionArray[i]);
     }

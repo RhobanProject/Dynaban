@@ -1,22 +1,22 @@
 #include <stdlib.h>
 #include "circular_buffer.h"
 
-void buffer_init(buffer * pBuf, int pSize) {
+void buffer_init(buffer * pBuf, int pSize, long pInit) {
     pBuf->start = 0;
     pBuf->end = 0;
     pBuf->size = pSize;
     pBuf->buf = (long*)malloc(sizeof(long) * pSize);
-    
+
     for (int i = 0; i < pSize; i++) {
-        pBuf->buf[i] = 0;
+        pBuf->buf[i] = pInit;
     }
 }
 
 void buffer_add(buffer * pBuf, long pValue) {
     pBuf->buf[pBuf->end] = pValue;
-    
+
     pBuf->end = (pBuf->end + 1)%(pBuf->size);
-    
+
     if (pBuf->nbElements < (pBuf->size)) {
         (pBuf->nbElements)++;
     } else {
@@ -31,7 +31,7 @@ long buffer_get(buffer * pBuf) {
     } else {
         return pBuf->buf[pBuf->start];
     }
-    
+
 }
 
 void buffer_print(buffer * pBuf) {
@@ -47,6 +47,5 @@ void buffer_print(buffer * pBuf) {
     Serial1.println();
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
-    
-}
 
+}

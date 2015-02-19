@@ -11,7 +11,7 @@ const int I_PRESCALE = 1;
 const int MAX_DELTA_SUM = 1000;
 const int INITIAL_D_COEF = 0;
 
-const int INITIAL_SPEED_P_COEF = 6;
+const float INITIAL_SPEED_P_COEF = 0.5;
 const int INITIAL_ACCELERATION_P_COEF = 20;
 const int INITIAL_TORQUE_P_COEF = 45;
 

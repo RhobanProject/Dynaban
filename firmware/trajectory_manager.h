@@ -25,5 +25,9 @@ void predictive_control_init();
 void predictive_control_tick(motor * pMot, int16 pVGoal);
 float acceleration_from_weight(uint16 angle, float l);
 float acceleration_from_weight_calib(uint16 angle);
+int16 static_friction(int16 v);
+float viscous_friction(int16 v);
+char sign(int16 pInput);
+
 
 #endif

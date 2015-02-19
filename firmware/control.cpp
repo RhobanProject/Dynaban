@@ -38,12 +38,12 @@ void control_tick_PID_on_position(motor * pMot) {
     }
 
 
-    motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef
-                      + (controlStruct.sumOfDeltas * controlStruct.iCoef) / I_PRESCALE
-                      + pMot->speed * controlStruct.dCoef
-                      + pMot->predictiveCommand);
+    // motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef
+    //                   + (controlStruct.sumOfDeltas * controlStruct.iCoef) / I_PRESCALE
+    //                   + pMot->speed * controlStruct.dCoef
+    //                   + pMot->predictiveCommand);
     //  /!\TEMP
-    // motor_set_command(pMot->predictiveCommand);
+    motor_set_command(pMot->predictiveCommand);
 }
 
 void control_tick_P_on_position(motor * pMot) {

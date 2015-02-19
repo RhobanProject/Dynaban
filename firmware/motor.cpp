@@ -54,8 +54,8 @@ void motor_init(encoder * pEnc) {
     mot.angle = pEnc->angle;
     mot.previousAngle = pEnc->angle;
     //mot.angleBuffer = previousAngleBuffer;
-    buffer_init(&(mot.angleBuffer), NB_TICKS_BEFORE_UPDATING_SPEED);
-    buffer_init(&(mot.speedBuffer), NB_TICKS_BEFORE_UPDATING_ACCELERATION);
+    buffer_init(&(mot.angleBuffer), NB_TICKS_BEFORE_UPDATING_SPEED, mot.angle);
+    buffer_init(&(mot.speedBuffer), NB_TICKS_BEFORE_UPDATING_ACCELERATION, 0);
     mot.targetAngle = pEnc->angle;
     mot.speed = 0;
     mot.previousSpeed = 0;
@@ -78,6 +78,7 @@ void motor_update(encoder * pEnc) {
     buffer_add(&(mot.angleBuffer), mot.angle);
     mot.previousAngle = mot.angle;
     mot.angle = pEnc->angle;
+    long oldPosition = buffer_get(&(mot.angleBuffer));
 
     if (positionTrackerOn) {
         if (counterUpdate%1 == 0) {
@@ -85,11 +86,13 @@ void motor_update(encoder * pEnc) {
             predictive_control_tick(&mot, traj_min_jerk_on_speed(time + 10));
             mot.targetAngle = traj_min_jerk(time);
 
-            positionArray[positionIndex] = (cos((mot.angle * (float)PI) / 2048.0) * (float)68.47);//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount()); //mot.angle;
+            positionArray[positionIndex] = mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount()); //mot.angle;
             timeArray[positionIndex] = time;
-            positionIndex++;
+
             if (positionIndex == NB_POSITIONS_SAVED || time > 10000) {
                 positionTrackerOn = false;
+            } else {
+                positionIndex++;
             }
         }
         if (counterUpdate%40 == 0) {
@@ -99,10 +102,11 @@ void motor_update(encoder * pEnc) {
 
         counterUpdate++;
     }
-    long oldPosition = buffer_get(&(mot.angleBuffer));
 
-    //Updating the motor speed
-    mot.speed = ((mot.speed*12) + ((mot.angle - oldPosition)*40)*4)/16.0;//(mot.angle - oldPosition)*40; //1000Hz/25 values in buffer = 40
+        //Updating the motor speed
+    long previousSpeed = mot.speed;
+
+    mot.speed = mot.angle - oldPosition;//((mot.speed*12) + ((mot.angle - oldPosition)*speedCoef)*4)/16.0;
     if (abs(mot.speed) > MAX_SPEED) {
         //Position went from near max to near 0 or vice-versa
         if (mot.angle >= oldPosition) {
@@ -111,6 +115,10 @@ void motor_update(encoder * pEnc) {
             mot.speed = mot.speed + MAX_ANGLE;
         }
     }
+    mot.speed = mot.speed * SPEED_COEF;
+
+        //Averaging with previous value :
+        //mot.speed = ((previousSpeed*12) + (mot.speed*4))/16.0;
     buffer_add(&(mot.speedBuffer), mot.speed);
 
     //Updating the motor acceleration
