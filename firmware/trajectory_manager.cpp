@@ -12,16 +12,30 @@
 #include "trajectory_manager.h"
 #include <math.h>
 
-//#define kDelta 9.0
-#define kDelta 3.5//5.076//4.820 -> first calibration with an empty arm
-#define ke     0.582//0.614//0.6426
+#define kDelta_old 3.5//5.076//4.820 -> first calibration with an empty arm
+#define ke_old     0.582//0.614//0.6426
 #define g      9.80665
 #define m      0.270
 #define L      0.12
+
 #define STATIC_FRICTION 95
+#define I0     0.00353 // kg.m**2 measured moment of inertia
+#define V_ALIM 12
+#define r      6
+#define STAT_TO_COUL_TRANS 1300 // To be checked
+
+static const float unitFactor = (3000*2*PI) / (V_ALIM*4096);
+
+static float torqueToCommand      = 12.57; // Should be r/ke. To be used with torques expressed in [N.m * 4096 / 2*PI]
+static float kv                = 1.51; // kv = ke + kvis
+static float kstat             = STATIC_FRICTION / (torqueToCommand * unitFactor); // kstat * 1 * torqueToVolt * unitFactor should be equal to STATIC_FRICTION (min command to get the motor moving).
+static float coulombMaxCommand = 30; // Completely random
+static float kcoul             = coulombMaxCommand / (torqueToCommand * unitFactor);
 
 static predictiveControl pControl;
+
 uint8 punchTicksRemaining = 0;
+
 
 uint16 traj_constant_speed(uint16 pDistance, uint16 pTotalTime, uint16 pTime) {
     return ((float)pDistance/(float)pTotalTime) * pTime;
@@ -63,11 +77,43 @@ void predictive_control_init() {
 }
 
 /**
+ * The formula used here is u(t) = kv*v(t) + kt*outputTorque(t) + sign(v(t))*[ks*exp + kc*exp]
+ * Where :
+ * -> kv*v(t) is the command needed to mantain the current speed (kv = ke + kvis, where kvis is the viscous constant)
+ * -> kt*outputTorque(t) is the command needed to output the desired torque
+ * ->
+ * and ke ~=0.6426
+ */
+void predictive_control_tick(motor * pMot, int16 pVGoal, uint16 pDt, float pOutputTorque, float pIAdded) {
+    int16 v = pControl.estimatedSpeed;
+        //float angleRad = (pMot->angle * (float)PI) / 2048.0;
+        //float weightCompensation = cos(angleRad) * 140.0;//235.0;
+float beta = exp(-abs( v / ((float)STAT_TO_COUL_TRANS) ));
+float accelTorque = ((float)(pVGoal - v) * (I0 + pIAdded) * 10000)/pDt; // dt is in 1/10 of a ms
+float frictionTorque = sign(v) * (beta * kstat + (1 - beta) * kcoul);
+
+int16 u = unitFactor *
+    (kv * v + torqueToCommand * (accelTorque + frictionTorque + pOutputTorque)) ;
+
+    if (u > MAX_COMMAND) {
+        u = MAX_COMMAND;
+    }
+    if (u < -MAX_COMMAND) {
+        u = -MAX_COMMAND;
+    }
+    pMot->predictiveCommand = u;
+    pControl.estimatedSpeed = pVGoal; /* Would be better if we could get the real-life speed from time to time to update this value.
+                                       * This is no easy task since getting the speed from a derivate of the position comes with the
+                                       * tradeoff delay VS accuracy.
+                                       */
+}
+
+/**
  * The formula used here is u(t) = ke*v(t)  + (vGoal - v(t))*kDelta
  * Where kDelta = (I*r)/(dt*ke) ~= 4.820
  * and ke ~=0.6426
  */
-void predictive_control_tick(motor * pMot, int16 pVGoal) {
+void predictive_control_tick_simple(motor * pMot, int16 pVGoal) {
     int16 v = pControl.estimatedSpeed;
     int16 punchValue = 350;
 
@@ -96,8 +142,8 @@ void predictive_control_tick(motor * pMot, int16 pVGoal) {
     float weightCompensation = cos(angleRad) * 140.0;//235.0;
         // int16 u = kDelta * (float)(pVGoal - v) + ke * (float)v;
         // int16 u = kDelta * (float)(pVGoal - v + acceleration_from_weight_calib(pMot->angle)) + ke * (float)v;
-    int16 u = kDelta * (float)(pVGoal - v)
-        + ke * (float)v
+    int16 u = kDelta_old * (float)(pVGoal - v)
+        + ke_old * (float)v
         + static_friction(v);
 
         // + weightCompensation

@@ -17,6 +17,7 @@ int16 timeArray[NB_POSITIONS_SAVED];
 uint16 positionIndex = 0;
 bool positionTrackerOn = false;
 uint16 counterUpdate = 0;
+uint16 previousTime = 0;
 
 //Debug timer
 HardwareTimer timer3(3);
@@ -73,7 +74,7 @@ void motor_init(encoder * pEnc) {
 
 void motor_update(encoder * pEnc) {
     uint16 time;
-
+    int16 dt;
     //Updating the motor position (ie angle)
     buffer_add(&(mot.angleBuffer), mot.angle);
     mot.previousAngle = mot.angle;
@@ -83,7 +84,15 @@ void motor_update(encoder * pEnc) {
     if (positionTrackerOn) {
         if (counterUpdate%1 == 0) {
             time = timer3.getCount();
-            predictive_control_tick(&mot, traj_min_jerk_on_speed(time + 10));
+
+            dt = time - previousTime;
+            if (dt < 0) {
+                    // Hum!
+                toggleLED();
+                dt = 10;
+            }
+                //predictive_control_tick_simple(&mot, traj_min_jerk_on_speed(time + 10));
+            predictive_control_tick(&mot, traj_min_jerk_on_speed(time + dt), dt, 0, 0);
             mot.targetAngle = traj_min_jerk(time);
 
             positionArray[positionIndex] = mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount()); //mot.angle;
@@ -101,6 +110,7 @@ void motor_update(encoder * pEnc) {
         }
 
         counterUpdate++;
+        previousTime = time;
     }
 
         //Updating the motor speed

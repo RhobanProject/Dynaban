@@ -2,7 +2,7 @@
 
 /**
    Example code using this interface with 2 encoders :
-   
+
    //In setup()
    encoder_init_sharing_pins_mode(7, 8);
    encoder_add_encoder_sharing_pins_mode(6);
@@ -39,18 +39,18 @@ static int inputBit = 0;
 // holds status/error information
 static long statusbits;
 
-static int COF; 
-static int LIN; 
+static int COF;
+static int LIN;
 
 static bool debug = 0;
 static int nbEncoders = 0;
 
-HardwareTimer * timer;
+// HardwareTimer * timer;
 const int NB_ENCODERS_MAX = 10;
 static encoder arrayOfEncoders[NB_ENCODERS_MAX];
 
 // Benchmarking
-static long arrayOfTimeStamps[30];
+//static long arrayOfTimeStamps[30];
 
 
 encoder * encoder_get_encoder(uint8 pEncoderId) {
@@ -68,7 +68,7 @@ void encoder_init_sharing_pins_mode(uint8 pClkPin, uint8 pCsPin) {
     // Initial state
     digitalWrite(CS_PIN, LOW);
     digitalWrite(CLK_PIN, HIGH);
-    
+
     // Init of the array of encoders
     for (int i = 0; i < NB_ENCODERS_MAX; i++) {
         arrayOfEncoders[i].DOPin = 0;
@@ -97,7 +97,7 @@ void encoder_add_encoder_sharing_pins_mode(uint8 pDOPin) {
 
     //Setting the pins
     pinMode(DO_PIN, INPUT);
-    
+
     arrayOfEncoders[nbEncoders] = newEncoder;
 
     nbEncoders++;
@@ -112,32 +112,32 @@ void encoder_read_angles_sharing_pins_mode() {
         enc->inputLong = 0;
         enc->angle = 0;
     }
-    
+
     // Toggling CSn twice to start the communication
     digitalWrite(CS_PIN, HIGH);
     delayMicroseconds(halfClkPeriodUs);
-    
+
     // Start of transfer
-    digitalWrite(CS_PIN, LOW); 
+    digitalWrite(CS_PIN, LOW);
     delayMicroseconds(halfClkPeriodUs);
-     
-    digitalWrite(CLK_PIN, LOW);    
+
+    digitalWrite(CLK_PIN, LOW);
     delayMicroseconds(halfClkPeriodUs);
-    
-    for (int i = 0; i < 18; i++) { 
+
+    for (int i = 0; i < 18; i++) {
         //18 clock cycles
         digitalWrite(CLK_PIN, HIGH);
         delayMicroseconds(halfClkPeriodUs);
-        
+
         for (int j = 0; j < nbEncoders; j++) {
         	//Read one bit of data from pin
             enc = &arrayOfEncoders[j];
             inputBit = digitalRead(enc->DOPin);
-            
+
             //Stacking and shifting the bits to get the int value
             enc->inputLong = ((enc->inputLong << 1) + inputBit);
         }
-        
+
         if (i != 17) {
             // Lets de clock up at the end of the communication
             digitalWrite(CLK_PIN, LOW);
@@ -149,27 +149,27 @@ void encoder_read_angles_sharing_pins_mode() {
         enc = &arrayOfEncoders[i];
         enc->angle = enc->inputLong & ANGLE_MASK;
         // shifting 18-digit angle right 6 digits to form 12-digit value
-        enc->angle = (enc->angle >> 6); 
+        enc->angle = (enc->angle >> 6);
 
         if (debug) {
             statusbits = enc->inputLong & STATUS_MASK;
             LIN = statusbits & 8;
             COF = statusbits & 16;
             //OCF = statusbits & 32; // High when the chip startup is finished.
-            
+
             if (LIN) {
             	//Linearity alarm. Data questionable.
-                enc->isDataQuestionable = true; 
+                enc->isDataQuestionable = true;
             } else if (COF) {
             	//Cordic overflow. Data invalid.
-                enc->isDataInvalid = true; 
+                enc->isDataInvalid = true;
             } else {
-                enc->isDataQuestionable = false; 
-                enc->isDataInvalid = false; 
+                enc->isDataQuestionable = false;
+                enc->isDataInvalid = false;
             }
         }
     }
-    //arrayOfTimeStamps[1] = timer->getCount();    
+    //arrayOfTimeStamps[1] = timer->getCount();
 }
 
 long encoder_read_angle_sequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {
@@ -177,20 +177,20 @@ long encoder_read_angle_sequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {
     int halfClkPeriodUs = 1; // DataSheet says >= 500 ns
     long inputLong = 0;
     long angle = 0;
-    
+
     // Toggling CSn twice to start the communication
     digitalWrite(pCSPin, HIGH);
     delayMicroseconds(halfClkPeriodUs);
-    
+
     // Start of transfer
-    digitalWrite(pCSPin, LOW); 
+    digitalWrite(pCSPin, LOW);
     delayMicroseconds(halfClkPeriodUs);
-     
+
     digitalWrite(pCLKPin, LOW);
-    
+
     delayMicroseconds(halfClkPeriodUs);
-    
-    for (int i = 0; i < 18; i++) { 
+
+    for (int i = 0; i < 18; i++) {
         //18 clock cycles
         digitalWrite(pCLKPin, HIGH);
         delayMicroseconds(halfClkPeriodUs);
@@ -224,7 +224,7 @@ long encoder_read_angle_sequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {
 		  }
     }
     return angle;
-    //arrayOfTimeStamps[1] = timer->getCount();    
+    //arrayOfTimeStamps[1] = timer->getCount();
 }
 
 #if BOARD_HAVE_SERIALUSB
@@ -252,37 +252,37 @@ void printEncoder(encoder * pEncoder) {
 
 /**
    The following code uses a state machine approach to get the encoder's value.
-   A timer was used to schedule interruptions every 1us which is the delay between every step of the 
+   A timer was used to schedule interruptions every 1us which is the delay between every step of the
    reading procedure (thus freeing the Uc during the waiting moments).
-   Unfortunately, this approach was not viable because the treatment of an interruption procedure every 1us was 
-   overwhelming for the Uc (whose clock was 72Mhz, thus allowing only 72 cycles before the next 
+   Unfortunately, this approach was not viable because the treatment of an interruption procedure every 1us was
+   overwhelming for the Uc (whose clock was 72Mhz, thus allowing only 72 cycles before the next
    interruption).
-   
+
    This approach would still be viable in a context where it is important to optimize the Uc load and
-   where it is acceptable to wait longer to get the encoder's value (set the interruption period 
+   where it is acceptable to wait longer to get the encoder's value (set the interruption period
    at 10 us and you'll be fine).
  */
 /*
-void addEncoder(uint8 pTimerIndex, 
-                 uint8 pDOPin, 
-                 uint8 pCLKPin, 
-                 uint8 pCSPin, 
+void addEncoder(uint8 pTimerIndex,
+                 uint8 pDOPin,
+                 uint8 pCLKPin,
+                 uint8 pCSPin,
                  uint16 pDelayBetweenReadsUs, uint16 pDelayBetweenReadsMs) {
-    
+
     timer = new HardwareTimer(pTimerIndex);
     DO_PIN = pDOPin;
     CLK_PIN = pCLKPin;
     CS_PIN = pCSPin;
-    
+
     //Setting the pins
     pinMode(DO_PIN, INPUT);
     pinMode(CLK_PIN, OUTPUT);
-    pinMode(CS_PIN, OUTPUT);     
-    
+    pinMode(CS_PIN, OUTPUT);
+
     // Initial state
     digitalWrite(CS_PIN, LOW);
     digitalWrite(CLK_PIN, HIGH);
-    
+
     // Pause the timer while we're configuring it
     timer->pause();
     // Set up period
@@ -351,7 +351,7 @@ void encoderTick() {
         inputBit = digitalRead(DO_PIN);
         // Stacking and shifting the bits to get the int value
         inputLong = ((inputLong << 1) + inputBit);
-        
+
         nbReads ++;
         state = 4;
         arrayOfTimeStamps[5] = timer->getCount();
@@ -363,15 +363,15 @@ void encoderTick() {
         inputBit = digitalRead(DO_PIN);
         // Stacking and shifting the bits to get the int value
         inputLong = ((inputLong << 1) + inputBit);
-        
+
         binAngle = inputLong;
         angle = inputLong & anglemask;
         // shift 18-digit angle right 6 digits to form 12-digit value
-        angle = (angle >> 6); 
+        angle = (angle >> 6);
         // Attention, x10 :
         // 0.08780 == (360/4096)
         angle = angle * 0.8789; //0.08789 * angle == actual degrees
-    
+
         if (debug) {
             statusbits = inputLong & statusmask;
             //DECn = statusbits & 2; // goes high if magnet moved away from IC
@@ -379,16 +379,16 @@ void encoderTick() {
             LIN = statusbits & 8; // goes high for linearity alarm
             COF = statusbits & 16; // goes high for cordic overflow: data invalid
             //OCF = statusbits & 32; // this is 1 when the chip startup is finished.
-            
-            if (LIN) { 
-                isDataQuestionable = true; 
-                //SerialUSB.println("linearity alarm: magnet misaligned? Data questionable."); 
-            } else if (COF) { 
-                isDataInvalid = true; 
-                //SerialUSB.println("cordic overflow: magnet misaligned? Data invalid."); 
+
+            if (LIN) {
+                isDataQuestionable = true;
+                //SerialUSB.println("linearity alarm: magnet misaligned? Data questionable.");
+            } else if (COF) {
+                isDataInvalid = true;
+                //SerialUSB.println("cordic overflow: magnet misaligned? Data invalid.");
             } else {
-                isDataQuestionable = false; 
-                isDataInvalid = false; 
+                isDataQuestionable = false;
+                isDataInvalid = false;
             }
         }
 
@@ -400,6 +400,3 @@ void encoderTick() {
     }
 }
 */
-
-
-

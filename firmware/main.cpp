@@ -52,6 +52,15 @@ void print_detailed_trajectory();
  **/
 void print_detailed_trajectory_halt();
 
+/*
+ * Prints the benchmark array
+ **/
+void print_time_stamp();
+
+/*
+ * Saves the current value of the benchmark timer in a array
+ **/
+void add_benchmark_time();
 
 static const bool     DXL_COM_ON = false; // /!\
 
@@ -68,6 +77,11 @@ bool           firstTimeNewSpeed     = true;
 unsigned char  controlMode           = OFF;
 hardware       hardwareStruct;
 
+// Benchmarking
+const int TIME_STAMP_SIZE = 1000;
+static long arrayOfTimeStamps[TIME_STAMP_SIZE];
+HardwareTimer timer4(4);
+uint16 timeIndex = 0;
 
 void setup() {
     disableDebugPorts();
@@ -160,7 +174,14 @@ void setup() {
     // motor_set_command(95);
     // while(true);
 
-        //Temp :
+
+    //Temp :
+    timer4.setPrescaleFactor(72);
+    timer4.setOverflow(65535);
+    timer4.pause();
+    timer4.refresh();
+    timer4.resume();
+
     hardwareStruct.mot->targetAngle = 0;
     controlMode = POSITION_CONTROL_P;
 
@@ -236,33 +257,42 @@ void loop() {
         hardwareStruct.mot->targetAngle = 0;
         motor_compliant();
         firstTimePrint = false;
-        print_detailed_trajectory();
+        // print_detailed_trajectory();
         timer3.pause();
-        hardwareStruct.mot->targetAngle = 0;
-        controlMode = POSITION_CONTROL_P;
+        // hardwareStruct.mot->targetAngle = 0;
+        // controlMode = POSITION_CONTROL_P;
     }
 
-
+    if (timeIndex >= (TIME_STAMP_SIZE-3)) {
+        print_time_stamp();
+        motor_compliant();
+        while(true);
+    }
 }
 
 void hardware_tick() {
+
     /* The current must be read as often as possible because it's so noisy that
      * it requires an averaging for it to be usable */
     motor_read_current();
 
     if (hardwareCounter > 47) { //47
             //These actions are performed at a rate of 1kHz
+            //These actions costs 97-98us
 
-        //Updating the encoder
-       encoder_read_angles_sharing_pins_mode();
+        add_benchmark_time();
+        //Updating the encoder (~90-92 us)
+        encoder_read_angles_sharing_pins_mode();
 
-        //Updating the motor
+        add_benchmark_time();
+        //Updating the motor (~5-6 us with predictive control on)
         motor_update(hardwareStruct.enc);
 
         slowHardwareCounter++;
         hardwareCounter = 0;
 
-        //Updating control
+        add_benchmark_time();
+        //Updating control (3-4 us)
         if (controlMode == POSITION_CONTROL) {
             control_tick_PID_on_position(hardwareStruct.mot);
         } else if (controlMode == SPEED_CONTROL) {
@@ -276,6 +306,7 @@ void hardware_tick() {
         } else {
             // No control
         }
+        add_benchmark_time();
     }
 
     if (slowHardwareCounter > 999) {
@@ -394,6 +425,24 @@ void print_detailed_trajectory() {
 
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
+}
+
+void print_time_stamp() {
+    digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.println("");
+    for (int i = 0; i < TIME_STAMP_SIZE; i++) {
+        Serial1.println(arrayOfTimeStamps[i]);
+    }
+
+    Serial1.waitDataToBeSent();
+    digitalWrite(BOARD_TX_ENABLE, LOW);
+}
+
+void add_benchmark_time() {
+    if (timeIndex < TIME_STAMP_SIZE) {
+        arrayOfTimeStamps[timeIndex] = timer4.getCount();
+        timeIndex++;
+    }
 }
 
 void print_detailed_trajectory_halt() {
