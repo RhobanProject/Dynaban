@@ -38,13 +38,11 @@ void control_tick_PID_on_position(motor * pMot) {
     }
 
 
-    // motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef
-    //                   + (controlStruct.sumOfDeltas * controlStruct.iCoef) / I_PRESCALE
-    //                   + pMot->speed * controlStruct.dCoef
-    //                   + pMot->predictiveCommand);
-    //  /!\TEMP
-    motor_set_command(pMot->predictiveCommand);
+    motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef
+                      + (controlStruct.sumOfDeltas * controlStruct.iCoef) / I_PRESCALE
+                      + pMot->speed * controlStruct.dCoef);
 }
+
 
 void control_tick_P_on_position(motor * pMot) {
     controlStruct.deltaAngle = pMot->targetAngle - pMot->angle;
@@ -53,6 +51,32 @@ void control_tick_P_on_position(motor * pMot) {
         controlStruct.deltaAngle = pMot->angle - pMot->targetAngle;
     }
     motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef);
+}
+
+void control_tick_predictive_command_only(motor * pMot) {
+    motor_set_command(pMot->predictiveCommand);
+}
+
+void control_tick_PID_and_predictive_command(motor * pMot) {
+    controlStruct.deltaAngle = pMot->targetAngle - pMot->angle;
+
+    if (abs(controlStruct.deltaAngle) > (MAX_ANGLE/2)) {
+        // There is a shorter way, engine bro
+        controlStruct.deltaAngle = pMot->angle - pMot->targetAngle;
+    }
+
+    controlStruct.sumOfDeltas = controlStruct.sumOfDeltas + controlStruct.deltaAngle;
+    if (controlStruct.sumOfDeltas > MAX_DELTA_SUM) {
+        controlStruct.sumOfDeltas = MAX_DELTA_SUM;
+    } else if (controlStruct.sumOfDeltas < -MAX_DELTA_SUM) {
+        controlStruct.sumOfDeltas = -MAX_DELTA_SUM;
+    }
+
+    motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef
+                      + (controlStruct.sumOfDeltas * controlStruct.iCoef) / I_PRESCALE
+                      + pMot->speed * controlStruct.dCoef
+                      + pMot->predictiveCommand);
+
 }
 
 void control_tick_P_on_speed(motor * pMot) {

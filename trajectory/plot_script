@@ -1,9 +1,10 @@
 set xrange [0:10000]
-plot "real_position" using 1:2 title '1000Hz' with lines,\
-"ideal" using 1:2 title 'ideal' with lines, \
-"real_position_50Hz" using 1:2 title '50 Hz' with lines, \
-"real_position_25Hz" using 1:2 title '25Hz' with lines, \
-"traj_speed_control_and_pid" using 1:2 title 'speed_control_and_pid' with lines, \
-"traj_speed_control_and_pid_heavy_arm" using 1:2 title 'speed_control_and_pid_heavy_arm' with lines, \
-"270g_not_compensated" using 1:2 title '270g_not_compensated' with lines, \
+plot "ideal" using 1:2 title 'ideal' with lines, \
 "temp" using 1:2 title 'temp' with lines, \
+"real_position" using 1:2 title '1000Hz' with lines,\
+"real_position_50Hz" using 1:2 title '50 Hz' with lines, \
+
+#"real_position_25Hz" using 1:2 title '25Hz' with lines, \
+#"traj_speed_control_and_pid" using 1:2 title 'speed_control_and_pid' with lines, \
+#"traj_speed_control_and_pid_heavy_arm" using 1:2 title 'speed_control_and_pid_heavy_arm' with lines, \
+#"270g_not_compensated" using 1:2 title '270g_not_compensated' with lines, \

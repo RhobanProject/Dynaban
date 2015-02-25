@@ -20,6 +20,8 @@ void hardware_tick();
 
 void set_ready_to_update_hardware();
 
+void set_ready_to_update_current();
+
 /**
  * Returns the temperature in degrees celcius.
  */
@@ -62,13 +64,14 @@ void print_time_stamp();
  **/
 void add_benchmark_time();
 
-static const bool     DXL_COM_ON = false; // /!\
+static bool     DXL_COM_ON = false; // /!\
 
 long           counter               = 0;
 int            posCounter            = 0;
 unsigned char  hardwareCounter       = 0;
 unsigned int   slowHardwareCounter   = 0;
 bool           readyToUpdateHardware = false;
+bool           readyToUpdateCurrent  = false;
 bool           firstTime             = true;
 bool           firstTimePrint        = true;
 bool           firstTimeNewSpeed     = true;
@@ -80,7 +83,7 @@ hardware       hardwareStruct;
 // Benchmarking
 const int TIME_STAMP_SIZE = 1000;
 static long arrayOfTimeStamps[TIME_STAMP_SIZE];
-HardwareTimer timer4(4);
+HardwareTimer timer2(2);
 uint16 timeIndex = 0;
 
 void setup() {
@@ -132,16 +135,30 @@ void setup() {
     // This function will block the rest of the program and print detailed current debug
     //printDetailedCurrentDebug();
 
-    HardwareTimer timer2(2);
-    // The hardware will be read at 48Khz
-    //timer2.setPeriod(21);
-    timer2.setPrescaleFactor(1);
-    timer2.setOverflow(1500);
-    timer2.setChannel1Mode(TIMER_OUTPUT_COMPARE);
 
+    timer2.pause();
+    // The hardware will be read at 1Khz
+    timer2.setPrescaleFactor(72);
+    timer2.setOverflow(1000);
+    timer2.setChannel1Mode(TIMER_OUTPUT_COMPARE);
     //Interrupt 1 count after each update
     timer2.setCompare(TIMER_CH1, 1);
     timer2.attachCompare1Interrupt(set_ready_to_update_hardware);
+    timer2.refresh();
+    timer2.resume();
+
+        /* The current will be read at 48Khz. It must be read as often as possible
+         * because it's so noisy that it requires averaging for it to be usable */
+    HardwareTimer timer4(4);
+    timer4.pause();
+    timer4.setPrescaleFactor(1);
+    timer4.setOverflow(1500);
+    timer4.setChannel2Mode(TIMER_OUTPUT_COMPARE);
+    // //Interrupt 1 count after each update
+    timer4.setCompare(TIMER_CH2, 1);
+    timer4.attachCompare2Interrupt(set_ready_to_update_current);
+    timer4.refresh();
+    timer4.resume();
 
     //Dxl struct init
     init_dxl_ram();
@@ -157,7 +174,8 @@ void setup() {
     controlMode = OFF;
 
         // // motor_set_command(330);
-    // motor_set_command(500);
+        //motor_set_command(80); //80 doesn't move, 85 moves
+
     // delay(1000);
     // motor_set_command(100);
     // hardware_tick();
@@ -176,14 +194,9 @@ void setup() {
 
 
     //Temp :
-    timer4.setPrescaleFactor(72);
-    timer4.setOverflow(65535);
-    timer4.pause();
-    timer4.refresh();
-    timer4.resume();
 
     hardwareStruct.mot->targetAngle = 0;
-    controlMode = POSITION_CONTROL_P;
+    controlMode = POSITION_CONTROL;
 
     // hardwareStruct.mot->targetSpeed = 500;
     // controlMode = SPEED_CONTROL;
@@ -205,7 +218,6 @@ void setup() {
 }
 
 void loop() {
-
     if (DXL_COM_ON) {
         if (dxl_tick()) {
             read_dxl_ram();
@@ -221,11 +233,16 @@ void loop() {
         }
     }
 
-    // if (counter % 4800 == 0) {
+    if (readyToUpdateCurrent) {
+        readyToUpdateCurrent = false;
+        motor_read_current();
+    }
+
+    // if (counter % 100 == 0) {
     //     print_debug();
     // }
 
-    if (counter > 48000 && firstTime) {
+    if (counter > 1000 && firstTime) {
         firstTime = false;
             //Taking care of the V(0) problem (static annoying stuff)
         // controlMode = OFF;
@@ -242,7 +259,7 @@ void loop() {
 
         // hardwareStruct.mot->targetAngle = (hardwareStruct.mot->angle + 2048)%4096;
         // controlMode = POSITION_CONTROL;
-        controlMode = POSITION_CONTROL; // No asserv
+        controlMode = PREDICTIVE_COMMAND_ONLY; // PID_AND_PREDICTIVE_COMMAND
         positionTrackerOn = true;
             //motor_set_command(2700); // max speed
     }
@@ -257,78 +274,73 @@ void loop() {
         hardwareStruct.mot->targetAngle = 0;
         motor_compliant();
         firstTimePrint = false;
-        // print_detailed_trajectory();
+        print_detailed_trajectory();
         timer3.pause();
-        // hardwareStruct.mot->targetAngle = 0;
-        // controlMode = POSITION_CONTROL_P;
+        hardwareStruct.mot->targetAngle = 0;
+        controlMode = POSITION_CONTROL;
     }
 
-    if (timeIndex >= (TIME_STAMP_SIZE-3)) {
-        print_time_stamp();
-        motor_compliant();
-        while(true);
-    }
+    // if (timeIndex >= (TIME_STAMP_SIZE-3) && firstTime == false && positionTrackerOn == false && firstTimePrint == false) {
+    //     print_time_stamp();
+    //     motor_compliant();
+    //     while(true);
+    // }
 }
 
 void hardware_tick() {
-
-    /* The current must be read as often as possible because it's so noisy that
-     * it requires an averaging for it to be usable */
-    motor_read_current();
-
-    if (hardwareCounter > 47) { //47
-            //These actions are performed at a rate of 1kHz
-            //These actions costs 97-98us
-
-        add_benchmark_time();
+        //These actions are performed at a rate of 1kh and cost ~98-102 us
+    // add_benchmark_time();
         //Updating the encoder (~90-92 us)
-        encoder_read_angles_sharing_pins_mode();
-
-        add_benchmark_time();
+    encoder_read_angles_sharing_pins_mode();
+    // add_benchmark_time();
         //Updating the motor (~5-6 us with predictive control on)
-        motor_update(hardwareStruct.enc);
+    motor_update(hardwareStruct.enc);
 
-        slowHardwareCounter++;
+    slowHardwareCounter++;
+
+    // add_benchmark_time();
+        //Updating control (3-4 us)
+    if (controlMode == POSITION_CONTROL) {
+        control_tick_PID_on_position(hardwareStruct.mot);
+    } else if (controlMode == SPEED_CONTROL) {
+        control_tick_P_on_speed(hardwareStruct.mot);
+    } else if (controlMode == ACCELERATION_CONTROL) {
+        control_tick_P_on_acceleration(hardwareStruct.mot);
+    } else if (controlMode == TORQUE_CONTROL) {
+        control_tick_P_on_torque(hardwareStruct.mot);
+    } else if (controlMode == POSITION_CONTROL_P) {
+        control_tick_P_on_position(hardwareStruct.mot);
+    } else if (controlMode == PREDICTIVE_COMMAND_ONLY) {
+        control_tick_predictive_command_only(hardwareStruct.mot);
+    } else if (controlMode == PID_AND_PREDICTIVE_COMMAND) {
+        control_tick_PID_and_predictive_command(hardwareStruct.mot);
+    } else {
+            // No control
+    }
+    // add_benchmark_time();
+    hardwareCounter++;
+    if (hardwareCounter > 999) {
+            //These actions are performed at 1 Hz
         hardwareCounter = 0;
 
-        add_benchmark_time();
-        //Updating control (3-4 us)
-        if (controlMode == POSITION_CONTROL) {
-            control_tick_PID_on_position(hardwareStruct.mot);
-        } else if (controlMode == SPEED_CONTROL) {
-            control_tick_P_on_speed(hardwareStruct.mot);
-        } else if (controlMode == ACCELERATION_CONTROL) {
-            control_tick_P_on_acceleration(hardwareStruct.mot);
-        } else if (controlMode == TORQUE_CONTROL) {
-            control_tick_P_on_torque(hardwareStruct.mot);
-        } else if (controlMode == POSITION_CONTROL_P) {
-            control_tick_P_on_position(hardwareStruct.mot);
-        } else {
-            // No control
-        }
-        add_benchmark_time();
-    }
-
-    if (slowHardwareCounter > 999) {
-        //These actions are performed at 1 Hz
-        slowHardwareCounter = 0;
-
-        //Updating power supply value (the value is 10 times bigger than the real value)
+            //Updating power supply value (the value is 10 times bigger than the real value)
         hardwareStruct.voltage = (unsigned char)((analogRead(POWER_SUPPLY_ADC_PIN) * 33 *766)/409600);
 
-        //Updating the temperature
+            //Updating the temperature
         hardwareStruct.temperature = read_temperature();
         if (hardwareStruct.temperature > MAX_TEMPERATURE) {
             motor_temperatureIsCritic();
         }
     }
-
-    hardwareCounter++;
 }
 
 
 void set_ready_to_update_hardware() {
     readyToUpdateHardware = true;
+}
+
+void set_ready_to_update_current() {
+    readyToUpdateCurrent = true;
 }
 
 /* The Thermistor value is R (~4.7 kOhm at ~ 20°). We approximated the Temperature(Resitance) law as follows :
@@ -418,7 +430,8 @@ void print_detailed_trajectory() {
         if (i > 100 && timeArray[i] == 0) {
             break;
         }
-        Serial1.print(timeArray[i] - 250); // Taking into account the speed update delay
+        Serial1.print(timeArray[i]); // No delay when printing a position
+        // Serial1.print(timeArray[i] - NB_TICKS_BEFORE_UPDATING_SPEED*10); // Taking into account the speed update delay
         Serial1.print(" ");
         Serial1.println(positionArray[i]);
     }
@@ -440,7 +453,7 @@ void print_time_stamp() {
 
 void add_benchmark_time() {
     if (timeIndex < TIME_STAMP_SIZE) {
-        arrayOfTimeStamps[timeIndex] = timer4.getCount();
+        arrayOfTimeStamps[timeIndex] = timer2.getCount();
         timeIndex++;
     }
 }

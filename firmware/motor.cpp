@@ -74,7 +74,10 @@ void motor_init(encoder * pEnc) {
 
 void motor_update(encoder * pEnc) {
     uint16 time;
-    int16 dt;
+    int16 dt = 10; /*
+                    * This function should be called every dt*10 ms.
+                    * The plan B would be to estimate dt = time - previousTime;
+                    * */
     //Updating the motor position (ie angle)
     buffer_add(&(mot.angleBuffer), mot.angle);
     mot.previousAngle = mot.angle;
@@ -85,17 +88,11 @@ void motor_update(encoder * pEnc) {
         if (counterUpdate%1 == 0) {
             time = timer3.getCount();
 
-            dt = time - previousTime;
-            if (dt < 0) {
-                    // Hum!
-                toggleLED();
-                dt = 10;
-            }
-                //predictive_control_tick_simple(&mot, traj_min_jerk_on_speed(time + 10));
-            predictive_control_tick(&mot, traj_min_jerk_on_speed(time + dt), dt, 0, 0);
+            // predictive_control_tick_simple(&mot, traj_min_jerk_on_speed(time + dt));
+            predictive_control_tick(&mot, traj_min_jerk_on_speed(time + dt), dt, 0, 0);//0.0039
             mot.targetAngle = traj_min_jerk(time);
 
-            positionArray[positionIndex] = mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount()); //mot.angle;
+            positionArray[positionIndex] = mot.angle;//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount()); //mot.angle;
             timeArray[positionIndex] = time;
 
             if (positionIndex == NB_POSITIONS_SAVED || time > 10000) {
@@ -110,7 +107,6 @@ void motor_update(encoder * pEnc) {
         }
 
         counterUpdate++;
-        previousTime = time;
     }
 
         //Updating the motor speed

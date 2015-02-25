@@ -14,12 +14,14 @@ struct hardware {
 };
 
 enum controlModeEnum {
-    POSITION_CONTROL       = 0,
-    SPEED_CONTROL          = 1,
-    ACCELERATION_CONTROL   = 2,
-    TORQUE_CONTROL         = 3,
-    OFF                    = 4,
-    POSITION_CONTROL_P     = 5,
+    POSITION_CONTROL            = 0,
+    SPEED_CONTROL               = 1,
+    ACCELERATION_CONTROL        = 2,
+    TORQUE_CONTROL              = 3,
+    OFF                         = 4,
+    POSITION_CONTROL_P          = 5,
+    PREDICTIVE_COMMAND_ONLY     = 6,
+    PID_AND_PREDICTIVE_COMMAND  = 7,
 };
 
 extern unsigned char  controlMode;

@@ -5,10 +5,10 @@
 #include "magnetic_encoder.h"
 
 const int NB_TICKS_PER_SECOND = 1000;
-const int INITIAL_P_COEF = 32;
-const int INITIAL_I_COEF = 0;
-const int I_PRESCALE = 1;
-const int MAX_DELTA_SUM = 1000;
+const int INITIAL_P_COEF = 8;//32;
+const int INITIAL_I_COEF = 1;
+const float I_PRESCALE = 5.0;
+const int MAX_DELTA_SUM = 300;
 const int INITIAL_D_COEF = 0;
 
 const float INITIAL_SPEED_P_COEF = 0.5;
@@ -38,6 +38,12 @@ void control_tick_PID_on_position(motor * pMot);
 
 // P-only position control cos lets be honest
 void control_tick_P_on_position(motor * pMot);
+
+// Open loop control using the predictive command (useful for calibration of the predictive command)
+void control_tick_predictive_command_only(motor * pMot);
+
+// PID + predictive control
+void control_tick_PID_and_predictive_command(motor * pMot);
 
 // P-only speed control
 void control_tick_P_on_speed(motor * pMot);

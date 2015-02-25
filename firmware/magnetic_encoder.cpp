@@ -209,22 +209,22 @@ long encoder_read_angle_sequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {
     angle = (angle >> 6); // shift 18-digit angle right 6 digits to form 12-digit value
 
     if (debug) {
-		statusbits = inputLong & STATUS_MASK;
-		//DECn = statusbits & 2; // goes high if magnet moved away from IC
-		//INCn = statusbits & 4; // goes high if magnet moved towards IC
-		LIN = statusbits & 8; // goes high for linearity alarm
-		COF = statusbits & 16; // goes high for cordic overflow: data invalid
-		//OCF = statusbits & 32; // this is 1 when the chip startup is finished.
+        statusbits = inputLong & STATUS_MASK;
+            //DECn = statusbits & 2; // goes high if magnet moved away from IC
+            //INCn = statusbits & 4; // goes high if magnet moved towards IC
+        LIN = statusbits & 8; // goes high for linearity alarm
+        COF = statusbits & 16; // goes high for cordic overflow: data invalid
+            //OCF = statusbits & 32; // this is 1 when the chip startup is finished.
 
-		if (LIN) {
-			  //SerialUSB.println("Linearity alarm. Data questionable.");
-		  } else if (COF) {
-			  angle = -1;
-			  //SerialUSB.println("Cordic overflow. Data invalid.");
-		  }
+        if (LIN) {
+                //SerialUSB.println("Linearity alarm. Data questionable.");
+        } else if (COF) {
+            angle = -1;
+                //SerialUSB.println("Cordic overflow. Data invalid.");
+        }
     }
     return angle;
-    //arrayOfTimeStamps[1] = timer->getCount();
+        //arrayOfTimeStamps[1] = timer->getCount();
 }
 
 #if BOARD_HAVE_SERIALUSB

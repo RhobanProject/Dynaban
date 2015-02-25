@@ -23,7 +23,7 @@ uint16 traj_min_jerk(uint16 pTime);
 uint16 traj_min_jerk_on_speed(uint16 pTime);
 void predictive_control_init();
 void predictive_control_tick(motor * pMot, int16 pVGoal, uint16 pDt, float pOutputTorque, float pIAdded);
-void predictive_control_tick(motor * pMot, int16 pVGoal);
+void predictive_control_tick_simple(motor * pMot, int16 pVGoal);
 float acceleration_from_weight(uint16 angle, float l);
 float acceleration_from_weight_calib(uint16 angle);
 int16 static_friction(int16 v);
