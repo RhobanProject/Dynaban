@@ -45,6 +45,7 @@ extern int16 positionArray[NB_POSITIONS_SAVED];
 extern int16 timeArray[NB_POSITIONS_SAVED];
 extern uint16 positionIndex;
 extern bool positionTrackerOn;
+extern float addedInertia;
 
 //Debug timer
 extern HardwareTimer timer3;

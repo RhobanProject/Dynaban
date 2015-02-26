@@ -59,11 +59,23 @@ void print_detailed_trajectory_halt();
  **/
 void print_time_stamp();
 
+int32 evaluate_trajectory_least_square(uint16 (*pidealTraj)(uint16));
+
+/**
+ * Returns the next moment of inertia I to be tested in order to minimize the score
+ * Xn+1 = Xn - f(Xn) * (Xn - Xn-1)/(f(Xn) - f(Xn-1))
+ */
+float next_inertia(float pPreviousI, float pCurrentI, int32 pPreviousScore, int32 pCurrentScore);
+
+float auto_calibrate_inertia(float pPreviousI, float pCurrentI, int32 pPreviousScore, int32 pCurrentScore);
+
 /*
  * Saves the current value of the benchmark timer in a array
  **/
 void add_benchmark_time();
 
+
+const uint32    TOO_BIG              = 1<<30;
 static bool     DXL_COM_ON = false; // /!\
 
 long           counter               = 0;
@@ -75,7 +87,11 @@ bool           readyToUpdateCurrent  = false;
 bool           firstTime             = true;
 bool           firstTimePrint        = true;
 bool           firstTimeNewSpeed     = true;
-
+int32          score                 = TOO_BIG;
+int32          previousScore         = TOO_BIG;
+int32          averageScore          = 0;
+float          previousInertia       = 0.0;
+uint8          repetitions           = 0;
 
 unsigned char  controlMode           = OFF;
 hardware       hardwareStruct;
@@ -242,7 +258,7 @@ void loop() {
     //     print_debug();
     // }
 
-    if (counter > 1000 && firstTime) {
+    if (counter > 2000 && firstTime) {
         firstTime = false;
             //Taking care of the V(0) problem (static annoying stuff)
         // controlMode = OFF;
@@ -259,7 +275,7 @@ void loop() {
 
         // hardwareStruct.mot->targetAngle = (hardwareStruct.mot->angle + 2048)%4096;
         // controlMode = POSITION_CONTROL;
-        controlMode = PREDICTIVE_COMMAND_ONLY; // PID_AND_PREDICTIVE_COMMAND
+        controlMode = PID_AND_PREDICTIVE_COMMAND;//PREDICTIVE_COMMAND_ONLY; // PID_AND_PREDICTIVE_COMMAND
         positionTrackerOn = true;
             //motor_set_command(2700); // max speed
     }
@@ -276,8 +292,65 @@ void loop() {
         firstTimePrint = false;
         print_detailed_trajectory();
         timer3.pause();
+
         hardwareStruct.mot->targetAngle = 0;
         controlMode = POSITION_CONTROL;
+
+        return;
+            //Auto-calibration :
+        int32 tempScore = evaluate_trajectory_least_square(traj_min_jerk);
+        if (tempScore < 10000000) {
+            averageScore = averageScore + tempScore;
+            digitalWrite(BOARD_TX_ENABLE, HIGH);
+            Serial1.println();
+            Serial1.print("Score : ");
+            Serial1.print(tempScore);
+            // Serial1.print("Sum : ");
+            // Serial1.println(averageScore);
+            Serial1.waitDataToBeSent();
+            digitalWrite(BOARD_TX_ENABLE, LOW);
+        } else {
+                // This score is way too high, the least-square must have over-flowed. We'll redo the move
+            digitalWrite(BOARD_TX_ENABLE, HIGH);
+            Serial1.println();
+            Serial1.print("Score invalid");
+            Serial1.waitDataToBeSent();
+            digitalWrite(BOARD_TX_ENABLE, LOW);
+            repetitions--;
+        }
+
+
+        if (repetitions == 2) {
+            repetitions = 0;
+
+            previousScore = score;
+            score = averageScore/3;
+            averageScore = 0;
+            float temp = addedInertia;
+            addedInertia = auto_calibrate_inertia(previousInertia, addedInertia, previousScore, score);
+            previousInertia = temp;
+
+            digitalWrite(BOARD_TX_ENABLE, HIGH);
+            Serial1.println();
+            Serial1.print("Previous least square : ");
+            Serial1.println(previousScore);
+            Serial1.print("Current least square  : ");
+            Serial1.println(score);
+            Serial1.print("With inertia : ");
+            Serial1.println(previousInertia*1000);
+            Serial1.print("Next inertia to be tested : ");
+            Serial1.println(addedInertia*1000);
+            Serial1.waitDataToBeSent();
+            digitalWrite(BOARD_TX_ENABLE, LOW);
+        } else {
+            repetitions++;
+        }
+
+            // Shining new start
+        firstTime = true;
+        firstTimePrint = true;
+        positionTrackerOn = false;
+        counter = 0;
     }
 
     // if (timeIndex >= (TIME_STAMP_SIZE-3) && firstTime == false && positionTrackerOn == false && firstTimePrint == false) {
@@ -438,6 +511,77 @@ void print_detailed_trajectory() {
 
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
+}
+
+int32 evaluate_trajectory_least_square(uint16 (*pidealTraj)(uint16)) {
+    uint16 time = 0;
+    uint16 idealPos = 0;
+    uint16 realPos = 0;
+    int16 diff = 0;
+    int32 result = 0;
+    int32 temp = 0;
+
+    // digitalWrite(BOARD_TX_ENABLE, HIGH);
+    // Serial1.println("");
+    for (int i = 0; i < NB_POSITIONS_SAVED; i++) {
+        if (i > 100 && timeArray[i] == 0 || timeArray[i] > 9999) {
+            break;
+        }
+        time = timeArray[i];
+        idealPos = pidealTraj(time);
+        realPos = positionArray[i];
+        diff = idealPos - realPos;
+        temp = result;
+        result = result + diff*diff;
+
+        if (result < temp) {
+                // Overflowed
+            return temp;
+        }
+
+    }
+
+    // Serial1.waitDataToBeSent();
+    // digitalWrite(BOARD_TX_ENABLE, LOW);
+
+    return result;
+}
+
+float next_inertia(float pPreviousI, float pCurrentI, int32 pPreviousScore, int32 pCurrentScore) {
+        /*
+         * Note to the future :
+         * Lets say you have to substract 2 uint and then use that result to do a floating point division.
+         * Substracting 2 uint and casting the result as a float looks like a decent idea.
+         *
+         * It isn't.
+         *
+         * The reason is that the substraction will be treated as a unsigned substraction before the cast,
+         * meaning that (float)((uint)1 - (uint)2) = huge positive number instead of -1.0.
+         */
+    float num = ((float)(pCurrentScore * (pCurrentI - pPreviousI)));
+    float denum = ((float)(pCurrentScore - pPreviousScore));
+    float result = pCurrentI -  num/denum;
+
+
+    return result;
+}
+
+float auto_calibrate_inertia(float pPreviousI, float pCurrentI, int32 pPreviousScore, int32 pCurrentScore) {
+    return addedInertia + 0.0005;//0.00005;
+
+    if (pCurrentScore == TOO_BIG || pPreviousScore == TOO_BIG) {
+            //Second iteration is blind
+        return 0.001;
+    } else if (pPreviousI == pCurrentI) {
+            // Hack to get out of stuck situations
+        if (pCurrentI == 0.001) {
+            return 0.0;
+        } else {
+            return 1.0;
+        }
+    } else {
+        return next_inertia(pPreviousI, pCurrentI, pPreviousScore, pCurrentScore);
+    }
 }
 
 void print_time_stamp() {

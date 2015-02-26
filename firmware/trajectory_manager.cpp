@@ -91,14 +91,12 @@ void predictive_control_init() {
  */
 void predictive_control_tick(motor * pMot, int16 pVGoal, uint16 pDt, float pOutputTorque, float pIAdded) {
     int16 v = pControl.estimatedSpeed;
-        //float angleRad = (pMot->angle * (float)PI) / 2048.0;
-        //float weightCompensation = cos(angleRad) * 140.0;//235.0;
     float beta = exp(-abs( v / ((float)STAT_TO_COUL_TRANS) ));
     float accelTorque = ((float)(pVGoal - v) * (I0 + pIAdded) * 10000)/((float)pDt); // dt is in 1/10 of a ms
     float frictionTorque = sign(v) * (beta * kstat + (1 - beta) * kcoul);
 
     int16 u = unitFactor *
-        (kv * v + torqueToCommand * (accelTorque + frictionTorque + pOutputTorque)) ;
+        (kv * v + torqueToCommand * (accelTorque + frictionTorque + pOutputTorque));
 
     if (u > MAX_COMMAND) {
         u = MAX_COMMAND;

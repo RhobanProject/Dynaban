@@ -18,6 +18,10 @@ uint16 positionIndex = 0;
 bool positionTrackerOn = false;
 uint16 counterUpdate = 0;
 uint16 previousTime = 0;
+float addedInertia = 0.00370;
+                         /* Moment of inertia added to the motor. Total moment of inertia = I0 + addedInertia.
+                         * I0 is a constant defined in trajectory_manager */
+
 
 //Debug timer
 HardwareTimer timer3(3);
@@ -88,14 +92,17 @@ void motor_update(encoder * pEnc) {
         if (counterUpdate%1 == 0) {
             time = timer3.getCount();
 
+            float angleRad = (mot.angle * (float)PI) / 2048.0;
+            float weightCompensation = cos(angleRad) * 160;//211.0;//235.0;
             // predictive_control_tick_simple(&mot, traj_min_jerk_on_speed(time + dt));
-            predictive_control_tick(&mot, traj_min_jerk_on_speed(time + dt), dt, 0, 0);//0.0039
+            predictive_control_tick(&mot, traj_min_jerk_on_speed(time + dt), dt, weightCompensation, addedInertia);//0.0039
             mot.targetAngle = traj_min_jerk(time);
 
-            positionArray[positionIndex] = mot.angle;//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount()); //mot.angle;
+            positionArray[positionIndex] = mot.angle;//(int16)weightCompensation;//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount());
             timeArray[positionIndex] = time;
 
             if (positionIndex == NB_POSITIONS_SAVED || time > 10000) {
+                positionIndex = 0;
                 positionTrackerOn = false;
             } else {
                 positionIndex++;
