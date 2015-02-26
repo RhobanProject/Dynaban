@@ -1,0 +1,4 @@
+set xrange [0:10000]
+plot "ideal" using 1:2 title 'ideal' with lines, \
+"open_loop_speed_trajectory_270g_12cm_45degrees_weight_compensation" using 1:2 title 'Open loop predictive control' with lines,\
+"pid_only_270g_12cm_45degrees" using 1:2 title '1000Hz PID only' with lines, \

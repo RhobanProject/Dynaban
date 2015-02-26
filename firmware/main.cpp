@@ -275,7 +275,7 @@ void loop() {
 
         // hardwareStruct.mot->targetAngle = (hardwareStruct.mot->angle + 2048)%4096;
         // controlMode = POSITION_CONTROL;
-        controlMode = PID_AND_PREDICTIVE_COMMAND;//PREDICTIVE_COMMAND_ONLY; // PID_AND_PREDICTIVE_COMMAND
+        controlMode = POSITION_CONTROL;//PREDICTIVE_COMMAND_ONLY; // PID_AND_PREDICTIVE_COMMAND
         positionTrackerOn = true;
             //motor_set_command(2700); // max speed
     }
@@ -292,12 +292,17 @@ void loop() {
         firstTimePrint = false;
         print_detailed_trajectory();
         timer3.pause();
-
-        hardwareStruct.mot->targetAngle = 0;
-        controlMode = POSITION_CONTROL;
+        digitalWrite(BOARD_TX_ENABLE, HIGH);
+        Serial1.println();
+        Serial1.print("Score :");
+        Serial1.print(evaluate_trajectory_least_square(traj_min_jerk));
+        Serial1.waitDataToBeSent();
+        digitalWrite(BOARD_TX_ENABLE, LOW);
 
         return;
             //Auto-calibration :
+        hardwareStruct.mot->targetAngle = 0;
+        controlMode = POSITION_CONTROL;
         int32 tempScore = evaluate_trajectory_least_square(traj_min_jerk);
         if (tempScore < 10000000) {
             averageScore = averageScore + tempScore;

@@ -93,7 +93,7 @@ void motor_update(encoder * pEnc) {
             time = timer3.getCount();
 
             float angleRad = (mot.angle * (float)PI) / 2048.0;
-            float weightCompensation = cos(angleRad) * 160;//211.0;//235.0;
+            float weightCompensation = cos(angleRad) * 85;//211.0;//235.0; // 211 is already above max command with the heavy arm + minJerk traj
             // predictive_control_tick_simple(&mot, traj_min_jerk_on_speed(time + dt));
             predictive_control_tick(&mot, traj_min_jerk_on_speed(time + dt), dt, weightCompensation, addedInertia);//0.0039
             mot.targetAngle = traj_min_jerk(time);

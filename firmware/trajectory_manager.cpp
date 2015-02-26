@@ -24,7 +24,7 @@
 #define r      6
 #define STAT_TO_COUL_TRANS 1300 // To be checked
 
-static const float unitFactor = (3000*2*PI) / ((float)(V_ALIM*4096));
+static const float unitFactor = (3000*2*PI) / ((float)(V_ALIM*4096)); // == 0.3834 at 12V
 
 static float torqueToCommand   = 3.75;//3.56; // Should be r/ke (ke ~ 1.6) = 3.75. To be used with torques expressed in [N.m * 4096 / 2*PI]
 static float kv                = 1.705;//1.462 // kv = ke + kvis
