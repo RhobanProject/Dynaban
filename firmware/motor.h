@@ -66,7 +66,9 @@ struct motor {
     buffer speedBuffer;
     long targetAngle;
     long speed;
+    long averageSpeed;
     long previousSpeed;
+    int8 signOfSpeed;
     long targetSpeed;
     bool speedUpdated;
     long acceleration;
@@ -83,6 +85,8 @@ void motor_init(encoder * pEnc);
 void motor_update(encoder * pEnc);
 
 void motor_read_current();
+
+void motor_update_sign_of_speed();
 
 void motor_set_command(long pCommand);
 

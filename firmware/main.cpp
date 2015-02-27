@@ -254,7 +254,7 @@ void loop() {
         motor_read_current();
     }
 
-    // if (counter % 100 == 0) {
+    // if (counter % 100*4 == 0) {
     //     print_debug();
     // }
 
@@ -275,7 +275,7 @@ void loop() {
 
         // hardwareStruct.mot->targetAngle = (hardwareStruct.mot->angle + 2048)%4096;
         // controlMode = POSITION_CONTROL;
-        controlMode = POSITION_CONTROL;//PREDICTIVE_COMMAND_ONLY; // PID_AND_PREDICTIVE_COMMAND
+        controlMode = PREDICTIVE_COMMAND_ONLY; // PID_AND_PREDICTIVE_COMMAND
         positionTrackerOn = true;
             //motor_set_command(2700); // max speed
     }

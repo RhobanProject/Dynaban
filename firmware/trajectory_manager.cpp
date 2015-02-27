@@ -27,7 +27,7 @@
 static const float unitFactor = (3000*2*PI) / ((float)(V_ALIM*4096)); // == 0.3834 at 12V
 
 static float torqueToCommand   = 3.75;//3.56; // Should be r/ke (ke ~ 1.6) = 3.75. To be used with torques expressed in [N.m * 4096 / 2*PI]
-static float kv                = 1.705;//1.462 // kv = ke + kvis
+static float kv                = 1.65;//1.705;//1.462 // kv = ke + kvis
 static float kstat             = STATIC_FRICTION / (torqueToCommand * unitFactor); // kstat * 1 * torqueToVolt * unitFactor should be equal to STATIC_FRICTION (min command to get the motor moving).
 static float coulombMaxCommand = STATIC_FRICTION/4.567;
 static float kcoul             = coulombMaxCommand / (torqueToCommand * unitFactor);
@@ -90,10 +90,38 @@ void predictive_control_init() {
  * -> a(t) = (pVGoal - v)/dt
  */
 void predictive_control_tick(motor * pMot, int16 pVGoal, uint16 pDt, float pOutputTorque, float pIAdded) {
-    int16 v = pControl.estimatedSpeed;
+        // PUT THIS BACK YOU FOOL
+    int16 v = pMot->speed;//(pMot->averageSpeed);//pControl.estimatedSpeed;
+
+    int8 signV = sign(v);
+        // Hack for anti-gravity arm :
+        /* The issue here is that our initial model states that the static friction depends on the sign of the current speed
+         * which is true as long as the speed is not null.
+         * When the speed is null, the static friction will oppose itself to the torque applied on the motor.
+         **/
+    signV = pMot->signOfSpeed; // 1;
+    if (signV == 1) {
+        digitalWrite(BOARD_LED_PIN, HIGH);
+    } else if (signV == -1) {
+        digitalWrite(BOARD_LED_PIN, LOW);
+    } else {
+        // digitalWrite(BOARD_LED_PIN, LOW);
+    }
+        // Un-comment this to emulate an old windows loading a program (quite funny actually)
+    // if (pMot->averageCurrent > 0) {
+    //     signV = 1;
+    //     digitalWrite(BOARD_LED_PIN, LOW);
+    // } else if (pMot->averageCurrent < 0) {
+    //     signV = -1;
+    //     digitalWrite(BOARD_LED_PIN, LOW);
+    // } else {
+    //     signV = 0;
+    //     digitalWrite(BOARD_LED_PIN, HIGH);
+    // }
+
     float beta = exp(-abs( v / ((float)STAT_TO_COUL_TRANS) ));
-    float accelTorque = ((float)(pVGoal - v) * (I0 + pIAdded) * 10000)/((float)pDt); // dt is in 1/10 of a ms
-    float frictionTorque = sign(v) * (beta * kstat + (1 - beta) * kcoul);
+    float accelTorque = 0;//((float)(pVGoal - v) * (I0 + pIAdded) * 10000)/((float)pDt); // dt is in 1/10 of a ms
+    float frictionTorque = signV * (beta * kstat + (1 - beta) * kcoul);
 
     int16 u = unitFactor *
         (kv * v + torqueToCommand * (accelTorque + frictionTorque + pOutputTorque));
@@ -166,57 +194,8 @@ void predictive_control_tick_simple(motor * pMot, int16 pVGoal) {
 
 }
 
-float acceleration_from_weight(uint16 angle, float l) {
-    float angleRad = (angle * (float)PI) / 2048.0;
 
-    return (g * cos(angleRad) * 2048)/(l * (float)PI); // *2048/PI to get a in step.s-2 instead of rad.s-2
-}
-
-float acceleration_from_weight_calib(uint16 angle) {
-    float angleRad = (angle * (float)PI) / 2048.0;
-    float result = (cos(angleRad) * (float)68.47); // Found by measure
-    // int add = 50;
-
-    // if (result > 0) {
-    //     if (result < add) {
-    //         result = add;
-    //     }
-    // } else {
-    //     result = result + add;
-    // }
-
-    return result;
-}
-
-int16 static_friction(int16 v) {
-    uint16 limitConstant = 41;
-    uint16 limitLinear = 400;
-    float coef = 1.0/((float)(limitLinear - limitConstant));
-
-    if (abs(v) < limitConstant) {
-        return STATIC_FRICTION*sign(v);
-    } else if (abs(v) < limitLinear) {
-        return STATIC_FRICTION * (1 - coef * (v - limitConstant));
-    }
-
-    return 0;
-
-}
-
-float viscous_friction(int16 v) {
-    uint16 linearLimit = 3000;
-    float coef = 0.1;//0.168;
-    return v * coef;
-    // if (abs(v) < linearLimit) {
-    //     return v * coef;
-    // } else {
-    //         //Apparently the viscous friction reduces when speed is high enough !
-    //     return (3000 - v) * coef;
-    // }
-
-}
-
-char sign(int16 pInput) {
+int8 sign(int16 pInput) {
     if (pInput > 0) {
         return 1;
     } else if (pInput < 0) {

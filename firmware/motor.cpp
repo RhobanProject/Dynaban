@@ -63,7 +63,9 @@ void motor_init(encoder * pEnc) {
     buffer_init(&(mot.speedBuffer), NB_TICKS_BEFORE_UPDATING_ACCELERATION, 0);
     mot.targetAngle = pEnc->angle;
     mot.speed = 0;
+    mot.averageSpeed = 0;
     mot.previousSpeed = 0;
+    mot.signOfSpeed = 0;
     mot.targetSpeed = 0;
     mot.acceleration = 0;
     mot.targetAcceleration = 0;
@@ -88,14 +90,16 @@ void motor_update(encoder * pEnc) {
     mot.angle = pEnc->angle;
     long oldPosition = buffer_get(&(mot.angleBuffer));
 
+    motor_update_sign_of_speed();
     if (positionTrackerOn) {
         if (counterUpdate%1 == 0) {
             time = timer3.getCount();
 
             float angleRad = (mot.angle * (float)PI) / 2048.0;
-            float weightCompensation = cos(angleRad) * 85;//211.0;//235.0; // 211 is already above max command with the heavy arm + minJerk traj
+            float weightCompensation = cos(angleRad) * 60;//71;//85;//211.0;//235.0; // 211 is already above max command with the heavy arm + minJerk traj
             // predictive_control_tick_simple(&mot, traj_min_jerk_on_speed(time + dt));
-            predictive_control_tick(&mot, traj_min_jerk_on_speed(time + dt), dt, weightCompensation, addedInertia);//0.0039
+            // predictive_control_tick(&mot, traj_min_jerk_on_speed(time + dt), dt, weightCompensation, addedInertia);
+            predictive_control_tick(&mot, 0, dt, weightCompensation, addedInertia);
             mot.targetAngle = traj_min_jerk(time);
 
             positionArray[positionIndex] = mot.angle;//(int16)weightCompensation;//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount());
@@ -103,7 +107,8 @@ void motor_update(encoder * pEnc) {
 
             if (positionIndex == NB_POSITIONS_SAVED || time > 10000) {
                 positionIndex = 0;
-                positionTrackerOn = false;
+                    // /!\ PUT THIS BACK YOU FOOL :
+                // positionTrackerOn = false;
             } else {
                 positionIndex++;
             }
@@ -131,7 +136,7 @@ void motor_update(encoder * pEnc) {
     mot.speed = mot.speed * SPEED_COEF;
 
         //Averaging with previous value :
-        //mot.speed = ((previousSpeed*12) + (mot.speed*4))/16.0;
+    mot.averageSpeed = ((previousSpeed*99) + (mot.speed))/100.0;
     buffer_add(&(mot.speedBuffer), mot.speed);
 
     //Updating the motor acceleration
@@ -161,6 +166,39 @@ void motor_read_current() {
             }
         }
     }
+}
+
+void motor_update_sign_of_speed() {
+    if (abs(mot.speed) < (1*SPEED_COEF)) {
+            // Sign will remain what it was before
+        return;
+    }
+    int8 tempSign = sign(mot.speed);
+    if (sign == 0) {
+            // Sign will remain what it was before
+        return;
+    } else {
+        mot.signOfSpeed = tempSign;
+        return;
+    }
+
+
+    int16 diff = mot.angle - mot.previousAngle;
+    if (diff != 0) {
+        // digitalWrite(BOARD_LED_PIN, LOW);
+        if (diff > 4000) {
+                // Went from near 4096 to near 0 or vice-versa
+            mot.signOfSpeed = -sign(diff);
+        } else if (diff > 5) {
+            mot.signOfSpeed = sign(diff);
+        }
+    } else {
+        // mot.signOfSpeed = 1;
+            // Plan B : use the measure of the current
+        // digitalWrite(BOARD_LED_PIN, HIGH);
+        // mot.signOfSpeed = sign(mot.averageCurrent);
+    }
+
 }
 
 void motor_set_command(long pCommand) {
