@@ -92,6 +92,8 @@ void predictive_control_init() {
 void predictive_control_tick(motor * pMot, int16 pVGoal, uint16 pDt, float pOutputTorque, float pIAdded) {
         // PUT THIS BACK YOU FOOL
     int16 v = pMot->speed;//(pMot->averageSpeed);//pControl.estimatedSpeed;
+        // TAKE THIS BACK YOU FOOL
+    pVGoal = v;
 
     int8 signV = sign(v);
         // Hack for anti-gravity arm :

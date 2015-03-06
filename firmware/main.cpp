@@ -76,7 +76,7 @@ void add_benchmark_time();
 
 
 const uint32    TOO_BIG              = 1<<30;
-static bool     DXL_COM_ON = false; // /!\
+static bool     DXL_COM_ON = true; // /!\
 
 long           counter               = 0;
 int            posCounter            = 0;
@@ -189,30 +189,11 @@ void setup() {
     }
     controlMode = OFF;
 
-        // // motor_set_command(330);
         //motor_set_command(80); //80 doesn't move, 85 moves
-
-    // delay(1000);
-    // motor_set_command(100);
-    // hardware_tick();
-    // // long angle = 3000;
-    // long angle = hardwareStruct.mot->angle;
-    // while(angle > 100) {
-    //     delayMicroseconds(21);
-    //     hardware_tick();
-    //     angle = hardwareStruct.mot->angle;
-    // }
-    // counter = 48000;
-    // return;
-
-    // motor_set_command(95);
-    // while(true);
-
-
     //Temp :
 
-    hardwareStruct.mot->targetAngle = 0;
-    controlMode = POSITION_CONTROL;
+    // hardwareStruct.mot->targetAngle = 0;
+    // controlMode = POSITION_CONTROL;
 
     // hardwareStruct.mot->targetSpeed = 500;
     // controlMode = SPEED_CONTROL;
@@ -231,6 +212,7 @@ void setup() {
     //     t++;
     // }
 
+    // motor_set_command(-MAX_COMMAND);
 }
 
 void loop() {
@@ -258,7 +240,7 @@ void loop() {
     //     print_debug();
     // }
 
-    if (counter > 2000 && firstTime) {
+    if (counter > 2000 && firstTime && false) {
         firstTime = false;
             //Taking care of the V(0) problem (static annoying stuff)
         // controlMode = OFF;
