@@ -14,6 +14,11 @@
 #define OVER_FLOW             3000
 
 /**
+ * To do :
+ * Re-test the anti-gravity arm (the speed update had a bug in it)
+ */
+
+/**
  * Schedules the hardware tasks
  */
 void hardware_tick();
@@ -511,7 +516,7 @@ int32 evaluate_trajectory_least_square(uint16 (*pidealTraj)(uint16)) {
     // digitalWrite(BOARD_TX_ENABLE, HIGH);
     // Serial1.println("");
     for (int i = 0; i < NB_POSITIONS_SAVED; i++) {
-        if (i > 100 && timeArray[i] == 0 || timeArray[i] > 9999) {
+        if ((i > 100 && timeArray[i] == 0) || timeArray[i] > 9999) {
             break;
         }
         time = timeArray[i];

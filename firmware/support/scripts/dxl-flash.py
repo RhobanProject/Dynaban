@@ -24,12 +24,14 @@ def wait_for_string(port, rcv, send=''):
     while True:
         if send != '':
             slow_write(port, send)
+
         time.sleep(0.02)
         b = ''
         while port.inWaiting():
             b += port.read(port.inWaiting())
         # print(b)
         total += b
+        # print("Total = ", total)
         if total.find(rcv)>=0:
             return
 

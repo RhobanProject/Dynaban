@@ -18,7 +18,7 @@ uint16 positionIndex = 0;
 bool positionTrackerOn = false;
 uint16 counterUpdate = 0;
 uint16 previousTime = 0;
-float addedInertia = 0.00370;
+float addedInertia = 3*0.00370;
                          /* Moment of inertia added to the motor. Total moment of inertia = I0 + addedInertia.
                          * I0 is a constant defined in trajectory_manager */
 
@@ -73,6 +73,9 @@ void motor_init(encoder * pEnc) {
     mot.current = 0;
     mot.averageCurrent = 0;
     mot.targetCurrent = 0;
+    mot.posAngleLimit = 3584;
+    mot.negAngleLimit = 512;
+
 
     timer3.setPrescaleFactor(7200); // 1 for current debug, 7200 => 10 tick per ms
     timer3.setOverflow(65535);
@@ -174,7 +177,7 @@ void motor_update_sign_of_speed() {
         return;
     }
     int8 tempSign = sign(mot.speed);
-    if (sign == 0) {
+    if (tempSign == 0) {
             // Sign will remain what it was before
         return;
     } else {
@@ -254,11 +257,47 @@ void motor_set_target_angle(long pAngle) {
     control_init();
     if (pAngle > MAX_ANGLE) {
         mot.targetAngle = MAX_ANGLE;
-    } else if (pAngle < (-MAX_ANGLE)) {
-        mot.targetAngle = -MAX_ANGLE;
+    } else if (pAngle < 0) {
+        mot.targetAngle = 0;
     } else {
         mot.targetAngle = pAngle;
     }
+
+    mot.targetAngle = motor_check_limit_angles(pAngle);
+}
+
+long motor_check_limit_angles(long pAngle) {
+    if (motor_is_valid_angle(pAngle)) {
+        return pAngle;
+    }
+
+        // pAngle is not a valid angle, the function will return the closest valid angle
+    long posDiff = control_angle_diff(pAngle, mot.posAngleLimit);
+    long negDiff = control_angle_diff(pAngle, mot.negAngleLimit);
+
+    if (abs(posDiff) < abs(negDiff)) {
+        return mot.posAngleLimit;
+    } else {
+        return mot.negAngleLimit;
+    }
+}
+
+bool motor_is_valid_angle(long pAngle) {
+    if (mot.posAngleLimit >= mot.negAngleLimit) {
+            // The motor shall never go higher than posLimit nor lower than negLimit
+        if ((pAngle <= mot.posAngleLimit) && (pAngle >= mot.negAngleLimit)) {
+                // All fine
+            return true;
+        }
+    } else {
+            // The motor shall never go outside [0, posLimit] U [negLimit, MAX_ANGLE]
+        if ((pAngle <= mot.posAngleLimit) || (pAngle >= mot.negAngleLimit)) {
+                // All fine
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void motor_set_target_current(int pCurrent) {

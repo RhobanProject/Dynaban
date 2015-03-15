@@ -2,6 +2,12 @@
 
 static control controlStruct;
 
+
+// Returns the spin direction the motor needs to follow in order to respect its limit angles
+int8 choose_direction(motor * pMot);
+
+bool is_path_viable(motor * pMot, int8 pDirection);
+
 control * get_control_struct() {
     return &controlStruct;
 }
@@ -22,12 +28,13 @@ void control_init() {
     controlStruct.torquePCoef = INITIAL_TORQUE_P_COEF;
 }
 
-void control_tick_PID_on_position(motor * pMot) {
-    controlStruct.deltaAngle = pMot->targetAngle - pMot->angle;
 
-    if (abs(controlStruct.deltaAngle) > (MAX_ANGLE/2)) {
-        // There is a shorter way, engine bro
-        controlStruct.deltaAngle = pMot->angle - pMot->targetAngle;
+void control_tick_PID_on_position(motor * pMot) {
+    controlStruct.deltaAngle = control_angle_diff(pMot->targetAngle, pMot->angle);
+    int8 direction = choose_direction(pMot);
+    if ((direction != 0) && (controlStruct.deltaAngle * direction < 0)) {
+            // The shortest way is not viable, we'll have to go the other way around
+        controlStruct.deltaAngle = control_other_angle_diff(pMot->targetAngle, pMot->angle);
     }
 
     controlStruct.sumOfDeltas = controlStruct.sumOfDeltas + controlStruct.deltaAngle;
@@ -45,11 +52,13 @@ void control_tick_PID_on_position(motor * pMot) {
 
 
 void control_tick_P_on_position(motor * pMot) {
-    controlStruct.deltaAngle = pMot->targetAngle - pMot->angle;
-    if (abs(controlStruct.deltaAngle) > (MAX_ANGLE/2)) {
-        // There is a shorter way, engine bro
-        controlStruct.deltaAngle = pMot->angle - pMot->targetAngle;
+    controlStruct.deltaAngle = control_angle_diff(pMot->targetAngle, pMot->angle);
+    int8 direction = choose_direction(pMot);
+    if ((direction != 0) && (controlStruct.deltaAngle * direction < 0)) {
+            // The shortest way is not viable, we'll have to go the other way around
+        controlStruct.deltaAngle = control_other_angle_diff(pMot->targetAngle, pMot->angle);
     }
+
     motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef);
 }
 
@@ -58,11 +67,11 @@ void control_tick_predictive_command_only(motor * pMot) {
 }
 
 void control_tick_PID_and_predictive_command(motor * pMot) {
-    controlStruct.deltaAngle = pMot->targetAngle - pMot->angle;
-
-    if (abs(controlStruct.deltaAngle) > (MAX_ANGLE/2)) {
-        // There is a shorter way, engine bro
-        controlStruct.deltaAngle = pMot->angle - pMot->targetAngle;
+    controlStruct.deltaAngle = control_angle_diff(pMot->targetAngle, pMot->angle);
+    int8 direction = choose_direction(pMot);
+    if ((direction != 0) && (controlStruct.deltaAngle * direction < 0)) {
+            // The shortest way is not viable, we'll have to go the other way around
+        controlStruct.deltaAngle = control_other_angle_diff(pMot->targetAngle, pMot->angle);
     }
 
     controlStruct.sumOfDeltas = controlStruct.sumOfDeltas + controlStruct.deltaAngle;
@@ -102,6 +111,105 @@ void control_tick_P_on_torque(motor * pMot) {
 
     motor_set_command(command);
 }
+
+/**
+ * Returns the signed difference between 2 angles
+ */
+long control_angle_diff(long a, long b) {
+    long diff = a - b;
+    if (diff > MAX_ANGLE/2) {
+        return diff - MAX_ANGLE;
+    }
+    if (diff < -MAX_ANGLE/2) {
+        return diff + MAX_ANGLE;
+    }
+
+    return diff;
+}
+
+/**
+ * Returns the other angle between 2 angles (the bigger one, aka the on that is bigger than MAX_ANGLE/2)
+ */
+long control_other_angle_diff(long a, long b) {
+    long diff = a - b;
+    if (diff > 0 && diff < MAX_ANGLE/2) {
+        return diff - MAX_ANGLE;
+    }
+    if (diff < 0 && diff > -MAX_ANGLE/2) {
+        return diff + MAX_ANGLE;
+    }
+
+    return diff;
+}
+
+int8 choose_direction(motor * pMot) {
+    if (motor_is_valid_angle(pMot->angle) == false) {
+        return 0;
+    }
+
+    if (pMot->targetAngle == pMot->posAngleLimit) {
+        return 1;
+    }
+    if (pMot->targetAngle == pMot->negAngleLimit) {
+        return -1;
+    }
+
+    long diff = control_angle_diff(pMot->targetAngle, pMot->angle);
+    if (diff > 0) {
+        if (is_path_viable(pMot, 1)) {
+            return 1;
+        } else {
+            return -1;
+        }
+    } else {
+        if (is_path_viable(pMot, -1)) {
+            return -1;
+        } else {
+            return 1;
+        }
+    }
+}
+
+
+bool is_path_viable(motor * pMot, int8 pDirection) {
+    long diffToLimit = 0;
+    long diffToTarget = 0;
+
+    if (pDirection > 0) {
+            // Would we get to the limit before the goal?
+        diffToLimit = control_angle_diff(pMot->posAngleLimit, pMot->angle);
+        if (diffToLimit < 0) {
+            diffToLimit = control_other_angle_diff(pMot->posAngleLimit, pMot->angle);
+        }
+        diffToTarget = control_angle_diff(pMot->targetAngle, pMot->angle);
+        if (diffToTarget < 0) {
+            diffToTarget = control_other_angle_diff(pMot->targetAngle, pMot->angle);
+        }
+
+        if (diffToTarget < diffToLimit) {
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+            // Would we get to the limit before the goal?
+        diffToLimit = control_angle_diff(pMot->angle, pMot->negAngleLimit);
+        if (diffToLimit < 0) {
+            diffToLimit = control_other_angle_diff(pMot->angle, pMot->negAngleLimit);
+        }
+        diffToTarget = control_angle_diff(pMot->angle, pMot->targetAngle);
+        if (diffToTarget < 0) {
+            diffToTarget = control_other_angle_diff(pMot->angle, pMot->targetAngle);
+        }
+
+        if (diffToTarget < diffToLimit) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
 
 #if BOARD_HAVE_SERIALUSB
 void control_print() {

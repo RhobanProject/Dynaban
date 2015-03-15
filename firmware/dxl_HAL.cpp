@@ -76,7 +76,8 @@ void read_dxl_ram() {
     get_control_struct()->pCoef = dxl_regs.ram.servoKp;
 
     if (hardwareStruct.mot->targetAngle != dxl_regs.ram.goalPosition) {
-        hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;
+        motor_set_target_angle(dxl_regs.ram.goalPosition);
+        // hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;
         controlMode = POSITION_CONTROL;
     }
 
