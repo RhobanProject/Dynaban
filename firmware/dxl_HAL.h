@@ -28,6 +28,7 @@ extern unsigned char  controlMode;
 extern hardware       hardwareStruct;
 
 void init_dxl_ram();
+void init_dxl_eeprom();
 
 /**
  * Updates the dynamixel ram with the new state of the motor (such as current position)
@@ -38,6 +39,8 @@ void update_dxl_ram();
  * Reads the dynamixel ram and applies modifications (such as goad position)
  */
 void read_dxl_ram();
+
+void read_dxl_eeprom();
 
 /**
  * From a signed convention to the dynamiel's unsigned convention

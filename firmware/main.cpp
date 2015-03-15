@@ -183,6 +183,7 @@ void setup() {
 
     //Dxl struct init
     init_dxl_ram();
+    init_dxl_eeprom();
 
         //traj
     predictive_control_init();
@@ -224,6 +225,7 @@ void loop() {
     if (DXL_COM_ON) {
         if (dxl_tick()) {
             read_dxl_ram();
+            read_dxl_eeprom();
         }
     }
 

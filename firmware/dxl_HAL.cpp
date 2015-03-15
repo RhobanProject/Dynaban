@@ -121,6 +121,14 @@ void read_dxl_ram() {
     }
 }
 
+void init_dxl_eeprom() {
+    read_dxl_eeprom();
+}
+
+void read_dxl_eeprom() {
+    hardwareStruct.mot->posAngleLimit = dxl_regs.eeprom.cwLimit;
+    hardwareStruct.mot->negAngleLimit = dxl_regs.eeprom.ccwLimit;
+}
 
 /* Dxl uses a convention with two zeros. Per example, if the second zero is 1024 then the values from 0 to 1023 are unchanged but 1025 means -1.
  */

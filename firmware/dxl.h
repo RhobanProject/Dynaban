@@ -31,11 +31,11 @@ typedef unsigned char ui8;
  * A dynamixel packet
  */
 struct dxl_packet {
-    ui8 id; 
+    ui8 id;
     union {
         ui8 instruction;
         ui8 error;
-    };  
+    };
     ui8 parameter_nb;
     ui8 parameters[DXL_MAX_PARAMS];
     bool process;
@@ -62,7 +62,7 @@ void dxl_packet_init(volatile struct dxl_packet *packet);
 void dxl_packet_push_byte(volatile struct dxl_packet *packet, ui8 b);
 int dxl_write_packet(volatile struct dxl_packet *packet, ui8 *buffer);
 ui8 dxl_compute_checksum(volatile struct dxl_packet *packet);
-    
+
 struct dxl_eeprom {
     unsigned short modelNumber;             // 0x00
     unsigned char firmwareVersion;          // 0x02
@@ -84,7 +84,7 @@ struct dxl_eeprom {
     unsigned char resolutionDivider;        // 0x16
     volatile unsigned char _padding2;       // 0x17
 } __attribute__((packed)); // Size: 24
-    
+
 struct dxl_ram {
     unsigned char torqueEnable;             // 0x18
     unsigned char led;                      // 0x19
