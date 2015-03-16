@@ -26,7 +26,7 @@ float addedInertia = 3*0.00370;
 //Debug timer
 HardwareTimer timer3(3);
 
-motor * motor_getMotor() {
+motor * motor_get_motor() {
     return &mot;
 }
 
@@ -73,8 +73,8 @@ void motor_init(encoder * pEnc) {
     mot.current = 0;
     mot.averageCurrent = 0;
     mot.targetCurrent = 0;
-    mot.posAngleLimit = 3584;
-    mot.negAngleLimit = 512;
+    mot.posAngleLimit = 2047;//3584;
+    mot.negAngleLimit = 2049;//512;
 
 
     timer3.setPrescaleFactor(7200); // 1 for current debug, 7200 => 10 tick per ms
@@ -254,7 +254,7 @@ void motor_secure_pwm_write(uint8 pPin, uint16 pCommand){
 
 void motor_set_target_angle(long pAngle) {
     //Reseting the control to avoid inertia with the integral part
-    control_init();
+    control_reset();
     if (pAngle > MAX_ANGLE) {
         mot.targetAngle = MAX_ANGLE;
     } else if (pAngle < 0) {
@@ -302,7 +302,7 @@ bool motor_is_valid_angle(long pAngle) {
 
 void motor_set_target_current(int pCurrent) {
     //Reseting the control to avoid inertia with the integral part
-    control_init();
+    control_reset();
     mot.targetCurrent = pCurrent;
 }
 
@@ -334,14 +334,14 @@ void motor_restart() {
     digitalWrite(SHUT_DOWN_PIN, HIGH);
 }
 
-void motor_temperatureIsCritic() {
+void motor_temperature_is_critic() {
     temperatureIsCritic = true;
     motor_compliant();
     digitalWrite(BOARD_LED_PIN, HIGH);
 }
 
 #if BOARD_HAVE_SERIALUSB
-void motor_printMotor() {
+void motor_print_motor() {
     SerialUSB.println();
     SerialUSB.println("*** Motor :");
     SerialUSB.print("command : ");

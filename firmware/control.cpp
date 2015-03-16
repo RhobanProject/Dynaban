@@ -29,6 +29,16 @@ void control_init() {
 }
 
 
+void control_reset() {
+    controlStruct.deltaAngle = 0;
+    controlStruct.deltaSpeed = 0;
+    controlStruct.deltaAcceleration = 0;
+    controlStruct.deltaAverageCurrent = 0;
+
+    controlStruct.sumOfDeltas = 0;
+}
+
+
 void control_tick_PID_on_position(motor * pMot) {
     controlStruct.deltaAngle = control_angle_diff(pMot->targetAngle, pMot->angle);
     int8 direction = choose_direction(pMot);
@@ -147,6 +157,11 @@ int8 choose_direction(motor * pMot) {
         return 0;
     }
 
+    if (pMot->posAngleLimit == pMot->negAngleLimit) {
+            // Wheel mode
+        return 0;
+    }
+
     if (pMot->targetAngle == pMot->posAngleLimit) {
         return 1;
     }
@@ -186,7 +201,7 @@ bool is_path_viable(motor * pMot, int8 pDirection) {
             diffToTarget = control_other_angle_diff(pMot->targetAngle, pMot->angle);
         }
 
-        if (diffToTarget < diffToLimit) {
+        if (diffToTarget <= diffToLimit) {
             return true;
         } else {
             return false;
@@ -202,7 +217,7 @@ bool is_path_viable(motor * pMot, int8 pDirection) {
             diffToTarget = control_other_angle_diff(pMot->angle, pMot->targetAngle);
         }
 
-        if (diffToTarget < diffToLimit) {
+        if (diffToTarget <= diffToLimit) {
             return true;
         } else {
             return false;

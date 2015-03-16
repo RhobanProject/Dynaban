@@ -110,6 +110,8 @@ struct dxl_ram {
     unsigned char torqueMode;               // 0x46
     unsigned short goalTorque;              // 0x47
     unsigned char goalAcceleration;         // 0x49
+    unsigned char testChar; // 0x50
+
 } __attribute__((packed));
 
 struct dxl_registers

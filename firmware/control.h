@@ -33,6 +33,9 @@ control * get_control_struct();
 
 void control_init();
 
+// Resets control specific temporary variables
+void control_reset();
+
 // PID position control
 void control_tick_PID_on_position(motor * pMot);
 

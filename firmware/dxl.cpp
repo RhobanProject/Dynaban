@@ -63,8 +63,8 @@ void dxl_init_regs()
         dxl_regs.eeprom.id = 1;
         dxl_regs.eeprom.baudrate = 34;
         dxl_regs.eeprom.returnDelay = 50;//249;
-        dxl_regs.eeprom.cwLimit = 4095;
-        dxl_regs.eeprom.ccwLimit = 0;
+        dxl_regs.eeprom.cwLimit = 2047;
+        dxl_regs.eeprom.ccwLimit = 2049;
         dxl_regs.eeprom.temperatureLimit = 80;
         dxl_regs.eeprom.lowestVoltage = 60;
         dxl_regs.eeprom.highestVoltage = 160;

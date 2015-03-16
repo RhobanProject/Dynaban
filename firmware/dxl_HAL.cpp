@@ -119,6 +119,23 @@ void read_dxl_ram() {
             motor_compliant();
         }
     }
+
+    if(hardwareStruct.mot->testChar != dxl_regs.ram.testChar) {
+        hardwareStruct.mot->testChar = dxl_regs.ram.testChar;
+        motor_set_target_angle(((long)hardwareStruct.mot->testChar));
+        // delay(100);
+        // digitalWrite(BOARD_TX_ENABLE, HIGH);
+        // Serial1.print("testChar = ");
+        // Serial1.println(hardwareStruct.mot->testChar);
+        // Serial1.waitDataToBeSent();
+        // digitalWrite(BOARD_TX_ENABLE, LOW);
+        // delay(100);
+    }
+    digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.println("TestChar = ");
+    Serial1.println(dxl_regs.ram.testChar);
+    Serial1.waitDataToBeSent();
+    digitalWrite(BOARD_TX_ENABLE, LOW);
 }
 
 void init_dxl_eeprom() {

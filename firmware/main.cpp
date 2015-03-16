@@ -151,7 +151,7 @@ void setup() {
     dxl_init();
 
     hardwareStruct.enc = encoder_get_encoder(0);
-    hardwareStruct.mot = motor_getMotor();
+    hardwareStruct.mot = motor_get_motor();
 
     // This function will block the rest of the program and print detailed current debug
     //printDetailedCurrentDebug();
@@ -396,7 +396,7 @@ void hardware_tick() {
             //Updating the temperature
         hardwareStruct.temperature = read_temperature();
         if (hardwareStruct.temperature > MAX_TEMPERATURE) {
-            motor_temperatureIsCritic();
+            motor_temperature_is_critic();
         }
     }
 }
@@ -432,7 +432,7 @@ void print_debug() {
     Serial1.println();
     Serial1.print("Mode = ");
     Serial1.println(controlMode);
-    motor_printMotor();
+    motor_print_motor();
     control_print();
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);

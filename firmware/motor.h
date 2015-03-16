@@ -81,6 +81,7 @@ struct motor {
     long targetCurrent;
     long posAngleLimit;
     long negAngleLimit;
+    unsigned char testChar;
 };
 
 void motor_init(encoder * pEnc);
@@ -120,13 +121,13 @@ void motor_compliant();
 
 void motor_restart();
 
-motor * motor_getMotor();
+motor * motor_get_motor();
 
-void motor_printMotor();
+void motor_print_motor();
 
 /**
  * Puts the motor in compliant mode. You'll need to shut the motor down to get out of this mode.
  */
-void motor_temperatureIsCritic();
+void motor_temperature_is_critic();
 
 #endif /* _MOTOR_H_ */
