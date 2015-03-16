@@ -1,6 +1,6 @@
 #include "dxl.h"
 #include "dxl_HAL.h"
-
+#include <string.h>
 
 unsigned int dxl_data_available() {
     return Serial1.available();
@@ -120,20 +120,62 @@ void read_dxl_ram() {
         }
     }
 
-    if(hardwareStruct.mot->testChar != dxl_regs.ram.testChar) {
-        hardwareStruct.mot->testChar = dxl_regs.ram.testChar;
-        motor_set_target_angle(((long)hardwareStruct.mot->testChar));
-        // delay(100);
-        // digitalWrite(BOARD_TX_ENABLE, HIGH);
-        // Serial1.print("testChar = ");
-        // Serial1.println(hardwareStruct.mot->testChar);
-        // Serial1.waitDataToBeSent();
-        // digitalWrite(BOARD_TX_ENABLE, LOW);
-        // delay(100);
-    }
+    // if(hardwareStruct.mot->testChar != dxl_regs.ram.testChar) {
+    //     hardwareStruct.mot->testChar = dxl_regs.ram.testChar;
+    //     // motor_set_target_angle(((long)hardwareStruct.mot->testChar));
+    //     // delay(100);
+    //     // digitalWrite(BOARD_TX_ENABLE, HIGH);
+    //     // Serial1.print("testChar = ");
+    //     // Serial1.println(hardwareStruct.mot->testChar);
+    //     // Serial1.waitDataToBeSent();
+    //     // digitalWrite(BOARD_TX_ENABLE, LOW);
+    //     // delay(100);
+    // }
+
+
+    // float f = 0.6f;
+    // memcpy(data, &f, sizeof f);    // send data
+
+
     digitalWrite(BOARD_TX_ENABLE, HIGH);
-    Serial1.println("TestChar = ");
-    Serial1.println(dxl_regs.ram.testChar);
+    Serial1.print("accel = ");
+    Serial1.println(dxl_regs.ram.goalAcceleration);
+    for (int i = 0; i < 30; i ++) {
+        Serial1.print("TestChar[");
+        Serial1.print(i);
+        Serial1.print("] = ");
+        Serial1.println((*(dxl_regs.ram.testChar + i)));
+    }
+    for (int i = 0; i < 4; i ++) {
+        Serial1.print("TestFloat[");
+        Serial1.print(i);
+        Serial1.print("] = ");
+        Serial1.println(dxl_regs.ram.testFloat[i]);
+    }
+    Serial1.print("Size of float = ");
+    Serial1.println(sizeof(float));
+
+    float g = 2.1;
+    float f = 1.2345;
+
+    // unsigned char *pc;
+    // pc = (unsigned char*)&g;
+    // pc[0] = dxl_regs.ram.testFloat[0];
+    // pc[1] = dxl_regs.ram.testFloat[1];
+    // pc[2] = dxl_regs.ram.testFloat[2];
+    // pc[3] = dxl_regs.ram.testFloat[3];
+
+    memcpy(&g, (const void *)(dxl_regs.ram.testFloat), sizeof(float));    // receive data
+    Serial1.print("g = ");
+    Serial1.println(g);
+    Serial1.print("f = ");
+    Serial1.println(f);
+    // Serial1.print("TestChar2 = ");
+    // Serial1.println(dxl_regs.ram.testChar2);
+    // Serial1.print("TestChar3 = ");
+    // Serial1.println(dxl_regs.ram.testChar3);
+    // Serial1.print("TestChar4 = ");
+    // Serial1.println(dxl_regs.ram.testChar4);
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
 }
