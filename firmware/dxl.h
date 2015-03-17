@@ -108,14 +108,15 @@ struct dxl_ram {
     unsigned char _padding4[18];            // 0x32
     unsigned short current;                 // 0x44
     unsigned char torqueMode;               // 0x46
-    unsigned short goalTorque;              // 0x47
+    unsigned short goalTorque;              // 0x47 ---> Some padding here would not hurt !
     unsigned char goalAcceleration;         // 0x49
-    unsigned char testChar[4]; // 0x4A, 0x4B, 0x4C, 0x4D
-    unsigned char testFloat[4]; //0x4E, 0x4F, 0x50, 0x51
-    unsigned char temp[100];
-        /* unsigned char testChar2; // 0x51 */
-    /* unsigned char testChar3; // 0x52 */
-    /* unsigned char testChar4; // 0x53 */
+    unsigned char poly1Size;                // 0x4A
+    float         poly1[5];                 //[4B,4C,4D,4E],
+                                            //[4F,50,51,52],
+                                            //[53,54,55,56],
+                                            //[57,58,59,5A],
+                                            //[5B,5C,5D,5E]
+
 } __attribute__((packed));
 
 struct dxl_registers
