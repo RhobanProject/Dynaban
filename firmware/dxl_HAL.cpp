@@ -120,6 +120,9 @@ void read_dxl_ram() {
         }
     }
 
+    if (dxl_regs.ram.nextPoly != 0) {
+        controlMode = PREDICTIVE_COMMAND_ONLY;
+    }
         // TO DO : Handle the traj1->traj2 transition. Let the user chose between PID+PC or just PC
 
 
@@ -140,9 +143,11 @@ void read_dxl_ram() {
         Serial1.print("] = ");
         Serial1.println(dxl_regs.ram.torquePoly1[i]);
     }
+    Serial1.print("duration1 = ");
+    Serial1.println(dxl_regs.ram.duration1);
 
     Serial1.print("trajPoly2Size = ");
-    Serial1.println(dxl_regs.ram.trajPoly1Size);
+    Serial1.println(dxl_regs.ram.trajPoly2Size);
     for (int i = 0; i < 5; i ++) {
         Serial1.print("trajPoly2[");
         Serial1.print(i);
@@ -158,7 +163,11 @@ void read_dxl_ram() {
         Serial1.println(dxl_regs.ram.torquePoly2[i]);
         // Serial1.println((*( (&dxl_regs.ram.torquePoly2) + i)));
     }
+    Serial1.print("duration2 = ");
+    Serial1.println(dxl_regs.ram.duration2);
 
+    Serial1.print("next poly = ");
+    Serial1.println(dxl_regs.ram.nextPoly);
 
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);

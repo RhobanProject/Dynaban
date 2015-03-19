@@ -151,7 +151,7 @@ long control_other_angle_diff(long a, long b) {
 
     return diff;
 }
-
+// TO DO : there is a bug when setting the angle to 180°. Also when the dead zone is too short, inertia makes it impossible for the motor to stop before goign through it, the behaviour that comes after is strange -> to be investigated
 int8 choose_direction(motor * pMot) {
     if (motor_is_valid_angle(pMot->angle) == false) {
         return 0;

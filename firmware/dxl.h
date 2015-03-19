@@ -124,20 +124,22 @@ struct dxl_ram {
                                             //[69,6A,6B,6C],
                                             //[6D,6E,6F,70],
                                             //[71,72,73,74]
-    uint16        duration1;                // 0x75
-    float         trajPoly2[5];             //[76,77,78,79],
-                                            //[7A,7B,7C,7E],
-                                            //[7F,80,81,82],
-                                            //[83,84,85,86],
-                                            //[87,88,89,8A]
-    unsigned char torquePoly2Size;          // 0x8B
-    float         torquePoly2[5];           //[8C,8D,8E,8F],
-                                            //[90,91,92,93],
-                                            //[94,95,96,97],
-                                            //[98,99,9A,9B],
-                                            //[9C,9D,9E,9F]
-    uint16        duration2;                // 0xA0
-    unsigned char nextPoly;                 // 0xA1
+    uint16        duration1;                // 0x76
+
+    unsigned char trajPoly2Size;            // 0x77
+    float         trajPoly2[5];             //[78
+                                            //[7C
+                                            //[81
+                                            //[85
+                                            //[89
+    unsigned char torquePoly2Size;          // 0x8D
+    float         torquePoly2[5];           //[8E
+                                            //[92
+                                            //[96
+                                            //[9A
+                                            //[9E
+    uint16        duration2;                // 0xA2
+    unsigned char nextPoly;                 // 0xA4
 
 } __attribute__((packed));
 
