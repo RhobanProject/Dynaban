@@ -120,54 +120,46 @@ void read_dxl_ram() {
         }
     }
 
-    // if(hardwareStruct.mot->testChar != dxl_regs.ram.testChar) {
-    //     hardwareStruct.mot->testChar = dxl_regs.ram.testChar;
-    //     // motor_set_target_angle(((long)hardwareStruct.mot->testChar));
-    //     // delay(100);
-    //     // digitalWrite(BOARD_TX_ENABLE, HIGH);
-    //     // Serial1.print("testChar = ");
-    //     // Serial1.println(hardwareStruct.mot->testChar);
-    //     // Serial1.waitDataToBeSent();
-    //     // digitalWrite(BOARD_TX_ENABLE, LOW);
-    //     // delay(100);
-    // }
-
-
-    // float f = 0.6f;
-    // memcpy(data, &f, sizeof f);    // send data
+        // TO DO : Handle the traj1->traj2 transition. Let the user chose between PID+PC or just PC
 
 
     digitalWrite(BOARD_TX_ENABLE, HIGH);
-    Serial1.print("accel = ");
-    Serial1.println(dxl_regs.ram.goalAcceleration);
-    for (int i = 0; i < 17; i ++) {
-        Serial1.print("poly1Size[");
+    Serial1.print("trajPoly1Size = ");
+    Serial1.println(dxl_regs.ram.trajPoly1Size);
+    for (int i = 0; i < 5; i ++) {
+        Serial1.print("trajPoly1[");
         Serial1.print(i);
         Serial1.print("] = ");
-        Serial1.println((*( (&dxl_regs.ram.poly1Size) + i)));
+        Serial1.println(dxl_regs.ram.trajPoly1[i]);
     }
+    Serial1.print("torquePoly1Size = ");
+    Serial1.println(dxl_regs.ram.torquePoly1Size);
     for (int i = 0; i < 5; i ++) {
-        Serial1.print("a");
+        Serial1.print("torquePoly1[");
         Serial1.print(i);
-        Serial1.print(" = ");
-        Serial1.println(dxl_regs.ram.poly1[i]);
+        Serial1.print("] = ");
+        Serial1.println(dxl_regs.ram.torquePoly1[i]);
     }
 
-    float g = 2.1;
-    float f = 1.2345;
+    Serial1.print("trajPoly2Size = ");
+    Serial1.println(dxl_regs.ram.trajPoly1Size);
+    for (int i = 0; i < 5; i ++) {
+        Serial1.print("trajPoly2[");
+        Serial1.print(i);
+        Serial1.print("] = ");
+        Serial1.println(dxl_regs.ram.trajPoly2[i]);
+    }
+    Serial1.print("torquePoly2Size = ");
+    Serial1.println(dxl_regs.ram.torquePoly2Size);
+    for (int i = 0; i < 5; i ++) {
+        Serial1.print("torquePoly2[");
+        Serial1.print(i);
+        Serial1.print("] = ");
+        Serial1.println(dxl_regs.ram.torquePoly2[i]);
+        // Serial1.println((*( (&dxl_regs.ram.torquePoly2) + i)));
+    }
 
-    // unsigned char *pc;
-    // pc = (unsigned char*)&g;
-    // pc[0] = dxl_regs.ram.testFloat[0];
-    // pc[1] = dxl_regs.ram.testFloat[1];
-    // pc[2] = dxl_regs.ram.testFloat[2];
-    // pc[3] = dxl_regs.ram.testFloat[3];
 
-    memcpy(&g, (const void *)(dxl_regs.ram.poly1), sizeof(float));    // receive data
-    Serial1.print("g = ");
-    Serial1.println(g);
-    Serial1.print("f = ");
-    Serial1.println(f);
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
 }

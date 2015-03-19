@@ -71,6 +71,77 @@ uint16 traj_min_jerk_on_speed(uint16 pTime) {
     return time_2*a3*3 + time_3*a4*4 + time_4*a5*5;
 }
 
+uint16 traj_eval_poly(volatile float * pPoly, unsigned char pPolySize, uint16 pDuration, uint16 pTime) {
+    if (pTime >= pDuration) {
+        pTime = pDuration;
+    }
+
+    float timePowers[4];
+    if (pPolySize >= 5) {
+        timePowers[0] = pTime/10000.0; // t
+        timePowers[1] = timePowers[0]*timePowers[0]; // t**2
+        timePowers[2] = timePowers[1]*timePowers[0]; // t**3
+        timePowers[3] = timePowers[2]*timePowers[0]; // t**4
+    } else if (pPolySize == 4) {
+        timePowers[0] = pTime/10000.0; // t
+        timePowers[1] = timePowers[0]*timePowers[0]; // t**2
+        timePowers[2] = timePowers[1]*timePowers[0]; // t**3
+        timePowers[3] = 0.0;
+    } else if (pPolySize == 3) {
+        timePowers[0] = pTime/10000.0; // t
+        timePowers[1] = timePowers[0]*timePowers[0]; // t**2
+        timePowers[2] = 0.0;
+        timePowers[3] = 0.0;
+    } else if (pPolySize == 2) {
+        timePowers[0] = pTime/10000.0; // t
+        timePowers[1] = 0.0;
+        timePowers[2] = 0.0;
+        timePowers[3] = 0.0;
+    } else {
+        timePowers[0] = 0.0;
+        timePowers[1] = 0.0;
+        timePowers[2] = 0.0;
+        timePowers[3] = 0.0;
+    }
+
+
+    return pPoly[0]
+        + timePowers[0]*pPoly[1]
+        + timePowers[1]*pPoly[2]
+        + timePowers[2]*pPoly[3]
+        + timePowers[3]*pPoly[4];
+}
+
+uint16 traj_eval_poly_derivate(volatile float * pPoly, unsigned char pPolySize, uint16 pDuration, uint16 pTime) {
+    if (pTime >= pDuration) {
+        pTime = pDuration;
+    }
+
+    float timePowers[3];
+    if (pPolySize >= 5) {
+        timePowers[0] = pTime/10000.0; // t
+        timePowers[1] = timePowers[0]*timePowers[0]; // t**2
+        timePowers[2] = timePowers[1]*timePowers[0]; // t**3
+    } else if (pPolySize == 4) {
+        timePowers[0] = pTime/10000.0; // t
+        timePowers[1] = timePowers[0]*timePowers[0]; // t**2
+        timePowers[2] = 0.0;
+    } else if (pPolySize == 3) {
+        timePowers[0] = pTime/10000.0; // t
+        timePowers[1] = 0.0;
+        timePowers[2] = 0.0;
+    } else {
+        timePowers[0] = 0.0;
+        timePowers[1] = 0.0;
+        timePowers[2] = 0.0;
+    }
+
+    return pPoly[1]
+        + timePowers[0]*2*pPoly[2]
+        + timePowers[1]*3*pPoly[3]
+        + timePowers[2]*4*pPoly[4];
+}
+
 void predictive_control_init() {
     pControl.estimatedSpeed = 1;
     pControl.previousCommand = 0;

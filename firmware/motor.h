@@ -4,7 +4,7 @@
 #include <wirish/wirish.h>
 #include "magnetic_encoder.h"
 #include "circular_buffer.h"
-
+#include "dxl.h"
 
 #define SHUT_DOWN_PIN PA12
 #define HAS_CURRENT_SENSING true
@@ -46,6 +46,7 @@ extern int16 positionArray[NB_POSITIONS_SAVED];
 extern int16 timeArray[NB_POSITIONS_SAVED];
 extern uint16 positionIndex;
 extern bool positionTrackerOn;
+extern bool predictiveCommandOn;
 extern float addedInertia;
 
 //Debug timer
@@ -85,6 +86,8 @@ struct motor {
 };
 
 void motor_init(encoder * pEnc);
+
+void motor_restart_traj_timer();
 
 void motor_update(encoder * pEnc);
 

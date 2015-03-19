@@ -2,6 +2,8 @@
 #include "control.h"
 #include "trajectory_manager.h"
 
+#define TRAJ_CALC_FREQ 2
+
 static motor mot;
 static int nbUpdates = 0;
 static buffer previousAngleBuffer;
@@ -16,6 +18,7 @@ int16 positionArray[NB_POSITIONS_SAVED];
 int16 timeArray[NB_POSITIONS_SAVED];
 uint16 positionIndex = 0;
 bool positionTrackerOn = false;
+bool predictiveCommandOn = false;
 uint16 counterUpdate = 0;
 uint16 previousTime = 0;
 float addedInertia = 3*0.00370;
@@ -81,6 +84,12 @@ void motor_init(encoder * pEnc) {
     timer3.setOverflow(65535);
 }
 
+void motor_restart_traj_timer() {
+    timer3.pause();
+    timer3.refresh();
+    timer3.resume();
+}
+
 void motor_update(encoder * pEnc) {
     uint16 time;
     int16 dt = 10; /*
@@ -94,27 +103,33 @@ void motor_update(encoder * pEnc) {
     long oldPosition = buffer_get(&(mot.angleBuffer));
 
     motor_update_sign_of_speed();
-    if (positionTrackerOn) {
-        if (counterUpdate%1 == 0) {
+    if (predictiveCommandOn) {
+        if (counterUpdate%TRAJ_CALC_FREQ == 0) {
             time = timer3.getCount();
 
-            float angleRad = (mot.angle * (float)PI) / 2048.0;
-            float weightCompensation = 0;//cos(angleRad) * 60;//71;//85;//211.0;//235.0; // 211 is already above max command with the heavy arm + minJerk traj
+            // float angleRad = (mot.angle * (float)PI) / 2048.0;
+            // float weightCompensation = cos(angleRad) * 71;
             // predictive_control_tick_simple(&mot, traj_min_jerk_on_speed(time + dt));
             // predictive_control_tick(&mot, traj_min_jerk_on_speed(time + dt), dt, weightCompensation, addedInertia);
-            predictive_control_tick(&mot, 0, dt, weightCompensation, addedInertia);
-            mot.targetAngle = traj_min_jerk(time);
+            predictive_control_tick(&mot,
+                                    traj_eval_poly_derivate(dxl_regs.ram.trajPoly1, dxl_regs.ram.trajPoly1Size, dxl_regs.ram.duration1, time),
+                                    dt*TRAJ_CALC_FREQ,
+                                    traj_eval_poly(dxl_regs.ram.torquePoly1, dxl_regs.ram.torquePoly1Size, dxl_regs.ram.duration1, time),
+                                    0);
+            mot.targetAngle = traj_eval_poly(dxl_regs.ram.trajPoly1, dxl_regs.ram.trajPoly1Size, dxl_regs.ram.duration1, time);
 
-            positionArray[positionIndex] = mot.angle;//(int16)weightCompensation;//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount());
-            timeArray[positionIndex] = time;
+            if (positionTrackerOn) {
+                positionArray[positionIndex] = mot.angle;//(int16)weightCompensation;//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount());
+                timeArray[positionIndex] = time;
 
-            if (positionIndex == NB_POSITIONS_SAVED || time > 10000) {
-                positionIndex = 0;
-                    // /!\ PUT THIS BACK YOU FOOL :
-                // positionTrackerOn = false;
-            } else {
-                positionIndex++;
+                if (positionIndex == NB_POSITIONS_SAVED || time > 10000) {
+                    positionIndex = 0;
+                    positionTrackerOn = false;
+                } else {
+                    positionIndex++;
+                }
             }
+
         }
         if (counterUpdate%40 == 0) {
                 //mot.targetAngle = traj_constant_speed(2048, 10000, timer3.getCount());

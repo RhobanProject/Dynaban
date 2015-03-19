@@ -1,3 +1,5 @@
+#include <wirish/wirish.h>
+
 #ifndef DXL_H
 #define DXL_H
 
@@ -110,12 +112,32 @@ struct dxl_ram {
     unsigned char torqueMode;               // 0x46
     unsigned short goalTorque;              // 0x47 ---> Some padding here would not hurt !
     unsigned char goalAcceleration;         // 0x49
-    unsigned char poly1Size;                // 0x4A
-    float         poly1[5];                 //[4B,4C,4D,4E],
+    unsigned char trajPoly1Size;            // 0x4A
+    float         trajPoly1[5];             //[4B,4C,4D,4E],
                                             //[4F,50,51,52],
                                             //[53,54,55,56],
                                             //[57,58,59,5A],
                                             //[5B,5C,5D,5E]
+    unsigned char torquePoly1Size;          // 0x5F
+    float         torquePoly1[5];           //[60,61,62,64],
+                                            //[65,66,67,68],
+                                            //[69,6A,6B,6C],
+                                            //[6D,6E,6F,70],
+                                            //[71,72,73,74]
+    uint16        duration1;                // 0x75
+    float         trajPoly2[5];             //[76,77,78,79],
+                                            //[7A,7B,7C,7E],
+                                            //[7F,80,81,82],
+                                            //[83,84,85,86],
+                                            //[87,88,89,8A]
+    unsigned char torquePoly2Size;          // 0x8B
+    float         torquePoly2[5];           //[8C,8D,8E,8F],
+                                            //[90,91,92,93],
+                                            //[94,95,96,97],
+                                            //[98,99,9A,9B],
+                                            //[9C,9D,9E,9F]
+    uint16        duration2;                // 0xA0
+    unsigned char nextPoly;                 // 0xA1
 
 } __attribute__((packed));
 
