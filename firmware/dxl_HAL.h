@@ -22,6 +22,7 @@ enum controlModeEnum {
     POSITION_CONTROL_P          = 5,
     PREDICTIVE_COMMAND_ONLY     = 6,
     PID_AND_PREDICTIVE_COMMAND  = 7,
+    COMPLIANT_KIND_OF           = 8,
 };
 
 extern unsigned char  controlMode;
@@ -36,7 +37,12 @@ void init_dxl_eeprom();
 void update_dxl_ram();
 
 /**
- * Reads the dynamixel ram and applies modifications (such as goad position)
+ * Copies the trajPoly2 and torquePoly2 info into the trajPoly2 and torquePoly2
+ */
+void dxl_copy_buffer_trajs();
+
+/**
+ * Reads the dynamixel ram and applies modifications (such as goas position)
  */
 void read_dxl_ram();
 

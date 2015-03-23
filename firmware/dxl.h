@@ -26,6 +26,7 @@
 #define DXL_RESET       0x06
 #define DXL_SYNC_WRITE  0x83
 #define DXL_NO_ERROR    0x0
+#define DXL_POLY_SIZE   5
 
 typedef unsigned char ui8;
 
@@ -113,33 +114,34 @@ struct dxl_ram {
     unsigned short goalTorque;              // 0x47 ---> Some padding here would not hurt !
     unsigned char goalAcceleration;         // 0x49
     unsigned char trajPoly1Size;            // 0x4A
-    float         trajPoly1[5];             //[4B,4C,4D,4E],
-                                            //[4F,50,51,52],
-                                            //[53,54,55,56],
-                                            //[57,58,59,5A],
-                                            //[5B,5C,5D,5E]
+    float         trajPoly1[DXL_POLY_SIZE]; //[4B
+                                            //[4F
+                                            //[53
+                                            //[57
+                                            //[5B
     unsigned char torquePoly1Size;          // 0x5F
-    float         torquePoly1[5];           //[60,61,62,64],
-                                            //[65,66,67,68],
-                                            //[69,6A,6B,6C],
-                                            //[6D,6E,6F,70],
-                                            //[71,72,73,74]
-    uint16        duration1;                // 0x76
+    float         torquePoly1[DXL_POLY_SIZE];//[60
+                                            //[64
+                                            //[68
+                                            //[6C
+                                            //[70
+    uint16        duration1;                // 0x75
 
-    unsigned char trajPoly2Size;            // 0x77
-    float         trajPoly2[5];             //[78
-                                            //[7C
-                                            //[81
-                                            //[85
-                                            //[89
-    unsigned char torquePoly2Size;          // 0x8D
-    float         torquePoly2[5];           //[8E
-                                            //[92
-                                            //[96
-                                            //[9A
-                                            //[9E
-    uint16        duration2;                // 0xA2
-    unsigned char nextPoly;                 // 0xA4
+    unsigned char trajPoly2Size;            // 0x76
+    float         trajPoly2[DXL_POLY_SIZE]; //[77
+                                            //[7B
+                                            //[7F
+                                            //[83
+                                            //[87
+    unsigned char torquePoly2Size;          // 0x8B
+    float         torquePoly2[DXL_POLY_SIZE];//[8C
+                                            //[90
+                                            //[94
+                                            //[98
+                                            //[9C
+    uint16        duration2;                // 0xA0
+    unsigned char mode;                     // 0xA2
+    unsigned char copyNextBuffer;           // 0xA3
 
 } __attribute__((packed));
 

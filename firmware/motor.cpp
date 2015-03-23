@@ -1,6 +1,7 @@
 #include "motor.h"
 #include "control.h"
 #include "trajectory_manager.h"
+#include "dxl_HAL.h"
 
 #define TRAJ_CALC_FREQ 2
 
@@ -106,17 +107,40 @@ void motor_update(encoder * pEnc) {
     if (predictiveCommandOn) {
         if (counterUpdate%TRAJ_CALC_FREQ == 0) {
             time = timer3.getCount();
+            if (time > dxl_regs.ram.duration1 && controlMode != COMPLIANT_KIND_OF) {
+                motor_restart_traj_timer();
+                if (dxl_regs.ram.copyNextBuffer != 0) {
+                        // Copying the buffer into the actual trajs
+                    dxl_regs.ram.copyNextBuffer = 0;
+                    dxl_copy_buffer_trajs();
+                    time = 0;
+                } else {
+                    controlMode = POSITION_CONTROL;
+                    hardwareStruct.mot->targetAngle = hardwareStruct.mot->angle;
+                    dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
+                }
 
+            }
             // float angleRad = (mot.angle * (float)PI) / 2048.0;
             // float weightCompensation = cos(angleRad) * 71;
             // predictive_control_tick_simple(&mot, traj_min_jerk_on_speed(time + dt));
             // predictive_control_tick(&mot, traj_min_jerk_on_speed(time + dt), dt, weightCompensation, addedInertia);
-            predictive_control_tick(&mot,
+            if (controlMode == COMPLIANT_KIND_OF) {
+                predictive_control_compliant_kind_of(&mot, dt*TRAJ_CALC_FREQ);
+            } else {
+                predictive_control_tick(&mot,
                                     traj_eval_poly_derivate(dxl_regs.ram.trajPoly1, dxl_regs.ram.trajPoly1Size, dxl_regs.ram.duration1, time),
                                     dt*TRAJ_CALC_FREQ,
                                     traj_eval_poly(dxl_regs.ram.torquePoly1, dxl_regs.ram.torquePoly1Size, dxl_regs.ram.duration1, time),
                                     0);
-            mot.targetAngle = traj_eval_poly(dxl_regs.ram.trajPoly1, dxl_regs.ram.trajPoly1Size, dxl_regs.ram.duration1, time);
+            }
+
+
+            if (controlMode == PID_AND_PREDICTIVE_COMMAND) {
+                mot.targetAngle = traj_magic_modulo(
+                traj_eval_poly(dxl_regs.ram.trajPoly1, dxl_regs.ram.trajPoly1Size, dxl_regs.ram.duration1, time), MAX_ANGLE+1
+                                                );
+            }
 
             if (positionTrackerOn) {
                 positionArray[positionIndex] = mot.angle;//(int16)weightCompensation;//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount());
@@ -200,23 +224,9 @@ void motor_update_sign_of_speed() {
         return;
     }
 
-
-    int16 diff = mot.angle - mot.previousAngle;
-    if (diff != 0) {
-        // digitalWrite(BOARD_LED_PIN, LOW);
-        if (diff > 4000) {
-                // Went from near 4096 to near 0 or vice-versa
-            mot.signOfSpeed = -sign(diff);
-        } else if (diff > 5) {
-            mot.signOfSpeed = sign(diff);
-        }
-    } else {
-        // mot.signOfSpeed = 1;
-            // Plan B : use the measure of the current
+        // Plan B : use the measure of the current
         // digitalWrite(BOARD_LED_PIN, HIGH);
         // mot.signOfSpeed = sign(mot.averageCurrent);
-    }
-
 }
 
 void motor_set_command(long pCommand) {
@@ -298,7 +308,12 @@ long motor_check_limit_angles(long pAngle) {
 }
 
 bool motor_is_valid_angle(long pAngle) {
-    if (mot.posAngleLimit >= mot.negAngleLimit) {
+    if (mot.posAngleLimit == mot.negAngleLimit) {
+            // Free wheel mode
+        return true;
+    }
+
+    if (mot.posAngleLimit > mot.negAngleLimit) {
             // The motor shall never go higher than posLimit nor lower than negLimit
         if ((pAngle <= mot.posAngleLimit) && (pAngle >= mot.negAngleLimit)) {
                 // All fine
@@ -352,7 +367,7 @@ void motor_restart() {
 void motor_temperature_is_critic() {
     temperatureIsCritic = true;
     motor_compliant();
-    digitalWrite(BOARD_LED_PIN, HIGH);
+    // digitalWrite(BOARD_LED_PIN, HIGH);
 }
 
 #if BOARD_HAVE_SERIALUSB

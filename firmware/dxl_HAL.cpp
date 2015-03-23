@@ -2,6 +2,8 @@
 #include "dxl_HAL.h"
 #include <string.h>
 
+void dxl_print_debug();
+
 unsigned int dxl_data_available() {
     return Serial1.available();
 }
@@ -36,10 +38,10 @@ void init_dxl_ram() {
     dxl_regs.ram.goalTorque = 0;
     dxl_regs.ram.goalAcceleration = 0;
 
-    dxl_regs.ram.goalPosition = 0;
-    dxl_regs.ram.movingSpeed = 0;
-    dxl_regs.ram.goalAcceleration = 0;
-    dxl_regs.ram.goalTorque = 0;
+    dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
+    dxl_regs.ram.movingSpeed = hardwareStruct.mot->targetSpeed;
+    dxl_regs.ram.goalAcceleration = hardwareStruct.mot->targetAcceleration;
+    dxl_regs.ram.goalTorque = hardwareStruct.mot->targetCurrent;
 
     //The other registers are updated here :
     update_dxl_ram();
@@ -68,16 +70,13 @@ void update_dxl_ram() {
 }
 
 void read_dxl_ram() {
-
-    digitalWrite(BOARD_LED_PIN, (dxl_regs.ram.led!=0) ? HIGH : LOW);
-
     get_control_struct()->dCoef = dxl_regs.ram.servoKd;
     get_control_struct()->iCoef = dxl_regs.ram.servoKi;
     get_control_struct()->pCoef = dxl_regs.ram.servoKp;
 
-    if (hardwareStruct.mot->targetAngle != dxl_regs.ram.goalPosition) {
+    if ((dxl_regs.ram.mode == 0) && (hardwareStruct.mot->targetAngle != dxl_regs.ram.goalPosition)) {
         motor_set_target_angle(dxl_regs.ram.goalPosition);
-        // hardwareStruct.mot->targetAngle = dxl_regs.ram.goalPosition;
+        dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
         controlMode = POSITION_CONTROL;
     }
 
@@ -120,13 +119,77 @@ void read_dxl_ram() {
         }
     }
 
-    if (dxl_regs.ram.nextPoly != 0) {
+    if (dxl_regs.ram.mode == 0) {
+            //Stable mode
+        if (controlMode != POSITION_CONTROL) {
+                controlMode = POSITION_CONTROL;
+                hardwareStruct.mot->targetAngle = hardwareStruct.mot->angle;
+                dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
+        }
+
+    } else if (dxl_regs.ram.mode == 1) {
+        if (controlMode != PREDICTIVE_COMMAND_ONLY) {
+            motor_restart_traj_timer();
+        }
         controlMode = PREDICTIVE_COMMAND_ONLY;
+    } else if (dxl_regs.ram.mode == 2) {
+        if (controlMode != PID_AND_PREDICTIVE_COMMAND) {
+            motor_restart_traj_timer();
+        }
+        controlMode = PID_AND_PREDICTIVE_COMMAND;
+    } else if (dxl_regs.ram.mode == 3) {
+        controlMode = COMPLIANT_KIND_OF;
+    } else if (dxl_regs.ram.mode == 4) {
+            // No strings attached
     }
-        // TO DO : Handle the traj1->traj2 transition. Let the user chose between PID+PC or just PC
+
+    // dxl_print_debug();
+
+}
+
+void dxl_copy_buffer_trajs() {
+    dxl_regs.ram.trajPoly1Size = dxl_regs.ram.trajPoly2Size;
+    dxl_regs.ram.torquePoly1Size = dxl_regs.ram.torquePoly2Size;
+    dxl_regs.ram.duration1 = dxl_regs.ram.duration2;
+    for (int i = 0; i < DXL_POLY_SIZE; i++) {
+        dxl_regs.ram.trajPoly1[i] = dxl_regs.ram.trajPoly2[i];
+        dxl_regs.ram.torquePoly1[i] = dxl_regs.ram.torquePoly2[i];
+    }
+}
+
+void init_dxl_eeprom() {
+    read_dxl_eeprom();
+}
+
+void read_dxl_eeprom() {
+    hardwareStruct.mot->posAngleLimit = dxl_regs.eeprom.cwLimit;
+    hardwareStruct.mot->negAngleLimit = dxl_regs.eeprom.ccwLimit;
+}
+
+/* Dxl uses a convention with two zeros. Per example, if the second zero is 1024 then the values from 0 to 1023 are unchanged but 1025 means -1.
+ */
+unsigned short terrible_sign_convention(long pInput, long pIamZeroISwear) {
+    if (pInput >= 0) {
+        return (unsigned short) pInput;
+    } else {
+        return (unsigned short) (pIamZeroISwear - pInput);
+    }
+}
 
 
+void dxl_print_debug() {
     digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.println();
+    Serial1.print("present pos = ");
+    Serial1.println(hardwareStruct.mot->angle);
+    Serial1.print("goal pos = ");
+    Serial1.println(hardwareStruct.mot->targetAngle);
+    Serial1.print("pos limit = ");
+    Serial1.println(hardwareStruct.mot->posAngleLimit);
+    Serial1.print("neg limit = ");
+    Serial1.println(hardwareStruct.mot->negAngleLimit);
+
+
     Serial1.print("trajPoly1Size = ");
     Serial1.println(dxl_regs.ram.trajPoly1Size);
     for (int i = 0; i < 5; i ++) {
@@ -166,28 +229,12 @@ void read_dxl_ram() {
     Serial1.print("duration2 = ");
     Serial1.println(dxl_regs.ram.duration2);
 
-    Serial1.print("next poly = ");
-    Serial1.println(dxl_regs.ram.nextPoly);
+    Serial1.print("mode = ");
+    Serial1.println(dxl_regs.ram.mode);
+
+    Serial1.print("controlMode = ");
+    Serial1.println(controlMode);
 
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
-}
-
-void init_dxl_eeprom() {
-    read_dxl_eeprom();
-}
-
-void read_dxl_eeprom() {
-    hardwareStruct.mot->posAngleLimit = dxl_regs.eeprom.cwLimit;
-    hardwareStruct.mot->negAngleLimit = dxl_regs.eeprom.ccwLimit;
-}
-
-/* Dxl uses a convention with two zeros. Per example, if the second zero is 1024 then the values from 0 to 1023 are unchanged but 1025 means -1.
- */
-unsigned short terrible_sign_convention(long pInput, long pIamZeroISwear) {
-    if (pInput >= 0) {
-        return (unsigned short) pInput;
-    } else {
-        return (unsigned short) (pIamZeroISwear - pInput);
-    }
 }

@@ -6,6 +6,7 @@
 #include "circular_buffer.h"
 #include "dxl.h"
 
+
 #define SHUT_DOWN_PIN PA12
 #define HAS_CURRENT_SENSING true
 #define CURRENT_ADC_PIN 33 // PB1

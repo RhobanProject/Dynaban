@@ -6,7 +6,7 @@ static control controlStruct;
 // Returns the spin direction the motor needs to follow in order to respect its limit angles
 int8 choose_direction(motor * pMot);
 
-bool is_path_viable(motor * pMot, int8 pDirection);
+int8 viable_direction(motor * pMot, long pDiffToGoal);
 
 control * get_control_struct() {
     return &controlStruct;
@@ -45,6 +45,9 @@ void control_tick_PID_on_position(motor * pMot) {
     if ((direction != 0) && (controlStruct.deltaAngle * direction < 0)) {
             // The shortest way is not viable, we'll have to go the other way around
         controlStruct.deltaAngle = control_other_angle_diff(pMot->targetAngle, pMot->angle);
+        digitalWrite(BOARD_LED_PIN, LOW);
+    } else {
+        digitalWrite(BOARD_LED_PIN, HIGH);
     }
 
     controlStruct.sumOfDeltas = controlStruct.sumOfDeltas + controlStruct.deltaAngle;
@@ -127,10 +130,10 @@ void control_tick_P_on_torque(motor * pMot) {
  */
 long control_angle_diff(long a, long b) {
     long diff = a - b;
-    if (diff > MAX_ANGLE/2) {
+    if (diff > (MAX_ANGLE+1)/2) {
         return diff - MAX_ANGLE;
     }
-    if (diff < -MAX_ANGLE/2) {
+    if (diff < -(MAX_ANGLE+1)/2) {
         return diff + MAX_ANGLE;
     }
 
@@ -138,27 +141,28 @@ long control_angle_diff(long a, long b) {
 }
 
 /**
- * Returns the other angle between 2 angles (the bigger one, aka the on that is bigger than MAX_ANGLE/2)
+ * Returns the other angle between 2 angles (the bigger one, aka the one that is bigger than MAX_ANGLE/2)
  */
 long control_other_angle_diff(long a, long b) {
     long diff = a - b;
-    if (diff > 0 && diff < MAX_ANGLE/2) {
+    if (diff > 0 && diff < (MAX_ANGLE+1)/2) {
         return diff - MAX_ANGLE;
     }
-    if (diff < 0 && diff > -MAX_ANGLE/2) {
+    if (diff < 0 && diff > -(MAX_ANGLE+1)/2) {
         return diff + MAX_ANGLE;
     }
 
     return diff;
 }
-// TO DO : there is a bug when setting the angle to 180°. Also when the dead zone is too short, inertia makes it impossible for the motor to stop before goign through it, the behaviour that comes after is strange -> to be investigated
+// TO DO : there is a bug when the goal angle is 180° away from the present angle. The problem desapears in the free wheel mode. Also when the dead zone is too short, inertia makes it impossible for the motor to stop before going through it, the behaviour that comes after is strange -> to be investigated
 int8 choose_direction(motor * pMot) {
-    if (motor_is_valid_angle(pMot->angle) == false) {
-        return 0;
-    }
 
     if (pMot->posAngleLimit == pMot->negAngleLimit) {
             // Wheel mode
+        return 0;
+    }
+
+    if (motor_is_valid_angle(pMot->angle) == false) {
         return 0;
     }
 
@@ -170,57 +174,42 @@ int8 choose_direction(motor * pMot) {
     }
 
     long diff = control_angle_diff(pMot->targetAngle, pMot->angle);
-    if (diff > 0) {
-        if (is_path_viable(pMot, 1)) {
-            return 1;
-        } else {
-            return -1;
-        }
+    if (diff == 0) {
+        return 0;
     } else {
-        if (is_path_viable(pMot, -1)) {
-            return -1;
-        } else {
-            return 1;
-        }
+        return viable_direction(pMot, diff);
     }
 }
 
 
-bool is_path_viable(motor * pMot, int8 pDirection) {
+int8 viable_direction(motor * pMot, long pDiffToGoal) {
     long diffToLimit = 0;
-    long diffToTarget = 0;
 
-    if (pDirection > 0) {
-            // Would we get to the limit before the goal?
+    if (pDiffToGoal > 0) {
+            // We are spining positively
         diffToLimit = control_angle_diff(pMot->posAngleLimit, pMot->angle);
         if (diffToLimit < 0) {
             diffToLimit = control_other_angle_diff(pMot->posAngleLimit, pMot->angle);
         }
-        diffToTarget = control_angle_diff(pMot->targetAngle, pMot->angle);
-        if (diffToTarget < 0) {
-            diffToTarget = control_other_angle_diff(pMot->targetAngle, pMot->angle);
-        }
 
-        if (diffToTarget <= diffToLimit) {
-            return true;
+            // Would we get to the limit before the goal?
+        if (pDiffToGoal <= diffToLimit) {
+            return 1;
         } else {
-            return false;
+            return -1;
         }
     } else {
-            // Would we get to the limit before the goal?
-        diffToLimit = control_angle_diff(pMot->angle, pMot->negAngleLimit);
-        if (diffToLimit < 0) {
-            diffToLimit = control_other_angle_diff(pMot->angle, pMot->negAngleLimit);
-        }
-        diffToTarget = control_angle_diff(pMot->angle, pMot->targetAngle);
-        if (diffToTarget < 0) {
-            diffToTarget = control_other_angle_diff(pMot->angle, pMot->targetAngle);
+            // We're spinning negatively
+        diffToLimit = control_angle_diff(pMot->negAngleLimit, pMot->angle);
+        if (diffToLimit > 0) {
+            diffToLimit = control_other_angle_diff(pMot->negAngleLimit, pMot->angle);
         }
 
-        if (diffToTarget <= diffToLimit) {
-            return true;
+            // Would we get to the limit before the goal?
+        if (pDiffToGoal >= diffToLimit) {
+            return -1;
         } else {
-            return false;
+            return 1;
         }
     }
 }

@@ -2,10 +2,10 @@
 #include <libmaple/adc.h>
 #include <libmaple/timer.h>
 #include "magnetic_encoder.h"
+#include "dxl_HAL.h"
 #include "motor.h"
 #include "control.h"
 #include "dxl.h"
-#include "dxl_HAL.h"
 #include "trajectory_manager.h"
 
 #define POWER_SUPPLY_ADC_PIN  PA2
@@ -193,6 +193,8 @@ void setup() {
         toggleLED();
         delay(250);
     }
+        // HIGH means off ...
+    digitalWrite(BOARD_LED_PIN, HIGH);
     controlMode = OFF;
 
         //motor_set_command(80); //80 doesn't move, 85 moves
@@ -224,8 +226,8 @@ void setup() {
 void loop() {
     if (DXL_COM_ON) {
         if (dxl_tick()) {
-            read_dxl_ram();
             read_dxl_eeprom();
+            read_dxl_ram();
         }
     }
 
@@ -368,14 +370,19 @@ void hardware_tick() {
     // add_benchmark_time();
         //Updating control (3-4 us)
     if (controlMode == POSITION_CONTROL) {
+        predictiveCommandOn = false;
         control_tick_PID_on_position(hardwareStruct.mot);
     } else if (controlMode == SPEED_CONTROL) {
+        predictiveCommandOn = false;
         control_tick_P_on_speed(hardwareStruct.mot);
     } else if (controlMode == ACCELERATION_CONTROL) {
+        predictiveCommandOn = false;
         control_tick_P_on_acceleration(hardwareStruct.mot);
     } else if (controlMode == TORQUE_CONTROL) {
+        predictiveCommandOn = false;
         control_tick_P_on_torque(hardwareStruct.mot);
     } else if (controlMode == POSITION_CONTROL_P) {
+        predictiveCommandOn = false;
         control_tick_P_on_position(hardwareStruct.mot);
     } else if (controlMode == PREDICTIVE_COMMAND_ONLY) {
         predictiveCommandOn = true;
@@ -383,7 +390,11 @@ void hardware_tick() {
     } else if (controlMode == PID_AND_PREDICTIVE_COMMAND) {
         predictiveCommandOn = true;
         control_tick_PID_and_predictive_command(hardwareStruct.mot);
+    } else if (controlMode == COMPLIANT_KIND_OF) {
+        predictiveCommandOn = true;
+        control_tick_predictive_command_only(hardwareStruct.mot);
     } else {
+        predictiveCommandOn = false;
             // No control
     }
     // add_benchmark_time();
@@ -482,12 +493,12 @@ void print_detailed_current_debug() {
         if (detailedCounter == 50) {
             motor_secure_pwm_write(PWM_1_PIN, 0);
             motor_secure_pwm_write(PWM_2_PIN, 500);
-            digitalWrite(BOARD_LED_PIN, LOW);
+            // digitalWrite(BOARD_LED_PIN, LOW);
         } else if (detailedCounter == 100) {
             detailedCounter = 0;
             motor_secure_pwm_write(PWM_2_PIN, 0);
             motor_secure_pwm_write(PWM_1_PIN, 500);
-            digitalWrite(BOARD_LED_PIN, HIGH);
+            // digitalWrite(BOARD_LED_PIN, HIGH);
         }
     }
 }
