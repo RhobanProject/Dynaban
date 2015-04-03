@@ -21,12 +21,12 @@ struct predictiveControl {
 uint16 traj_constant_speed(uint16 pDistance, uint16 pTotalTime, uint16 pTime);
 uint16 traj_min_jerk(uint16 pTime);
 uint16 traj_min_jerk_on_speed(uint16 pTime);
-uint16 traj_eval_poly(volatile float * pPoly, unsigned char pPolySize, uint16 pDuration, uint16 pTime);
-uint16 traj_eval_poly_derivate(volatile float * pPoly, unsigned char pPolySize, uint16 pDuration, uint16 pTime);
+int16 traj_eval_poly(volatile float * pPoly, unsigned char pPolySize, uint16 pDuration, uint16 pTime);
+int16 traj_eval_poly_derivate(volatile float * pPoly, unsigned char pPolySize, uint16 pDuration, uint16 pTime);
 /*
  * a modulo b with a handling of the negative values that matches our needs
  */
-uint16 traj_magic_modulo(uint16 a, uint16 b);
+uint16 traj_magic_modulo(int16 a, int16 b);
 void predictive_control_init();
 void predictive_control_tick(motor * pMot, int16 pVGoal, uint16 pDt, float pOutputTorque, float pIAdded);
 void predictive_control_anti_gravity_tick(motor * pMot, int16 pVGoal, uint16 pDt, float pOutputTorque, float pIAdded);

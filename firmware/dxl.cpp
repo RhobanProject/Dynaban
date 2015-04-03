@@ -92,34 +92,23 @@ void dxl_init_regs()
     dxl_regs.ram.goalTorque = 0;
     dxl_regs.ram.goalAcceleration = 0;
 
-    dxl_regs.ram.trajPoly1Size = 5;
-    dxl_regs.ram.trajPoly1[0] = 0.0;
-    dxl_regs.ram.trajPoly1[1] = 0.0;
-    dxl_regs.ram.trajPoly1[2] = 0.0;
-    dxl_regs.ram.trajPoly1[3] = 0.0;
-    dxl_regs.ram.trajPoly1[4] = 0.0;
-    dxl_regs.ram.torquePoly1Size = 5;
-    dxl_regs.ram.torquePoly1[0] = 0.0;
-    dxl_regs.ram.torquePoly1[1] = 0.0;
-    dxl_regs.ram.torquePoly1[2] = 0.0;
-    dxl_regs.ram.torquePoly1[3] = 0.0;
-    dxl_regs.ram.torquePoly1[4] = 0.0;
+        // New stuff :
+    dxl_regs.ram.trajPoly1Size = DXL_POLY_SIZE;
+    dxl_regs.ram.torquePoly1Size = DXL_POLY_SIZE;
+    dxl_regs.ram.trajPoly1Size = DXL_POLY_SIZE;
+    dxl_regs.ram.torquePoly2Size = DXL_POLY_SIZE;
     dxl_regs.ram.duration1 = 0;
-
-    dxl_regs.ram.trajPoly2[0] = 0.0;
-    dxl_regs.ram.trajPoly2[1] = 0.0;
-    dxl_regs.ram.trajPoly2[2] = 0.0;
-    dxl_regs.ram.trajPoly2[3] = 0.0;
-    dxl_regs.ram.trajPoly2[4] = 0.0;
-    dxl_regs.ram.torquePoly2Size = 5;
-    dxl_regs.ram.torquePoly2[0] = 0.0;
-    dxl_regs.ram.torquePoly2[1] = 0.0;
-    dxl_regs.ram.torquePoly2[2] = 0.0;
-    dxl_regs.ram.torquePoly2[3] = 0.0;
-    dxl_regs.ram.torquePoly2[4] = 0.0;
     dxl_regs.ram.duration2 = 0;
+    for (int i = 0; i < DXL_POLY_SIZE; i++) {
+        dxl_regs.ram.trajPoly1[i] = 0.0;
+        dxl_regs.ram.torquePoly1[i] = 0.0;
+        dxl_regs.ram.trajPoly2[i] = 0.0;
+        dxl_regs.ram.torquePoly2[i] = 0.0;
+    }
 
-    dxl_regs.ram.nextPoly = 0;
+    dxl_regs.ram.mode = 0;
+    dxl_regs.ram.copyNextBuffer = 0;
+    dxl_regs.ram.positionTrackerOn = true;
 
     dxl_regs.eeprom_dirty = false;
 }

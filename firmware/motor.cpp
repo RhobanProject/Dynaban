@@ -16,13 +16,14 @@ bool currentDetailedDebugOn = false;
 bool temperatureIsCritic = false;
 
 int16 positionArray[NB_POSITIONS_SAVED];
-int16 timeArray[NB_POSITIONS_SAVED];
+uint16 timeArray[NB_POSITIONS_SAVED];
 uint16 positionIndex = 0;
-bool positionTrackerOn = false;
+// bool positionTrackerOn = false;
 bool predictiveCommandOn = false;
 uint16 counterUpdate = 0;
 uint16 previousTime = 0;
 float addedInertia = 3*0.00370;
+uint16 trackingDivider = 3;
                          /* Moment of inertia added to the motor. Total moment of inertia = I0 + addedInertia.
                          * I0 is a constant defined in trajectory_manager */
 
@@ -115,6 +116,7 @@ void motor_update(encoder * pEnc) {
                     dxl_copy_buffer_trajs();
                     time = 0;
                 } else {
+                        // Default action : forcing the motor to stay where it stands (through PID)
                     controlMode = POSITION_CONTROL;
                     hardwareStruct.mot->targetAngle = hardwareStruct.mot->angle;
                     dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
@@ -142,15 +144,18 @@ void motor_update(encoder * pEnc) {
                                                 );
             }
 
-            if (positionTrackerOn) {
-                positionArray[positionIndex] = mot.angle;//(int16)weightCompensation;//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount());
-                timeArray[positionIndex] = time;
+            if (dxl_regs.ram.positionTrackerOn == true) {
+                if (counterUpdate%trackingDivider == 0) {
+                    positionArray[positionIndex] = mot.targetAngle;//mot.angle;//mot.targetAngle;//(int16)weightCompensation;//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount());
+                    timeArray[positionIndex] = time;
 
-                if (positionIndex == NB_POSITIONS_SAVED || time > 10000) {
-                    positionIndex = 0;
-                    positionTrackerOn = false;
-                } else {
-                    positionIndex++;
+                    if (positionIndex == NB_POSITIONS_SAVED || time > dxl_regs.ram.duration1) {
+                        positionIndex = 0;
+                        dxl_regs.ram.positionTrackerOn = false;
+                        print_detailed_trajectory();
+                    } else {
+                        positionIndex++;
+                    }
                 }
             }
 
@@ -368,6 +373,23 @@ void motor_temperature_is_critic() {
     temperatureIsCritic = true;
     motor_compliant();
     // digitalWrite(BOARD_LED_PIN, HIGH);
+}
+
+void print_detailed_trajectory() {
+    digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.println("");
+    for (int i = 0; i < NB_POSITIONS_SAVED; i++) {
+        if (i > 100 && timeArray[i] == 0) {
+            break;
+        }
+        Serial1.print(timeArray[i]); // No delay when printing a position
+        // Serial1.print(timeArray[i] - NB_TICKS_BEFORE_UPDATING_SPEED*10); // Taking into account the speed update delay
+        Serial1.print(" ");
+        Serial1.println(positionArray[i]);
+    }
+
+    Serial1.waitDataToBeSent();
+    digitalWrite(BOARD_TX_ENABLE, LOW);
 }
 
 #if BOARD_HAVE_SERIALUSB

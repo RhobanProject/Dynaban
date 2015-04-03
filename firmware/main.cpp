@@ -267,7 +267,7 @@ void loop() {
         // hardwareStruct.mot->targetAngle = (hardwareStruct.mot->angle + 2048)%4096;
         // controlMode = POSITION_CONTROL;
         controlMode = PREDICTIVE_COMMAND_ONLY; // PID_AND_PREDICTIVE_COMMAND
-        positionTrackerOn = true;
+        dxl_regs.ram.positionTrackerOn = true;
             //motor_set_command(2700); // max speed
     }
 
@@ -276,7 +276,7 @@ void loop() {
     //     motor_set_command(2700); // max speed
     // }
 
-    if (firstTime == false && positionTrackerOn == false && firstTimePrint == true) {
+    if (firstTime == false && dxl_regs.ram.positionTrackerOn == false && firstTimePrint == true) {
         controlMode = OFF;
         hardwareStruct.mot->targetAngle = 0;
         motor_compliant();
@@ -345,7 +345,7 @@ void loop() {
             // Shining new start
         firstTime = true;
         firstTimePrint = true;
-        positionTrackerOn = false;
+        dxl_regs.ram.positionTrackerOn = false;
         counter = 0;
     }
 
@@ -503,22 +503,7 @@ void print_detailed_current_debug() {
     }
 }
 
-void print_detailed_trajectory() {
-    digitalWrite(BOARD_TX_ENABLE, HIGH);
-    Serial1.println("");
-    for (int i = 0; i < NB_POSITIONS_SAVED; i++) {
-        if (i > 100 && timeArray[i] == 0) {
-            break;
-        }
-        Serial1.print(timeArray[i]); // No delay when printing a position
-        // Serial1.print(timeArray[i] - NB_TICKS_BEFORE_UPDATING_SPEED*10); // Taking into account the speed update delay
-        Serial1.print(" ");
-        Serial1.println(positionArray[i]);
-    }
 
-    Serial1.waitDataToBeSent();
-    digitalWrite(BOARD_TX_ENABLE, LOW);
-}
 
 int32 evaluate_trajectory_least_square(uint16 (*pidealTraj)(uint16)) {
     uint16 time = 0;
@@ -623,7 +608,7 @@ void print_detailed_trajectory_halt() {
 
     hardwareStruct.mot->targetAngle = 0;//(hardwareStruct.mot->angle + 2048)%4096;
     controlMode = POSITION_CONTROL;
-    positionTrackerOn = true;
+    dxl_regs.ram.positionTrackerOn = true;
 
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.println("Start");
@@ -631,7 +616,7 @@ void print_detailed_trajectory_halt() {
     digitalWrite(BOARD_TX_ENABLE, LOW);
 
         //Waiting for the measures to be made
-    while(positionTrackerOn == true) {
+    while(dxl_regs.ram.positionTrackerOn == true) {
         if (readyToUpdateHardware) {
             counter++;
             readyToUpdateHardware = false;

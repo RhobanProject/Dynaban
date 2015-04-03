@@ -33,7 +33,7 @@
 #define NB_TICKS_BEFORE_UPDATING_SPEED 25
 #define NB_TICKS_BEFORE_UPDATING_ACCELERATION 8
 #define C_NB_RAW_MEASURES 60
-#define NB_POSITIONS_SAVED 1024 // 2048 over flows by 392 bytes
+#define NB_POSITIONS_SAVED 1524 // 2048 over flows by 392 bytes
 
 static const uint16 SPEED_COEF = 1000/NB_TICKS_BEFORE_UPDATING_SPEED;
 static const uint16 MAX_SPEED = 8096/SPEED_COEF + 5;
@@ -44,7 +44,7 @@ extern int currentMeasureIndex;
 extern bool currentDetailedDebugOn;
 
 extern int16 positionArray[NB_POSITIONS_SAVED];
-extern int16 timeArray[NB_POSITIONS_SAVED];
+extern uint16 timeArray[NB_POSITIONS_SAVED];
 extern uint16 positionIndex;
 extern bool positionTrackerOn;
 extern bool predictiveCommandOn;
@@ -133,5 +133,7 @@ void motor_print_motor();
  * Puts the motor in compliant mode. You'll need to shut the motor down to get out of this mode.
  */
 void motor_temperature_is_critic();
+
+void print_detailed_trajectory();
 
 #endif /* _MOTOR_H_ */

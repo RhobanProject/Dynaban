@@ -71,7 +71,7 @@ uint16 traj_min_jerk_on_speed(uint16 pTime) {
     return time_2*a3*3 + time_3*a4*4 + time_4*a5*5;
 }
 
-uint16 traj_eval_poly(volatile float * pPoly, unsigned char pPolySize, uint16 pDuration, uint16 pTime) {
+int16 traj_eval_poly(volatile float * pPoly, unsigned char pPolySize, uint16 pDuration, uint16 pTime) {
     if (pTime >= pDuration) {
         pTime = pDuration;
     }
@@ -112,7 +112,7 @@ uint16 traj_eval_poly(volatile float * pPoly, unsigned char pPolySize, uint16 pD
         + timePowers[3]*pPoly[4];
 }
 
-uint16 traj_eval_poly_derivate(volatile float * pPoly, unsigned char pPolySize, uint16 pDuration, uint16 pTime) {
+int16 traj_eval_poly_derivate(volatile float * pPoly, unsigned char pPolySize, uint16 pDuration, uint16 pTime) {
     if (pTime >= pDuration) {
             // pTime = pDuration;
         return 0; // Since this function is used for setting the speed, I'd rather set it to 0 if something went wrong
@@ -146,12 +146,12 @@ uint16 traj_eval_poly_derivate(volatile float * pPoly, unsigned char pPolySize, 
 /*
  * a modulo b with a handling of the negative values that matches our needs
  */
-uint16 traj_magic_modulo(uint16 a, uint16 b) {
+uint16 traj_magic_modulo(int16 a, int16 b) {
     if (a > 0) {
         return a%b;
     } else {
         uint16 div = a/b;
-        a = a + (div+1)*b;
+        a = a + (abs(div)+1)*b;
         return a%b;
     }
 }

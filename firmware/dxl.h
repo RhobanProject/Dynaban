@@ -142,6 +142,7 @@ struct dxl_ram {
     uint16        duration2;                // 0xA0
     unsigned char mode;                     // 0xA2
     unsigned char copyNextBuffer;           // 0xA3
+    bool          positionTrackerOn;        // 0xA4
 
 } __attribute__((packed));
 
