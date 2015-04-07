@@ -133,13 +133,18 @@ void read_dxl_ram() {
         }
         controlMode = PREDICTIVE_COMMAND_ONLY;
     } else if (dxl_regs.ram.mode == 2) {
+        if (controlMode != PID_ONLY) {
+            motor_restart_traj_timer();
+        }
+        controlMode = PID_ONLY;
+    } else if (dxl_regs.ram.mode == 3) {
         if (controlMode != PID_AND_PREDICTIVE_COMMAND) {
             motor_restart_traj_timer();
         }
         controlMode = PID_AND_PREDICTIVE_COMMAND;
-    } else if (dxl_regs.ram.mode == 3) {
-        controlMode = COMPLIANT_KIND_OF;
     } else if (dxl_regs.ram.mode == 4) {
+        controlMode = COMPLIANT_KIND_OF;
+    } else if (dxl_regs.ram.mode == 5) {
             // No strings attached
     }
 

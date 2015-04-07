@@ -387,9 +387,13 @@ void hardware_tick() {
     } else if (controlMode == PREDICTIVE_COMMAND_ONLY) {
         predictiveCommandOn = true;
         control_tick_predictive_command_only(hardwareStruct.mot);
-    } else if (controlMode == PID_AND_PREDICTIVE_COMMAND) {
+    }  else if (controlMode == PID_AND_PREDICTIVE_COMMAND) {
         predictiveCommandOn = true;
         control_tick_PID_and_predictive_command(hardwareStruct.mot);
+    } else if (controlMode == PID_ONLY) {
+            // PID only, but uses the trajectory system (where POSITION_CONTROL does not)
+        predictiveCommandOn = true;
+        control_tick_PID_on_position(hardwareStruct.mot);
     } else if (controlMode == COMPLIANT_KIND_OF) {
         predictiveCommandOn = true;
         control_tick_predictive_command_only(hardwareStruct.mot);

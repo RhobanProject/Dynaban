@@ -146,7 +146,7 @@ void motor_update(encoder * pEnc) {
 
             if (dxl_regs.ram.positionTrackerOn == true) {
                 if (counterUpdate%trackingDivider == 0) {
-                    positionArray[positionIndex] = mot.targetAngle;//mot.angle;//mot.targetAngle;//(int16)weightCompensation;//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount());
+                    positionArray[positionIndex] = mot.angle;//mot.targetAngle;//(int16)weightCompensation;//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount());
                     timeArray[positionIndex] = time;
 
                     if (positionIndex == NB_POSITIONS_SAVED || time > dxl_regs.ram.duration1) {

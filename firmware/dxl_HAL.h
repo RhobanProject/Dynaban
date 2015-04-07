@@ -21,8 +21,10 @@ enum controlModeEnum {
     OFF                         = 4,
     POSITION_CONTROL_P          = 5,
     PREDICTIVE_COMMAND_ONLY     = 6,
-    PID_AND_PREDICTIVE_COMMAND  = 7,
-    COMPLIANT_KIND_OF           = 8,
+    PID_ONLY                    = 7,
+    PID_AND_PREDICTIVE_COMMAND  = 8,
+    COMPLIANT_KIND_OF           = 9,
+
 };
 
 extern unsigned char  controlMode;
