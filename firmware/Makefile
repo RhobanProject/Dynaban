@@ -36,7 +36,7 @@ MEMORY_TARGET ?= flash
 BOOTLOADER ?= servo
 
 # This is the serial port used by robotis bootloader
-ROBOTIS_PORT ?= /dev/ttyACM0
+ROBOTIS_PORT ?= /dev/ttyACM1
 
 # $(BOARD)- and $(MEMORY_TARGET)-specific configuration
 include $(MAKEDIR)/target-config.mk

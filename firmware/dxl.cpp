@@ -63,8 +63,8 @@ void dxl_init_regs()
         dxl_regs.eeprom.id = 1;
         dxl_regs.eeprom.baudrate = 34;
         dxl_regs.eeprom.returnDelay = 50;//249;
-        dxl_regs.eeprom.cwLimit = 1000;//1877;//-15° //The angle limits introduce an yet unsolved bug --> free wheel mandatory
-        dxl_regs.eeprom.ccwLimit = 1000;//2218;//15°
+        dxl_regs.eeprom.cwLimit = 1000;//1877;//1000;//1877;//-15° //The angle limits introduce an yet unsolved bug --> free wheel mandatory
+        dxl_regs.eeprom.ccwLimit = 3000;//2218;//1000;//2218;//15°
         dxl_regs.eeprom.temperatureLimit = 80;
         dxl_regs.eeprom.lowestVoltage = 60;
         dxl_regs.eeprom.highestVoltage = 160;
@@ -284,6 +284,8 @@ bool dxl_process()
                     dxl_packet.answer = true;
 
                     if (length < sizeof(dxl_packet.parameters)) {
+                            // Bad hack, no errors supported yet
+                        dxl_packet.error = DXL_NO_ERROR;
                         dxl_read_data(addr, (ui8 *)dxl_packet.parameters,
                                       length, (ui8 *)&dxl_packet.error);
 

@@ -115,6 +115,7 @@ void setup() {
     gpio_set_mode(GPIOB, 7, GPIO_INPUT_FLOATING);
 
     Serial1.begin(57600);
+    // Serial1.begin(1000000);
 
     /*Setting the timer's prescale to get a 24KHz PWM.
       PWM1 and PWM2 share the same timer, channel 1 and 2.*/
