@@ -15,7 +15,10 @@
 
 /**
  * To do :
- * Re-test the anti-gravity arm (the speed update had a bug in it)
+ * - Re-test the anti-gravity arm (the speed update had a bug in it)
+ * - Solve the com bug that "freezes" the servo from time to time. Try
+ *    => Killing the 48Khz interruption for current read
+ *    => Reduce heavely the frequency of the heavy float calculations with TRAJ_CALC_FREQ
  */
 
 /**
@@ -114,7 +117,7 @@ void setup() {
     gpio_set_mode(GPIOB, 6, GPIO_AF_OUTPUT_PP);
     gpio_set_mode(GPIOB, 7, GPIO_INPUT_FLOATING);
 
-    Serial1.begin(57600);
+    // Serial1.begin(57600);
     // Serial1.begin(1000000);
 
     /*Setting the timer's prescale to get a 24KHz PWM.

@@ -49,6 +49,7 @@ void dxl_init()
 {
     dxl_init_regs();
     dxl_packet_init(&dxl_packet);
+    dxl_start_serial();
 }
 
 void dxl_init_regs()
@@ -108,10 +109,58 @@ void dxl_init_regs()
 
     dxl_regs.ram.mode = 0;
     dxl_regs.ram.copyNextBuffer = 0;
-    dxl_regs.ram.positionTrackerOn = true;
+    dxl_regs.ram.positionTrackerOn = false;
+    dxl_regs.ram.debugOn = false;
 
     dxl_regs.eeprom_dirty = false;
 }
+
+void dxl_start_serial() {
+    uint32 baud = 57600;
+    switch (dxl_regs.eeprom.baudrate) {
+        case 1:
+            baud = 1000000;
+            break;
+        case 3:
+            baud = 500000;
+            break;
+        case 4:
+            baud = 400000;
+            break;
+        case 7:
+            baud = 250000;
+            break;
+        case 9:
+            baud = 200000;
+            break;
+        case 16:
+            baud = 115200;
+            break;
+        case 34:
+            baud = 57600;
+            break;
+        case 103:
+            baud = 19200;
+            break;
+        case 207:
+            baud = 9600;
+            break;
+        case 250:
+            baud = 2250000;
+            break;
+        case 251:
+            baud = 2500000;
+            break;
+        case 252:
+            baud = 3000000;
+            break;
+        default:
+            baud = 57600;
+            break;
+    }
+    Serial1.begin(baud);
+}
+
 
 void dxl_push_byte(ui8 b)
 {

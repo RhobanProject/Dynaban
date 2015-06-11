@@ -270,7 +270,6 @@ void predictive_control_anti_gravity_tick(motor * pMot, int16 pVGoal, uint16 pDt
 }
 
 void predictive_control_compliant_kind_of(motor * pMot, uint16 pDt) {
-    digitalWrite(BOARD_LED_PIN, LOW); // TO BE TAKEN OUT
     int16 v = pMot->speed;
     int16 vGoal = v;
 

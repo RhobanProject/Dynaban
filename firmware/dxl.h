@@ -55,6 +55,7 @@ bool dxl_sending();
 // Call init to init the dynamixel structures, and then tick it periodically
 void dxl_init();
 bool dxl_tick();
+void dxl_start_serial();
 
 bool dxl_process();
 void dxl_init_regs();
@@ -143,6 +144,7 @@ struct dxl_ram {
     unsigned char mode;                     // 0xA2
     unsigned char copyNextBuffer;           // 0xA3
     bool          positionTrackerOn;        // 0xA4
+    bool          debugOn;                   // 0xA5
 
 } __attribute__((packed));
 

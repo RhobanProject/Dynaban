@@ -148,7 +148,9 @@ void read_dxl_ram() {
             // No strings attached
     }
 
-    // dxl_print_debug();
+    if (dxl_regs.ram.debugOn == true) {
+        dxl_print_debug();
+    }
 
 }
 
