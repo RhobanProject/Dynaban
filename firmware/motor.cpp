@@ -125,8 +125,10 @@ void motor_update(encoder * pEnc) {
             }
             // float angleRad = (mot.angle * (float)PI) / 2048.0;
             // float weightCompensation = cos(angleRad) * 71;
-            // predictive_control_tick_simple(&mot, traj_min_jerk_on_speed(time + dt));
-            // predictive_control_tick(&mot, traj_min_jerk_on_speed(time + dt), dt, weightCompensation, addedInertia);
+            // predictive_control_anti_gravity_tick(&mot, mot.speed, dt*TRAJ_CALC_FREQ, weightCompensation, addedInertia);
+
+                // Put all of this back, hacking off code to reduce the bin size that overloads when using a cos...
+
             if (controlMode == COMPLIANT_KIND_OF) {
                 predictive_control_compliant_kind_of(&mot, dt*TRAJ_CALC_FREQ);
             } else {

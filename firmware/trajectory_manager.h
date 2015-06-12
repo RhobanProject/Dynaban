@@ -10,6 +10,7 @@
 
 #include <wirish/wirish.h>
 #include "motor.h"
+#include <math.h>
 #if !defined(TRAJECTORY_MANAGER_H)
 #define TRAJECTORY_MANAGER_H
 

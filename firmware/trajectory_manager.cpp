@@ -10,7 +10,7 @@
 *************************************************************************/
 
 #include "trajectory_manager.h"
-#include <math.h>
+
 
 #define kDelta_old 3.5//5.076//4.820 -> first calibration with an empty arm
 #define ke_old     0.582//0.614//0.6426
