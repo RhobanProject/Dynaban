@@ -15,6 +15,23 @@
 
 /**
  * To do :
+ * - Figure out what's the max binary size. Apparently, we've reached it since because using a trigonomic function
+ * (which adds ~6kB on the binary) can be enough for the uC refusing to accept the binary.
+ * ----> Find a workaround (trig LUTs? Reducing the binary size elsewhere?)
+ * Continue verifiying what follows : http://mcuoneclipse.com/2013/04/14/text-data-and-bss-code-and-data-size-explained/
+ * text (functions, interrupt vector table and constants going to the flash)
+ * 	32108
+ * data is for initialized variables, and it counts for RAM and FLASH. The linker allocates the data in FLASH which then is copied from ROM to RAM in the startup code.
+ * 	3440
+ * bss (Block Started by Symbol) is for the uninitialized data in RAM which is initialized with zero in the startup code
+ * 	6304
+ * dec (sum of the 3 above)
+ * 	41852
+ *
+ * Example, changing NB_POSITIONS_SAVED from 1024 to 1524. Increases the size of 2 int16 arrays. Extra size = 2*16*500 = 16kb. Results =
+ * 	   text	   						data	    		bss
+ * 	  32124 (increased by 16)	   3440 (unchanged)	   8304 (increased by 2000)
+ *
  * - Re-test the anti-gravity arm (the speed update had a bug in it)
  * - Solve the com bug that "freezes" the servo from time to time. Try
  *    => Killing the 48Khz interruption for current read

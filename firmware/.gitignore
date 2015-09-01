@@ -9,3 +9,5 @@ TAGS
 arm
 cscope*
 .gdbinit
+.cproject
+.project
