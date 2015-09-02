@@ -1,4 +1,4 @@
-- Processeur: STM32F103CBT6 (exactement le même que la Maple mini)
+- Processeur: STM32F103CBT6 (exactement le même que la Maple mini) => 128KB de flash et 20KB de SRAM
 
 - Current sensing : 5 mOhms suivi d’un MAX9918
 http://datasheets.maximintegrated.com/en/ds/MAX9918-MAX9920.pdf

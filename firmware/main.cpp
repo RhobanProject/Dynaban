@@ -18,7 +18,7 @@
  * - Figure out what's the max binary size. Apparently, we've reached it since because using a trigonomic function
  * (which adds ~6kB on the binary) can be enough for the uC refusing to accept the binary.
  * ----> Find a workaround (trig LUTs? Reducing the binary size elsewhere?)
- * Continue verifiying what follows : http://mcuoneclipse.com/2013/04/14/text-data-and-bss-code-and-data-size-explained/
+ * elf size discussion :
  * text (functions, interrupt vector table and constants going to the flash)
  * 	32108
  * data is for initialized variables, and it counts for RAM and FLASH. The linker allocates the data in FLASH which then is copied from ROM to RAM in the startup code.
@@ -28,9 +28,45 @@
  * dec (sum of the 3 above)
  * 	41852
  *
+ * 	  Flash used would be = text + data + bss + bootloader
+ * 	  RAM used at start up would be = bss + data
+ *
+ * 	  bootloader size to be checked with robotis but ~~ 15.2kB for the maple mini boot loader and 16.3kB for Greg's adaption for cm900
+ *
+ *
  * Example, changing NB_POSITIONS_SAVED from 1024 to 1524. Increases the size of 2 int16 arrays. Extra size = 2*16*500 = 16kb. Results =
  * 	   text	   						data	    		bss
- * 	  32124 (increased by 16)	   3440 (unchanged)	   8304 (increased by 2000)
+ * 	  32124 (increased by 16 B)	   3440 (unchanged)	   8304 (increased by 2000 B)
+ *
+ * 	  	Works :
+ * 	     text	   data	    bss	    dec	    hex	filename
+  	  	  32108	   3440	   6304	  41852	   a37c	build/mx64.elf
+ *
+ *		Does not work (using the 3 lines with a cos in motor.cpp) :
+	     text	   data	    bss	    dec	    hex	filename
+  	  	  37748	   3448	   6304	  47500	   b98c	build/mx64.elf
+
+  	  	  Works (only the call to predictive_control_anti_gravity_tick with a const value AND the function returns immediately)
+		 text	   data	    bss	    dec	    hex	filename
+		 32140	   3448	   6304	  41892
+
+		 Works (only the call to predictive_control_anti_gravity_tick with a const value)
+		text	   data	    bss	    dec	    hex	filename
+  	  	  32396	   3448	   6304	  42148
+
+  	  	  Works (only the call to predictive_control_anti_gravity_tick with angleRad as value)
+		 text	   data	    bss	    dec	    hex	filename
+  	  	  32420	   3448	   6304	  42172
+
+
+  using a cos actually costs :
+  	     text	   data	    bss	    dec	    hex	filename
+  	  	  5409	   0	   0	  5409	   b98c	build/mx64.elf
+
+ Unfortunately, creating a hand-made look-up table for calculating the trig functions wouldn't sole the proble since :
+ 1024 (4096 steps of the magnetic encoder reduced to the first quadrant) * 32 b (float) = 4 kB ~= 5409 B
+ *
+ *
  *
  * - Re-test the anti-gravity arm (the speed update had a bug in it)
  * - Solve the com bug that "freezes" the servo from time to time. Try

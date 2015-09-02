@@ -36,7 +36,7 @@ MEMORY_TARGET ?= flash
 BOOTLOADER ?= servo
 
 # This is the serial port used by robotis bootloader
-ROBOTIS_PORT ?= /dev/ttyACM1 # /dev/ttyUSB0 #/dev/ttyACM0
+ROBOTIS_PORT ?= /dev/ttyACM0 # /dev/ttyUSB0 #/dev/ttyACM0
 
 # $(BOARD)- and $(MEMORY_TARGET)-specific configuration
 include $(MAKEDIR)/target-config.mk
@@ -76,16 +76,16 @@ LDFLAGS  = $(TARGET_LDFLAGS) $(TOOLCHAIN_LDFLAGS) -mcpu=cortex-m3 -mthumb \
 ##
 
 LIBMAPLE_MODULES += $(SRCROOT)/libmaple
-LIBMAPLE_MODULES += $(SRCROOT)/libmaple/usb   # The USB module is kept separate
+#LIBMAPLE_MODULES += $(SRCROOT)/libmaple/usb   # The USB module is kept separate
 LIBMAPLE_MODULES += $(LIBMAPLE_MODULE_SERIES) # STM32 series submodule in libmaple
 LIBMAPLE_MODULES += $(SRCROOT)/wirish
 
 # Official libraries:
-LIBMAPLE_MODULES += $(SRCROOT)/libraries/Servo
-LIBMAPLE_MODULES += $(SRCROOT)/libraries/LiquidCrystal
-LIBMAPLE_MODULES += $(SRCROOT)/libraries/Wire
+#LIBMAPLE_MODULES += $(SRCROOT)/libraries/Servo
+#LIBMAPLE_MODULES += $(SRCROOT)/libraries/LiquidCrystal
+#LIBMAPLE_MODULES += $(SRCROOT)/libraries/Wire
 # Experimental libraries:
-LIBMAPLE_MODULES += $(SRCROOT)/libraries/FreeRTOS
+#LIBMAPLE_MODULES += $(SRCROOT)/libraries/FreeRTOS
 
 # User modules:
 ifneq ($(USER_MODULES),)

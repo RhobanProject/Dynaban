@@ -221,8 +221,7 @@ void predictive_control_tick(motor * pMot, int16 pVGoal, uint16 pDt, float pOutp
  * -> a(t) = (pVGoal - v)/dt
  */
 void predictive_control_anti_gravity_tick(motor * pMot, int16 pVGoal, uint16 pDt, float pOutputTorque, float pIAdded) {
-
-    int16 v = pMot->speed;//(pMot->averageSpeed);//pControl.estimatedSpeed;
+	int16 v = pMot->speed;//(pMot->averageSpeed);//pControl.estimatedSpeed;
 
     pVGoal = v;
 
@@ -326,8 +325,8 @@ void predictive_control_tick_simple(motor * pMot, int16 pVGoal) {
     }
 
         // Normal case
-    float angleRad = (pMot->angle * (float)PI) / 2048.0;
-    float weightCompensation = cos(angleRad) * 140.0;//235.0;
+//    float angleRad = (pMot->angle * (float)PI) / 2048.0;
+//    float weightCompensation = cos(angleRad) * 140.0;//235.0;
         // int16 u = kDelta * (float)(pVGoal - v) + ke * (float)v;
         // int16 u = kDelta * (float)(pVGoal - v + acceleration_from_weight_calib(pMot->angle)) + ke * (float)v;
     int16 u = kDelta_old * (float)(pVGoal - v)
