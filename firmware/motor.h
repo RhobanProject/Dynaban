@@ -12,7 +12,7 @@
 #define CURRENT_ADC_PIN 33 // PB1
 #define AVERAGE_FACTOR_FOR_CURRENT 256
 #define MAX_COMMAND 2950 // 98.3% of 3000 (PWM period)
-#define MAX_ANGLE 4096
+#define MAX_ANGLE 4095
 #define PWM_1_PIN 27 // PA8 --> Negative rotation
 #define PWM_2_PIN 26 // PA9 --> Positive rotation
 

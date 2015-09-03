@@ -15,7 +15,7 @@
 
 /**
  * To do :
- * - Figure out what's the max binary size. Apparently, we've reached it since because using a trigonomic function
+ * - Figure out what's the max binary size. Apparently, we've reached it since using a trigonomic function
  * (which adds ~6kB on the binary) can be enough for the uC refusing to accept the binary.
  * ----> Find a workaround (trig LUTs? Reducing the binary size elsewhere?)
  * elf size discussion :
@@ -46,14 +46,6 @@
 	     text	   data	    bss	    dec	    hex	filename
   	  	  37748	   3448	   6304	  47500	   b98c	build/mx64.elf
 
-  	  	  Works (only the call to predictive_control_anti_gravity_tick with a const value AND the function returns immediately)
-		 text	   data	    bss	    dec	    hex	filename
-		 32140	   3448	   6304	  41892
-
-		 Works (only the call to predictive_control_anti_gravity_tick with a const value)
-		text	   data	    bss	    dec	    hex	filename
-  	  	  32396	   3448	   6304	  42148
-
   	  	  Works (only the call to predictive_control_anti_gravity_tick with angleRad as value)
 		 text	   data	    bss	    dec	    hex	filename
   	  	  32420	   3448	   6304	  42172
@@ -63,7 +55,7 @@
   	     text	   data	    bss	    dec	    hex	filename
   	  	  5409	   0	   0	  5409	   b98c	build/mx64.elf
 
- Unfortunately, creating a hand-made look-up table for calculating the trig functions wouldn't sole the proble since :
+ Unfortunately, creating a hand-made look-up table for calculating the trig functions wouldn't solve the problem since :
  1024 (4096 steps of the magnetic encoder reduced to the first quadrant) * 32 b (float) = 4 kB ~= 5409 B
  *
  *
@@ -71,7 +63,7 @@
  * - Re-test the anti-gravity arm (the speed update had a bug in it)
  * - Solve the com bug that "freezes" the servo from time to time. Try
  *    => Killing the 48Khz interruption for current read
- *    => Reduce heavely the frequency of the heavy float calculations with TRAJ_CALC_FREQ
+ *    => Reduce heavily the frequency of the heavy float calculations with TRAJ_CALC_FREQ
  */
 
 /**

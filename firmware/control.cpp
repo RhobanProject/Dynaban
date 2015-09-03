@@ -130,11 +130,13 @@ void control_tick_P_on_torque(motor * pMot) {
  */
 long control_angle_diff(long a, long b) {
     long diff = a - b;
-    if (diff > (MAX_ANGLE+1)/2) {
-        return diff - MAX_ANGLE;
+    long limit = (MAX_ANGLE+1)/2;
+
+    if (diff > limit) {
+        return diff - (MAX_ANGLE + 1);
     }
-    if (diff < -(MAX_ANGLE+1)/2) {
-        return diff + MAX_ANGLE;
+    if (diff < -limit) {
+        return diff + (MAX_ANGLE + 1);
     }
 
     return diff;
@@ -144,17 +146,14 @@ long control_angle_diff(long a, long b) {
  * Returns the other angle between 2 angles (the bigger one, aka the one that is bigger than MAX_ANGLE/2)
  */
 long control_other_angle_diff(long a, long b) {
-    long diff = a - b;
-    if (diff > 0 && diff < (MAX_ANGLE+1)/2) {
-        return diff - MAX_ANGLE;
+    long diff = control_angle_diff(a, b);
+    if (diff > 0) {
+    	return diff - (MAX_ANGLE + 1);
+    } else {
+    	return diff + (MAX_ANGLE + 1);
     }
-    if (diff < 0 && diff > -(MAX_ANGLE+1)/2) {
-        return diff + MAX_ANGLE;
-    }
-
-    return diff;
 }
-// TO DO : there is a bug when the goal angle is 180° away from the present angle. The problem desapears in the free wheel mode. Also when the dead zone is too short, inertia makes it impossible for the motor to stop before going through it, the behaviour that comes after is strange -> to be investigated
+
 int8 choose_direction(motor * pMot) {
 
     if (pMot->posAngleLimit == pMot->negAngleLimit) {

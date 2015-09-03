@@ -177,9 +177,9 @@ void motor_update(encoder * pEnc) {
     if (abs(mot.speed) > MAX_SPEED) {
         //Position went from near max to near 0 or vice-versa
         if (mot.angle >= oldPosition) {
-            mot.speed = mot.speed - MAX_ANGLE;
+            mot.speed = mot.speed - MAX_ANGLE - 1;
         } else if (mot.angle < oldPosition) {
-            mot.speed = mot.speed + MAX_ANGLE;
+            mot.speed = mot.speed + MAX_ANGLE + 1;
         }
     }
     mot.speed = mot.speed * SPEED_COEF;
