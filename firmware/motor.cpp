@@ -238,7 +238,7 @@ void motor_update_sign_of_speed() {
 
 void motor_set_command(long pCommand) {
     if (temperatureIsCritic == true) {
-        // Nope, go cool down yourself before you consider spin again, motor bro.
+        // Nope, go cool down yourself before you consider spinning again, motor bro.
         return;
     }
     mot.previousCommand = mot.command;
@@ -252,28 +252,27 @@ void motor_set_command(long pCommand) {
 
     long command = mot.command;
     long previousCommand = mot.previousCommand;
-    if (mot.state == COMPLIANT) {
-        mot.state = MOVING;
-        motor_restart();
-    }
+    if (mot.state != COMPLIANT) {
 
-    if (command >= 0 && previousCommand >= 0) {
-        //No need to change the spin direction
-        motor_secure_pwm_write(PWM_2_PIN, command);
-    } else if (command <= 0 && previousCommand <= 0) {
-        motor_secure_pwm_write(PWM_1_PIN, abs(command));
-    } else {
-        // Change of spin direction procedure
-        if (command > 0) {
-            motor_secure_pwm_write(PWM_1_PIN, 0);
-            motor_secure_pwm_write(PWM_2_PIN, 0);
-            motor_secure_pwm_write(PWM_2_PIN, command);
-        } else {
-            motor_secure_pwm_write(PWM_2_PIN, 0);
-            motor_secure_pwm_write(PWM_1_PIN, 0);
-            motor_secure_pwm_write(PWM_1_PIN, abs(command));
-        }
-    }
+		if (command >= 0 && previousCommand >= 0) {
+			//No need to change the spin direction
+			motor_secure_pwm_write(PWM_2_PIN, command);
+		} else if (command <= 0 && previousCommand <= 0) {
+			motor_secure_pwm_write(PWM_1_PIN, abs(command));
+				} else {
+					// Change of spin direction procedure
+					if (command > 0) {
+						motor_secure_pwm_write(PWM_1_PIN, 0);
+						motor_secure_pwm_write(PWM_2_PIN, 0);
+						motor_secure_pwm_write(PWM_2_PIN, command);
+					} else {
+						motor_secure_pwm_write(PWM_2_PIN, 0);
+						motor_secure_pwm_write(PWM_1_PIN, 0);
+						motor_secure_pwm_write(PWM_1_PIN, abs(command));
+					}
+				}
+		}
+
 }
 
 void motor_secure_pwm_write(uint8 pPin, uint16 pCommand){
