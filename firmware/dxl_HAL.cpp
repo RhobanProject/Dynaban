@@ -42,6 +42,7 @@ void init_dxl_ram() {
     dxl_regs.ram.movingSpeed = hardwareStruct.mot->targetSpeed;
     dxl_regs.ram.goalAcceleration = hardwareStruct.mot->targetAcceleration;
     dxl_regs.ram.goalTorque = hardwareStruct.mot->targetCurrent;
+    dxl_regs.ram.mode = POSITION_CONTROL;
 
     //The other registers are updated here :
     update_dxl_ram();
@@ -75,6 +76,7 @@ void read_dxl_ram() {
     get_control_struct()->pCoef = dxl_regs.ram.servoKp;
 
     if ((dxl_regs.ram.mode == 0) && (hardwareStruct.mot->targetAngle != dxl_regs.ram.goalPosition)) {
+        // The angle might be out of bounds, this function handles it and updates mot->targetAngle accordingly
         motor_set_target_angle(dxl_regs.ram.goalPosition);
         dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
         controlMode = POSITION_CONTROL;

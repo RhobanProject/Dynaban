@@ -61,6 +61,15 @@ void control_tick_PID_on_position(motor * pMot) {
     motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef
                       + (controlStruct.sumOfDeltas * controlStruct.iCoef) / I_PRESCALE
                       + pMot->speed * controlStruct.dCoef);
+    /*
+     * Beware, the pMot->speed value id the difference between the current position and an old position.
+     * How old the position is depends on the value of NB_TICKS_BEFORE_UPDATING_SPEED which is 25 at the time of writing this.
+     * Introducing a delay in the (speed * D) term of the PID is dangerous since is can cause instability (which is ironic since the D's goal
+     * is to ensure stability). On the other hand, not introducing a delay in the (speed * D) term makes no sense since the position
+     * is currently updated so fast that the speed would always be either 0 or 1. This means that there is an acceptable range
+     * for that delay.
+     *
+     */
 }
 
 
