@@ -7,6 +7,7 @@
 #include "control.h"
 #include "dxl.h"
 #include "trajectory_manager.h"
+#include "flash_write.h"
 
 #define POWER_SUPPLY_ADC_PIN  PA2
 #define TEMPERATURE_ADC_PIN   PA1
@@ -127,6 +128,14 @@ float auto_calibrate_inertia(float pPreviousI, float pCurrentI, int32 pPreviousS
  **/
 void add_benchmark_time();
 
+/*
+ * Dumps the entire flash
+ **/
+void dump_flash();
+void dump_section_of_flash(int addr, int maxAddr);
+void test();
+void print_flash_start_adress();
+
 
 const uint32    TOO_BIG              = 1<<30;
 static bool     DXL_COM_ON = true; // /!\
@@ -162,8 +171,8 @@ void setup() {
     gpio_set_mode(GPIOB, 6, GPIO_AF_OUTPUT_PP);
     gpio_set_mode(GPIOB, 7, GPIO_INPUT_FLOATING);
 
-    // Serial1.begin(57600);
-    // Serial1.begin(1000000);
+    // Hack for priting befor inits
+    Serial1.begin(57600);
 
     /*Setting the timer's prescale to get a 24KHz PWM.
       PWM1 and PWM2 share the same timer, channel 1 and 2.*/
@@ -270,6 +279,35 @@ void setup() {
     // }
 
     // motor_set_command(-MAX_COMMAND);
+
+    if (true) {
+        // Writing stuff in the suspicious areas of the flash
+
+        for (int i = 0; i < 6; i++) {
+            toggleLED();
+            delay(250);
+        }
+        digitalWrite(BOARD_TX_ENABLE, HIGH);
+        Serial1.println("Attempting to write");
+        Serial1.waitDataToBeSent();
+        digitalWrite(BOARD_TX_ENABLE, LOW);
+        int adress = 0x0800C000;
+        dxl_persist_hack(adress);
+
+		print_flash_start_adress();
+    }
+
+
+
+
+
+
+//    dump_flash();
+//    dump_section_of_flash(adress, adress + 1024);
+//    test();
+//    return;
+
+
 }
 
 void loop() {
@@ -704,6 +742,130 @@ void print_detailed_trajectory_halt() {
     digitalWrite(BOARD_TX_ENABLE, LOW);
     while (true);
 
+}
+
+void print_flash_start_adress() {
+	digitalWrite(BOARD_TX_ENABLE, HIGH);
+	Serial1.println("Flash Adress = ");
+	Serial1.println(flashStartAdress(), 16);
+	Serial1.waitDataToBeSent();
+	digitalWrite(BOARD_TX_ENABLE, LOW);
+}
+
+void dump_flash() {
+	int const arraySize = 1024;
+    unsigned char cdata[arraySize];
+    unsigned int i;
+    unsigned int addr = 0x08000000;//0;
+    unsigned int maxAddr = 0x08000000 + 131072;
+    unsigned int localMaxAddr = 0;
+    unsigned int bufferSize = arraySize;
+    boolean endOfMemory = false;
+
+    while (addr < maxAddr) {
+        for (i=0; i<arraySize; i++) {
+            cdata[i] = *(volatile unsigned char*)(addr++);
+            if (addr == maxAddr) {
+                endOfMemory = true;
+                break;
+            }
+        }
+
+        if (endOfMemory) {
+        	bufferSize = localMaxAddr;
+        } else {
+        	bufferSize = arraySize;
+        }
+
+        digitalWrite(BOARD_TX_ENABLE, HIGH);
+        Serial1.println("");
+        Serial1.print("from ");
+        Serial1.print(addr - bufferSize, 16);
+        Serial1.print("to ");
+        Serial1.print(addr, 16);
+        Serial1.println("");
+        for (unsigned int i = 0; i < bufferSize; i++) {
+        	// We want 0x05 to be printed "05" instead of "5"
+        	if (cdata[i] < 16) {
+        		Serial1.print("0");
+        	}
+        	Serial1.print(cdata[i], 16);
+        }
+
+        Serial1.waitDataToBeSent();
+        digitalWrite(BOARD_TX_ENABLE, LOW);
+    }
+
+}
+
+void dump_section_of_flash(int addr, int maxAddr) {
+	int const arraySize = 1024;
+    unsigned char cdata[arraySize];
+    unsigned int i;
+    unsigned int localMaxAddr = 0;
+    unsigned int bufferSize = arraySize;
+    boolean endOfMemory = false;
+
+    digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.println("");
+    Serial1.print("Reading from ");
+    Serial1.print(addr, 16);
+    Serial1.print("to ");
+    Serial1.print(maxAddr, 16);
+    Serial1.waitDataToBeSent();
+    digitalWrite(BOARD_TX_ENABLE, LOW);
+
+    while (addr < maxAddr) {
+        for (i=0; i<arraySize; i++) {
+            cdata[i] = *(volatile unsigned char*)(addr++);
+            if (addr == maxAddr) {
+                endOfMemory = true;
+                localMaxAddr = i+1;
+                break;
+            }
+        }
+        digitalWrite(BOARD_TX_ENABLE, HIGH);
+        Serial1.println("");
+        if (endOfMemory) {
+        	bufferSize = localMaxAddr;
+        } else {
+        	bufferSize = arraySize;
+        }
+        for (unsigned int i = 0; i < bufferSize; i++) {
+        	// We want 0x05 to be printed "05" instead of "5"
+        	if (cdata[i] < 16) {
+        		Serial1.print("0");
+        	}
+        	Serial1.print(cdata[i], 16);
+        }
+
+        Serial1.waitDataToBeSent();
+        digitalWrite(BOARD_TX_ENABLE, LOW);
+    }
+}
+
+void test() {
+	int const arraySize = 1024;
+	unsigned char cdata[arraySize];
+	unsigned int i;
+	unsigned int addr = 0x08000000;//0;
+
+	for (i=0; i<arraySize; i++) {
+		cdata[i] = *(volatile unsigned char*)(addr++);
+	}
+
+	digitalWrite(BOARD_TX_ENABLE, HIGH);
+	Serial1.println("");
+	Serial1.print("end addr == ");
+	Serial1.print(addr, 16);
+	Serial1.println("");
+
+	for (unsigned int i = 0; i < arraySize; i++) {
+		Serial1.print(cdata[i], 16);
+	}
+
+	Serial1.waitDataToBeSent();
+	digitalWrite(BOARD_TX_ENABLE, LOW);
 }
 
 // Force init to be called *first*, i.e. before static object allocation.

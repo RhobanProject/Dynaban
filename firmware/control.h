@@ -6,7 +6,7 @@
 
 const int NB_TICKS_PER_SECOND = 1000;
 const int INITIAL_P_COEF = 16;//32; //8;
-const int INITIAL_I_COEF = 1;
+const int INITIAL_I_COEF = 0;
 const float I_PRESCALE = 50.0;
 const int MAX_DELTA_SUM = 1024;
 const int INITIAL_D_COEF = 0;

@@ -66,6 +66,8 @@ void dxl_packet_init(volatile struct dxl_packet *packet);
 void dxl_packet_push_byte(volatile struct dxl_packet *packet, ui8 b);
 int dxl_write_packet(volatile struct dxl_packet *packet, ui8 *buffer);
 ui8 dxl_compute_checksum(volatile struct dxl_packet *packet);
+int flashStartAdress();
+void dxl_persist_hack(int adress);
 
 struct dxl_eeprom {
     unsigned short modelNumber;             // 0x00
@@ -148,10 +150,15 @@ struct dxl_ram {
 
 } __attribute__((packed));
 
+struct dxl_hacks {
+    unsigned char data[6];
+} __attribute__((packed)); // Size: 6
+
 struct dxl_registers
 {
     volatile struct dxl_eeprom eeprom;
     volatile struct dxl_ram ram;
+    volatile struct dxl_hacks hacks;
     volatile char eeprom_dirty;
 } __attribute__((packed));
 
@@ -160,5 +167,6 @@ extern struct dxl_registers dxl_regs;
 
 // Dynamixel packets
 extern struct dxl_packet    dxl_packet;
+
 
 #endif // DXL_H

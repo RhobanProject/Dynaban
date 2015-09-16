@@ -5,7 +5,9 @@
 #include "dxl.h"
 #include "flash_write.h"
 
+
 const char dxl_zone[1024] __attribute__((section("eeprom"), aligned(1024))) = {0};
+
 
 struct dxl_registers dxl_regs;
 struct dxl_packet dxl_packet;
@@ -346,4 +348,31 @@ bool dxl_process()
     }
 
     return changed;
+}
+
+int flashStartAdress() {
+	return (int)dxl_zone;
+}
+
+void dxl_persist_hack(int adress)
+{
+
+	// Reading 1 KB from the address (which must be aligned with 1024)
+	unsigned char cdata[1024];
+	unsigned int i;
+
+	for (i=0; i<1024; i++) {
+		cdata[i] = *(volatile unsigned char*)(adress+i);
+	}
+
+	// Modifying the data in a thoughtful way
+	cdata[0] = (unsigned char)0x02;
+	cdata[1] = (unsigned char)0x00;
+	cdata[2] = (unsigned char)0x80;
+	cdata[3] = (unsigned char)0x00;
+	cdata[4] = (unsigned char)0x00;
+	cdata[5] = (unsigned char)0x00;
+
+
+	flash_write(adress, (void*)cdata, sizeof(cdata));
 }
