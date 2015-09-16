@@ -368,11 +368,47 @@ void dxl_persist_hack(int adress)
 	// Modifying the data in a thoughtful way
 	cdata[0] = (unsigned char)0x02;
 	cdata[1] = (unsigned char)0x00;
-	cdata[2] = (unsigned char)0x80;
-	cdata[3] = (unsigned char)0x00;
-	cdata[4] = (unsigned char)0x00;
+	cdata[2] = (unsigned char)0x9E;
+	cdata[3] = (unsigned char)0x07;
+	cdata[4] = (unsigned char)0x24;
 	cdata[5] = (unsigned char)0x00;
 
-
 	flash_write(adress, (void*)cdata, sizeof(cdata));
+}
+
+/**
+ * Apparently, Robotis doesn't try to set the magnet of the encoder very accurately.
+ * Instead, the magnet is approximatively set around the actual 0 of the encoder (+-10°).
+ * Somehow, that offset is measured and saved in a specific region of the flash (0x0800C000 ~= 49KB).
+ * If we want to use a firmware larger than that, we must save that offset value further away in the flash.
+ * This functions takes care of saving 3 specific KB of flash at the end of the flash :
+ * - The KB starting at 0x0800C000 is saved at 0x0801F400 (it contains the offset and undefined stuff)
+ * - The KB starting at 0x0800D000 is saved at 0x0801F800 (it contains undefined stuff that might be useful)
+ * - The KB starting at 0x0800FC00 is saved at 0x0801FC00 (it contains undefined stuff that might be useful)
+ */
+void dxl_save_intrinsic_servo_data()
+{
+	unsigned char cdata[1024];
+	unsigned int i;
+
+	// Reading 1KB of flash
+	for (i=0; i<1024; i++) {
+		cdata[i] = *(volatile unsigned char*)(0x0800C000+i);
+	}
+	// Writing 1KB of flash
+	flash_write(0x0801F400, (void*)cdata, sizeof(cdata));
+
+	// Reading 1KB of flash
+	for (i=0; i<1024; i++) {
+		cdata[i] = *(volatile unsigned char*)(0x0800D000+i);
+	}
+	// Writing 1KB of flash
+	flash_write(0x0801F800, (void*)cdata, sizeof(cdata));
+
+	// Reading 1KB of flash
+	for (i=0; i<1024; i++) {
+		cdata[i] = *(volatile unsigned char*)(0x0800FC00+i);
+	}
+	// Writing 1KB of flash
+	flash_write(0x0801FC00, (void*)cdata, sizeof(cdata));
 }

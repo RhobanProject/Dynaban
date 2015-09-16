@@ -78,27 +78,7 @@ void flash_write(unsigned int addr, void *data, unsigned int size)
 
         flash_erase_page(addr+n);
         for (i=0; i<pageWords; i++) {
-        	if (flash_write_word(addr+n+i*4, *(unsigned int*)&cdata[n+i*4])) {
-        		digitalWrite(BOARD_TX_ENABLE, HIGH);
-        		Serial1.println("Success !");
-        		Serial1.waitDataToBeSent();
-        		digitalWrite(BOARD_TX_ENABLE, LOW);
-        	} else {
-        		digitalWrite(BOARD_TX_ENABLE, HIGH);
-				Serial1.println("Failure !");
-				Serial1.println("FLASH_BASE->WRPR");
-				Serial1.print(FLASH_BASE->WRPR);
-				Serial1.println("FLASH_BASE->OBR");
-				Serial1.print(FLASH_BASE->OBR);
-				Serial1.println("FLASH_BASE->AR");
-				Serial1.print(FLASH_BASE->AR);
-				Serial1.println("FLASH_BASE->CR");
-				Serial1.print(FLASH_BASE->CR);
-				Serial1.println("FLASH_BASE->SR");
-				Serial1.print(FLASH_BASE->SR);
-				Serial1.waitDataToBeSent();
-				digitalWrite(BOARD_TX_ENABLE, LOW);
-        	}
+        	flash_write_word(addr+n+i*4, *(unsigned int*)&cdata[n+i*4]);
         }
     }
 

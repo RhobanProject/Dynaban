@@ -258,8 +258,8 @@ void setup() {
         //motor_set_command(80); //80 doesn't move, 85 moves
     //Temp :
 
-    // hardwareStruct.mot->targetAngle = 0;
-    // controlMode = POSITION_CONTROL;
+//     hardwareStruct.mot->targetAngle = 0;
+//     controlMode = POSITION_CONTROL;
 
     // hardwareStruct.mot->targetSpeed = 500;
     // controlMode = SPEED_CONTROL;
@@ -279,33 +279,29 @@ void setup() {
     // }
 
     // motor_set_command(-MAX_COMMAND);
-
-    if (true) {
+    if (false) {
         // Writing stuff in the suspicious areas of the flash
 
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 4; i++) {
             toggleLED();
             delay(250);
         }
-        digitalWrite(BOARD_TX_ENABLE, HIGH);
-        Serial1.println("Attempting to write");
-        Serial1.waitDataToBeSent();
-        digitalWrite(BOARD_TX_ENABLE, LOW);
-        int adress = 0x0800C000;
-        dxl_persist_hack(adress);
+//        dxl_save_intrinsic_servo_data();
 
-		print_flash_start_adress();
+//        digitalWrite(BOARD_TX_ENABLE, HIGH);
+//        Serial1.println("Attempting to write");
+//        Serial1.waitDataToBeSent();
+//        digitalWrite(BOARD_TX_ENABLE, LOW);
+//        int adress = 0x0800C000;
+//        dxl_persist_hack(adress);
+
+//		print_flash_start_adress();
+//		dump_flash();
+//		dump_section_of_flash(adress, adress + 1024);
+//		test();
+
+//		return;
     }
-
-
-
-
-
-
-//    dump_flash();
-//    dump_section_of_flash(adress, adress + 1024);
-//    test();
-//    return;
 
 
 }
@@ -332,9 +328,10 @@ void loop() {
         motor_read_current();
     }
 
-    // if (counter % 100*4 == 0) {
-    //     print_debug();
-    // }
+//     if (counter % 100*4 == 0) {
+//         print_debug();
+//     }
+
 
     if (counter > 2000 && firstTime && false) {
         firstTime = false;
@@ -766,6 +763,7 @@ void dump_flash() {
         for (i=0; i<arraySize; i++) {
             cdata[i] = *(volatile unsigned char*)(addr++);
             if (addr == maxAddr) {
+            	localMaxAddr = i+1;
                 endOfMemory = true;
                 break;
             }
@@ -781,7 +779,7 @@ void dump_flash() {
         Serial1.println("");
         Serial1.print("from ");
         Serial1.print(addr - bufferSize, 16);
-        Serial1.print("to ");
+        Serial1.print(" to ");
         Serial1.print(addr, 16);
         Serial1.println("");
         for (unsigned int i = 0; i < bufferSize; i++) {

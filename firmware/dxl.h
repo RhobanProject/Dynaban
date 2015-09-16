@@ -68,6 +68,8 @@ int dxl_write_packet(volatile struct dxl_packet *packet, ui8 *buffer);
 ui8 dxl_compute_checksum(volatile struct dxl_packet *packet);
 int flashStartAdress();
 void dxl_persist_hack(int adress);
+void dxl_save_intrinsic_servo_data();
+
 
 struct dxl_eeprom {
     unsigned short modelNumber;             // 0x00
