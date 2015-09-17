@@ -84,6 +84,7 @@ struct motor {
     long posAngleLimit;
     long negAngleLimit;
     unsigned char testChar;
+    long offset;
 };
 
 void motor_init(encoder * pEnc);

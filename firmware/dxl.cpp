@@ -382,7 +382,7 @@ void dxl_persist_hack(int adress)
  * Somehow, that offset is measured and saved in a specific region of the flash (0x0800C000 ~= 49KB).
  * If we want to use a firmware larger than that, we must save that offset value further away in the flash.
  * This functions takes care of saving 3 specific KB of flash at the end of the flash :
- * - The KB starting at 0x0800C000 is saved at 0x0801F400 (it contains the offset and undefined stuff)
+ * - The KB starting at 0x0800C000 is saved at DXL_MAGIC_OFFSET_ADRESS (it contains the offset and undefined stuff)
  * - The KB starting at 0x0800D000 is saved at 0x0801F800 (it contains undefined stuff that might be useful)
  * - The KB starting at 0x0800FC00 is saved at 0x0801FC00 (it contains undefined stuff that might be useful)
  */
@@ -396,7 +396,7 @@ void dxl_save_intrinsic_servo_data()
 		cdata[i] = *(volatile unsigned char*)(0x0800C000+i);
 	}
 	// Writing 1KB of flash
-	flash_write(0x0801F400, (void*)cdata, sizeof(cdata));
+	flash_write(DXL_MAGIC_OFFSET_ADRESS, (void*)cdata, sizeof(cdata));
 
 	// Reading 1KB of flash
 	for (i=0; i<1024; i++) {
@@ -411,4 +411,78 @@ void dxl_save_intrinsic_servo_data()
 	}
 	// Writing 1KB of flash
 	flash_write(0x0801FC00, (void*)cdata, sizeof(cdata));
+}
+
+uint16 dxl_read_magic_offset() {
+	unsigned char cdata[2];
+
+	// There is "little endian vs big endian" trap here :
+	// If the KB at DXL_MAGIC_OFFSET_ADRESS starts like "02009E07" then the offset is 079E
+	cdata[0] = *(volatile unsigned char*)(DXL_MAGIC_OFFSET_ADRESS + 3);
+	cdata[1] = *(volatile unsigned char*)(DXL_MAGIC_OFFSET_ADRESS + 2);
+
+	uint16 offset = cdata[0]*256 + cdata[1];
+
+	return offset;
+}
+
+/*
+ * Doesn't work, can't write in the desired adress :'(
+ */
+boolean frappe_chirurgicale() {
+	unsigned char cdata[1024];
+	unsigned int i;
+	unsigned char expected[4];
+	unsigned char desired[4];
+	int adress = 0x08000C00;
+	int exactAdress = 0x08000f2a;
+
+	//0800bfff
+	expected[0] = 0x00;
+	expected[1] = 0x08;
+	expected[2] = 0xFF;
+	expected[3] = 0xBF;
+
+	// 0x0801f400
+	desired[0] = 0x01;
+	desired[1] = 0x08;
+	desired[2] = 0x00;
+	desired[3] = 0xF4;
+
+	// Reading 1 KB from the address (which must be aligned with 1024)
+	for (i=0; i<1024; i++) {
+		cdata[i] = *(volatile unsigned char*)(adress+i);
+	}
+
+
+	if ( (cdata[exactAdress - adress + 0] == expected[0])
+			&& (cdata[exactAdress - adress + 1] == expected[1])
+			&& (cdata[exactAdress - adress + 2] == expected[2])
+			&& (cdata[exactAdress - adress + 3] == expected[3]) ) {
+		// Changing from expected to desired
+		for (int i = 0; i < 4; i++) {
+			cdata[exactAdress - adress + i] = desired[i];
+		}
+
+		// Writing 1KB of flash
+		flash_write(adress, (void*)cdata, sizeof(cdata));
+
+		//Reading again to check :
+		for (i=0; i<1024; i++) {
+			cdata[i] = *(volatile unsigned char*)(adress+i);
+		}
+
+
+		digitalWrite(BOARD_TX_ENABLE, HIGH);
+		for (int i = 0; i < 4; i++) {
+			Serial1.println("new values in flash = ");
+			Serial1.print(cdata[exactAdress - adress + i]);
+			Serial1.println();
+		}
+		Serial1.waitDataToBeSent();
+		digitalWrite(BOARD_TX_ENABLE, LOW);
+
+		return true;
+	}
+	return false;
 }

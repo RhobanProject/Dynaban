@@ -52,6 +52,17 @@ bool flash_write_word(unsigned int addr, unsigned int word)
 
     /* verify the write */
     if (*(volatile unsigned int*)addr != word) {
+    	digitalWrite(BOARD_TX_ENABLE, HIGH);
+    	Serial1.println();
+		Serial1.print("failed to write at : ");
+		Serial1.print(addr);
+		Serial1.println();
+		Serial1.print("FLASH_BASE->SR = ");
+		Serial1.print(FLASH_BASE->SR);
+    	Serial1.waitDataToBeSent();
+    	digitalWrite(BOARD_TX_ENABLE, LOW);
+		digitalWrite(BOARD_TX_ENABLE, HIGH);
+
         return false;
     }
 
@@ -62,7 +73,6 @@ void flash_write(unsigned int addr, void *data, unsigned int size)
 {
     unsigned int n, i;
     unsigned char *cdata = (unsigned char*)data;
-    boolean success = false;
 
     flash_unlock();
 
@@ -76,8 +86,23 @@ void flash_write(unsigned int addr, void *data, unsigned int size)
         if (pageBytes & 0x3) pageWords++;
         if (pageWords > 256) pageWords = 256;
 
+		digitalWrite(BOARD_TX_ENABLE, HIGH);
+		Serial1.println();
+		Serial1.print("(before erase) FLASH_BASE->SR = ");
+		Serial1.print(FLASH_BASE->SR);
+		Serial1.waitDataToBeSent();
+		digitalWrite(BOARD_TX_ENABLE, LOW);
+
         flash_erase_page(addr+n);
-        for (i=0; i<pageWords; i++) {
+
+		digitalWrite(BOARD_TX_ENABLE, HIGH);
+		Serial1.println();
+		Serial1.print("(after erase) FLASH_BASE->SR = ");
+		Serial1.print(FLASH_BASE->SR);
+		Serial1.waitDataToBeSent();
+		digitalWrite(BOARD_TX_ENABLE, LOW);
+
+		for (i=0; i<pageWords; i++) {
         	flash_write_word(addr+n+i*4, *(unsigned int*)&cdata[n+i*4]);
         }
     }

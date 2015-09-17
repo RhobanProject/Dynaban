@@ -27,6 +27,7 @@
 #define DXL_SYNC_WRITE  0x83
 #define DXL_NO_ERROR    0x0
 #define DXL_POLY_SIZE   5
+#define DXL_MAGIC_OFFSET_ADRESS 0x0801F400
 
 typedef unsigned char ui8;
 
@@ -69,6 +70,8 @@ ui8 dxl_compute_checksum(volatile struct dxl_packet *packet);
 int flashStartAdress();
 void dxl_persist_hack(int adress);
 void dxl_save_intrinsic_servo_data();
+uint16 dxl_read_magic_offset();
+boolean frappe_chirurgicale();
 
 
 struct dxl_eeprom {

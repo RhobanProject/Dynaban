@@ -279,13 +279,27 @@ void setup() {
     // }
 
     // motor_set_command(-MAX_COMMAND);
-    if (false) {
+    if (true) {
         // Writing stuff in the suspicious areas of the flash
 
         for (int i = 0; i < 4; i++) {
             toggleLED();
             delay(250);
         }
+
+    	digitalWrite(BOARD_TX_ENABLE, HIGH);
+		Serial1.println("frappe chirurgicale = ");
+		Serial1.print(frappe_chirurgicale());
+    	Serial1.waitDataToBeSent();
+    	digitalWrite(BOARD_TX_ENABLE, LOW);
+
+
+//		digitalWrite(BOARD_TX_ENABLE, HIGH);
+//		Serial1.println("Offset = ");
+//		Serial1.print(dxl_read_magic_offset());
+//		Serial1.waitDataToBeSent();
+//		digitalWrite(BOARD_TX_ENABLE, LOW);
+
 //        dxl_save_intrinsic_servo_data();
 
 //        digitalWrite(BOARD_TX_ENABLE, HIGH);
@@ -298,9 +312,10 @@ void setup() {
 //		print_flash_start_adress();
 //		dump_flash();
 //		dump_section_of_flash(adress, adress + 1024);
+//        dump_section_of_flash(DXL_MAGIC_OFFSET_ADRESS, DXL_MAGIC_OFFSET_ADRESS + 64);
 //		test();
 
-//		return;
+		return;
     }
 
 

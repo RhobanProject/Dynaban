@@ -80,7 +80,8 @@ void motor_init(encoder * pEnc) {
     mot.targetCurrent = 0;
     mot.posAngleLimit = 2047;//3584;
     mot.negAngleLimit = 2049;//512;
-
+    // Reading the magic offset in the flash
+    mot.offset = dxl_read_magic_offset();
 
     timer3.setPrescaleFactor(7200); // 1 for current debug, 7200 => 10 tick per ms
     timer3.setOverflow(65535);
@@ -101,7 +102,16 @@ void motor_update(encoder * pEnc) {
     //Updating the motor position (ie angle)
     buffer_add(&(mot.angleBuffer), mot.angle);
     mot.previousAngle = mot.angle;
-    mot.angle = pEnc->angle;
+    // Taking into account the magic offset
+    int tempAngle = pEnc->angle + mot.offset;
+    if (tempAngle < 0) {
+    	tempAngle = MAX_ANGLE + tempAngle + 1;
+    }
+
+    // Should not be useful, just being carefull
+	tempAngle = tempAngle%(MAX_ANGLE+1);
+
+    mot.angle = tempAngle;
     long oldPosition = buffer_get(&(mot.angleBuffer));
 
     motor_update_sign_of_speed();
