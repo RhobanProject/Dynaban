@@ -22,13 +22,30 @@ bool flash_erase_page(unsigned int pageAddr)
 
     while (FLASH_BASE->SR & FLASH_SR_BSY);
     FLASH_BASE->AR = pageAddr;
-    FLASH_BASE->CR = FLASH_CR_STRT | FLASH_CR_PER;
+    FLASH_BASE->CR = FLASH_CR_STRT & FLASH_CR_PER;
     while (FLASH_BASE->SR & FLASH_SR_BSY);
 
     FLASH_BASE->CR = 0;
 
     return true;
 }
+
+/*
+ * Keeping this version of flash erase just in case.
+ * It's closer to what the datasheets says, but has not been tested as much as the above version.
+ */
+//bool flash_erase_page(unsigned int pageAddr)
+//{
+//    while (FLASH_BASE->SR & FLASH_SR_BSY);
+//    FLASH_BASE->CR = FLASH_CR_PER;
+//    FLASH_BASE->AR = pageAddr;
+//    FLASH_BASE->CR = FLASH_CR_STRT;
+//    while (FLASH_BASE->SR & FLASH_SR_BSY);
+//
+//    FLASH_BASE->CR = 0;
+//
+//    return true;
+//}
 
 bool flash_write_word(unsigned int addr, unsigned int word)
 {
@@ -58,7 +75,7 @@ bool flash_write_word(unsigned int addr, unsigned int word)
 		Serial1.print(addr);
 		Serial1.println();
 		Serial1.print("FLASH_BASE->SR = ");
-		Serial1.print(FLASH_BASE->SR);
+		Serial1.println(FLASH_BASE->SR);
     	Serial1.waitDataToBeSent();
     	digitalWrite(BOARD_TX_ENABLE, LOW);
 		digitalWrite(BOARD_TX_ENABLE, HIGH);
@@ -88,8 +105,10 @@ void flash_write(unsigned int addr, void *data, unsigned int size)
 
 		digitalWrite(BOARD_TX_ENABLE, HIGH);
 		Serial1.println();
+		Serial1.print("First KB =  ");
+		Serial1.println(*(volatile unsigned char*)(addr+10));
 		Serial1.print("(before erase) FLASH_BASE->SR = ");
-		Serial1.print(FLASH_BASE->SR);
+		Serial1.println(FLASH_BASE->SR);
 		Serial1.waitDataToBeSent();
 		digitalWrite(BOARD_TX_ENABLE, LOW);
 
@@ -97,8 +116,10 @@ void flash_write(unsigned int addr, void *data, unsigned int size)
 
 		digitalWrite(BOARD_TX_ENABLE, HIGH);
 		Serial1.println();
+		Serial1.print("First KB =  ");
+		Serial1.println(*(volatile unsigned char*)(addr+10));
 		Serial1.print("(after erase) FLASH_BASE->SR = ");
-		Serial1.print(FLASH_BASE->SR);
+		Serial1.println(FLASH_BASE->SR);
 		Serial1.waitDataToBeSent();
 		digitalWrite(BOARD_TX_ENABLE, LOW);
 
