@@ -1,6 +1,5 @@
 #include <flash.h>
 #include "flash_write.h"
-#include <wirish/wirish.h>
 
 #define FLASH_KEY1     0x45670123
 #define FLASH_KEY2     0xCDEF89AB
@@ -69,17 +68,6 @@ bool flash_write_word(unsigned int addr, unsigned int word)
 
     /* verify the write */
     if (*(volatile unsigned int*)addr != word) {
-    	digitalWrite(BOARD_TX_ENABLE, HIGH);
-    	Serial1.println();
-		Serial1.print("failed to write at : ");
-		Serial1.print(addr);
-		Serial1.println();
-		Serial1.print("FLASH_BASE->SR = ");
-		Serial1.println(FLASH_BASE->SR);
-    	Serial1.waitDataToBeSent();
-    	digitalWrite(BOARD_TX_ENABLE, LOW);
-		digitalWrite(BOARD_TX_ENABLE, HIGH);
-
         return false;
     }
 
@@ -103,25 +91,7 @@ void flash_write(unsigned int addr, void *data, unsigned int size)
         if (pageBytes & 0x3) pageWords++;
         if (pageWords > 256) pageWords = 256;
 
-		digitalWrite(BOARD_TX_ENABLE, HIGH);
-		Serial1.println();
-		Serial1.print("First KB =  ");
-		Serial1.println(*(volatile unsigned char*)(addr+10));
-		Serial1.print("(before erase) FLASH_BASE->SR = ");
-		Serial1.println(FLASH_BASE->SR);
-		Serial1.waitDataToBeSent();
-		digitalWrite(BOARD_TX_ENABLE, LOW);
-
         flash_erase_page(addr+n);
-
-		digitalWrite(BOARD_TX_ENABLE, HIGH);
-		Serial1.println();
-		Serial1.print("First KB =  ");
-		Serial1.println(*(volatile unsigned char*)(addr+10));
-		Serial1.print("(after erase) FLASH_BASE->SR = ");
-		Serial1.println(FLASH_BASE->SR);
-		Serial1.waitDataToBeSent();
-		digitalWrite(BOARD_TX_ENABLE, LOW);
 
 		for (i=0; i<pageWords; i++) {
         	flash_write_word(addr+n+i*4, *(unsigned int*)&cdata[n+i*4]);

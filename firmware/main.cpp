@@ -171,7 +171,7 @@ void setup() {
     gpio_set_mode(GPIOB, 6, GPIO_AF_OUTPUT_PP);
     gpio_set_mode(GPIOB, 7, GPIO_INPUT_FLOATING);
 
-    // Hack for priting befor inits
+    // Hack for priting before inits
     Serial1.begin(57600);
 
     /*Setting the timer's prescale to get a 24KHz PWM.
@@ -203,6 +203,7 @@ void setup() {
 
     //Motor init
     motor_init(encoder_get_encoder(0));
+
     control_init();
 
     //Dxl
@@ -279,7 +280,7 @@ void setup() {
     // }
 
     // motor_set_command(-MAX_COMMAND);
-    if (true) {
+    if (false) {
         // Writing stuff in the suspicious areas of the flash
 
         for (int i = 0; i < 4; i++) {
@@ -287,11 +288,11 @@ void setup() {
             delay(250);
         }
 
-    	digitalWrite(BOARD_TX_ENABLE, HIGH);
-		Serial1.println("frappe chirurgicale = ");
-		Serial1.print(frappe_chirurgicale());
-    	Serial1.waitDataToBeSent();
-    	digitalWrite(BOARD_TX_ENABLE, LOW);
+//    	digitalWrite(BOARD_TX_ENABLE, HIGH);
+//		Serial1.println("frappe chirurgicale = ");
+//		Serial1.print(frappe_chirurgicale());
+//    	Serial1.waitDataToBeSent();
+//    	digitalWrite(BOARD_TX_ENABLE, LOW);
 
 
 //		digitalWrite(BOARD_TX_ENABLE, HIGH);
@@ -315,7 +316,7 @@ void setup() {
 //        dump_section_of_flash(DXL_MAGIC_OFFSET_ADRESS, DXL_MAGIC_OFFSET_ADRESS + 64);
 //		test();
 
-		return;
+//		return;
     }
 
 

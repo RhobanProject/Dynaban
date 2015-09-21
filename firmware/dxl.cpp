@@ -64,7 +64,7 @@ void dxl_init_regs()
         dxl_regs.eeprom.modelNumber = DXL_MODEL;
         dxl_regs.eeprom.firmwareVersion = 36;
         dxl_regs.eeprom.id = 1;
-        dxl_regs.eeprom.baudrate = 34;
+        dxl_regs.eeprom.baudrate = 1; //<-- 1000000 //34; <-- 57600
         dxl_regs.eeprom.returnDelay = 50;//249;
         dxl_regs.eeprom.cwLimit = 4095;
         dxl_regs.eeprom.ccwLimit = 0;
@@ -427,7 +427,17 @@ uint16 dxl_read_magic_offset() {
 }
 
 /*
- * Doesn't work, can't write in the desired adress :'(
+ * The goal here was to modify a few bytes that we think are responsible
+ * of the bootloader bug (or on-purpose limitation) which prevents uploading a firmware bigger than ~60KB.
+ * But it doesn't work, we can't write in the desired address :'(.
+ * That's because the read protection is activated, ironically we can read the whole flash BUT
+ * we can't write over the first 4KB of flash because of it.
+ * Taking the read protection out would cause a mass erase of the flash, which we could handle in 2 ways :
+ * - Either we load the bootloader on the flash before the mass erase happens, quite beautiful if it works
+ * - Or we mass erase, then we load a corrected version of the bootloader through the physical bootloader.
+ *
+ * -> we might do it if we really need a bigger firmware but the procedure might become to heavy for a user wanted to
+ * swap to our firmware.
  */
 boolean frappe_chirurgicale() {
 	unsigned char cdata[1024];

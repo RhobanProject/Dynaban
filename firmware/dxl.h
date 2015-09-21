@@ -27,7 +27,8 @@
 #define DXL_SYNC_WRITE  0x83
 #define DXL_NO_ERROR    0x0
 #define DXL_POLY_SIZE   5
-#define DXL_MAGIC_OFFSET_ADRESS 0x0801F400
+#define DXL_MAGIC_OFFSET_ADRESS 0x0800C000
+//0x0801F400 // <-- This adress is the new one, that we'll use once the bootloader will get fixed.
 
 typedef unsigned char ui8;
 
