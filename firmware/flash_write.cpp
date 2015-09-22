@@ -21,7 +21,7 @@ bool flash_erase_page(unsigned int pageAddr)
 
     while (FLASH_BASE->SR & FLASH_SR_BSY);
     FLASH_BASE->AR = pageAddr;
-    FLASH_BASE->CR = FLASH_CR_STRT & FLASH_CR_PER;
+    FLASH_BASE->CR = FLASH_CR_STRT | FLASH_CR_PER;
     while (FLASH_BASE->SR & FLASH_SR_BSY);
 
     FLASH_BASE->CR = 0;
