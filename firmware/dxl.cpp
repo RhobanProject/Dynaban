@@ -64,7 +64,7 @@ void dxl_init_regs()
         dxl_regs.eeprom.modelNumber = DXL_MODEL;
         dxl_regs.eeprom.firmwareVersion = 36;
         dxl_regs.eeprom.id = 1;
-        dxl_regs.eeprom.baudrate = 1; //<-- 1000000 //34; <-- 57600
+        dxl_regs.eeprom.baudrate = 34; //<-- 57600
         dxl_regs.eeprom.returnDelay = 50;//249;
         dxl_regs.eeprom.cwLimit = 4095;
         dxl_regs.eeprom.ccwLimit = 0;
