@@ -50,7 +50,12 @@ The hardware abstraction layers we created (motor.*, magnetic_encoder.*, dxl*) a
 
 A servo using our firmware will be recognized as a MX-64. You can communicate with it using the same protocol you've always used.
 
-Edit : A lot has been done since the last update of the read me. I'll update this soon (30/09/2015)!
+(Updated 30/08/2015)
+**The firmware is on a stable and usable version**. 
+The fields that are not mapped below are either considered of little use or considered not doable with the hardware capacities. Nevertheless, these functionalities can be implemented if  the need arises.
+**New, powerfull functionalities have been implemented. More on it below**
+
+## Basic functionalities
 
 Here is the list of what is and is not currently implemented when you write into the MX's RAM:
 
@@ -58,18 +63,19 @@ Here is the list of what is and is not currently implemented when you write into
      - D Gain : mapped.
      - I Gain : mapped.
      - P Gain : mapped.
+     - Torque enable : mapped. (default value is 0, you'll need to change the value at start up)
      - Goal Position : mapped.
-     - Moving Speed : mapped. Currently, setting a speed will put the motor in wheel mode.
-     - Torque Limit : NOT mapped.
+     - Moving Speed : mapped. Currently, setting a speed will put the motor in wheel mode (if the "mode" value is set to 5, more on the "mode" value below).
+     - Torque Limit : not mapped.
      - Present Position : mapped.
-     - Present Speed : Needs to be enhanced though, currently has a 128 ms delay.
-     - Present Load : NOT mapped.
+     - Present Speed : mapped.
+     - Present Load : not mapped.
      - Present Voltage : mapped.
-     - Present Temperature : mapped. Still needs to be tested.
-     - Registered : NOT mapped.
+     - Present Temperature : mapped.
+     - Registered : not mapped.
      - Moving : mapped.
-     - Lock : NOT mapped.
-     - Punch : NOT mapped.
+     - Lock : not mapped.
+     - Punch : not mapped.
      - Current : mapped but very hard to exploit because it is very noisy and the noise
        is not the same if the motor is going CW or CCW.This is the biggest issue we
        encountered, more on that problem in the notes.
@@ -77,17 +83,30 @@ Here is the list of what is and is not currently implemented when you write into
      - Goal Torque : mapped but does not work that well due to the bad current measurement.
      - Goal Acceleration : NOT mapped.
 
-No EEPROM functionality has been mapped yet. Hence, you can't set angle limitations. Will be implemented soon.
+Here is the list of what is and is not currently implemented when you write into the MX's EEPROM (flash):
+    - Model Number : mapped.
+    - Version Of Firmware : mapped.
+    - ID : mapped.
+    - Baud Rate : mapped.
+    - Return Delay Time : not mapped.
+    - CW and CCW angle limits : mapped. Both at 0 means no limits.
+    - Highest Limit Temperature : not mapped Currently hard set to 70 degrees.
+    - Lowest and highest Limit Voltage : not mapped.
+    - Max Torque : not mapped.
+    - Status Return level : not mapped.
+    - Alarm led : not mapped.
+    - Multi turn offset : not mapped.
+    - Resolution Divider : not mapped.
 
-## What needs to be done :
+## Advanced functionalities
+One of the motivations behind this project was to have full control over our hardware. Once the basic stuff was working, we started playing with more advanced funtionalities. Here where we're at :
 
-     - Enhance current processing by improving the filtering method.
-     Currently, we use clipping + first order low-pass filter.
-     - Enhance current measure by synchronizing it with the PWM. The best option seems to be
-     reading the ADC when the PWM is finishing its high phase.
-     - Map EEPROM functionalities. This mainly means setting up angle limitations and maybe
-     the "Resolution divider".
-     - Use the I and D parts of "PID control", because real men are not afraid of them.
+# Prediction control :
+One very big limitation of the default firmware is that the only control loop that is available is a PID (which is already an enhanced compared to the RX family that has only a P...). To be continued...
+
+
+## To do  :
+
      - Modify how the speed is calculated. The speed ranges from 0 to 1023 (and 1024 to 2047
      for the other direction). 1023 is 117.07rpm, 1 is 0.114rpm which is about 8 steps/s
      (the magnetic encoder has 4096 steps). Therefore, to be able to measure a speed of
@@ -98,7 +117,6 @@ No EEPROM functionality has been mapped yet. Hence, you can't set angle limitati
      solution is to reduce precision (ie reduce delay) as speed goes up.
      - Make it possible to set a speed in joint mode (connect control
      loops to each other)
-     - Implement a spline manager
 
 ## License
 
