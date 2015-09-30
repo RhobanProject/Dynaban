@@ -111,9 +111,9 @@ void control_tick_PID_and_predictive_command(motor * pMot) {
 }
 
 void control_tick_P_on_speed(motor * pMot) {
-    controlStruct.deltaSpeed = pMot->targetSpeed - pMot->speed;
+    controlStruct.deltaSpeed = pMot->targetSpeed - pMot->averageSpeed;
 
-    motor_set_command(controlStruct.deltaSpeed * INITIAL_SPEED_P_COEF);
+    motor_set_command(controlStruct.deltaSpeed * P_FOR_SPEED);
 }
 
 /*Desactivated because it does not work well.

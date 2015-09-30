@@ -15,6 +15,8 @@ const float INITIAL_SPEED_P_COEF = 0.5;
 const int INITIAL_ACCELERATION_P_COEF = 20;
 const int INITIAL_TORQUE_P_COEF = 45;
 
+const float P_FOR_SPEED = MAX_COMMAND/(1024.0);
+
 struct control {
     int deltaAngle;
     int deltaSpeed;
