@@ -50,12 +50,14 @@ The hardware abstraction layers we created (motor.*, magnetic_encoder.*, dxl*) a
 
 A servo using our firmware will be recognized as a MX-64. You can communicate with it using the same protocol you've always used.
 
+Edit : A lot has been done since the last update of the read me. I'll update this soon (30/09/2015)!
+
 Here is the list of what is and is not currently implemented when you write into the MX's RAM:
 
      - LED : mapped.
-     - D Gain : mapped (applies to the position control only).
-     - I Gain : mapped (applies to the position control only).
-     - P Gain : mapped (applies to the position control only).
+     - D Gain : mapped.
+     - I Gain : mapped.
+     - P Gain : mapped.
      - Goal Position : mapped.
      - Moving Speed : mapped. Currently, setting a speed will put the motor in wheel mode.
      - Torque Limit : NOT mapped.
