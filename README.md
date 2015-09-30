@@ -84,6 +84,7 @@ Here is the list of what is and is not currently implemented when you write into
      - Goal Acceleration : NOT mapped.
 
 Here is the list of what is and is not currently implemented when you write into the MX's EEPROM (flash):
+
     - Model Number : mapped.
     - Version Of Firmware : mapped.
     - ID : mapped.
@@ -99,10 +100,13 @@ Here is the list of what is and is not currently implemented when you write into
     - Resolution Divider : not mapped.
 
 ## Advanced functionalities
-One of the motivations behind this project was to have full control over our hardware. Once the basic stuff was working, we started playing with more advanced funtionalities. Here where we're at :
+One of the motivations behind this project was to have full control over our hardware. Once the basic stuff was working, we started playing with more advanced funtionalities.
 
-# Prediction control :
-One very big limitation of the default firmware is that the only control loop that is available is a PID (which is already an enhanced compared to the RX family that has only a P...). To be continued...
+# Predictive control :
+One very big limitation of the default firmware is that the only control loop that is available is a PID (which is already an enhanced compared to the RX family that has only a P...).
+A PID is meant to compensate the differences between what is predicted by the model of our system and what actually happens. Those differences come from the model limitations (how is the friction modelized? Is the inertia taken in concideration? Etc.), the loopback imprecisions (accuracy and delay) and the external pertubations. The default firmware has no model, meaning that the PID has a lot of work to do.
+Let's say we want to follow a predefined trajectory, like a min-jerk trajectory. With a PID-only approach, we compare the ideal trajectory with 3 actual trajectories the motor realized with orders sent at 25Hz, 50Hz and 1000Hz :
+![Following a trajectory with a PID only approach](trajectory/half_turn_min_jerk.png)
 
 
 ## To do  :
