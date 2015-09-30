@@ -102,20 +102,60 @@ Here is the list of what is and is not currently implemented when you write into
 ## Advanced functionalities
 One of the motivations behind this project was to have full control over our hardware. Once the basic stuff was working, we started playing with more advanced funtionalities.
 
-# Predictive control :
+# Predictive control background :
 One very big limitation of the default firmware is that the only control loop that is available is a PID (which is already an enhanced compared to the RX family that has only a P...).
 A PID is meant to compensate the differences between what is predicted by the model of our system and what actually happens. Those differences come from the model limitations (how is the friction modelized? Is the inertia taken in concideration? Etc.), the loopback imprecisions (accuracy and delay) and the external pertubations. The default firmware has no model, meaning that the PID has a lot of work to do.
-Let's say we want to follow a predefined trajectory, like a min-jerk trajectory. With a PID-only approach, we compare the ideal trajectory with 3 actual trajectories the motor realized with orders sent at 25Hz, 50Hz and 1000Hz :
+Let's say we want to follow a predefined trajectory, like a min-jerk trajectory. The servo is attached to a weight of 270g at a deistance of 12cm. With a PID-only approach, we compare the ideal trajectory with 3 actual trajectories the motor realized with orders sent at 25Hz, 50Hz and 1000Hz :
 ![Following a trajectory with a PID only approach](trajectory/half_turn_min_jerk.png)
 
+Even though the static precision is perfect (the I part of the PID ensures a null static error), the dynamic precision is not and even reaches ~8° when the speed is maximum. In a 6 DOF robotic linear arm, where the error stack up, the lackof dynamic precision is prohibitive. Increasing the frequency of the orders improves the quality of the result but the enhancement is capped, there would be almost no diference in quality between the 1000Hz curve and a 2000Hz curve. By construction, a PID-only approach will always lag behind a moving command. Again, this is normal, the PID was not made to be used alone.
+
+In order to overcome this problem, the Dynaban firmware implements a model of the motor. More precisely :
+
+- A model of the electric motor (essentialy the relationship between input voltage, rotation speed and output torque)
+- A model of the frictions (with an estimation of the static friction and the coulomb friction)
+- An inertial model
+
+After tuning the model, we managed to get decent results with a **full open loop approach** : 
+![Following a trajectory with a PID only approach and with a model only approach (open loop)](trajectory/![Following a trajectory with a PID only approach](trajectory/open_loop_speed_trajectory_270g_12cm_45degrees_weight_compensation.png).png)
+
+And almost perfect results (< 0.4°) when we combine the model and the PID :
+![Following a trajectory with a PID only approach and with a model only approach (open loop)](trajectory/![Following a trajectory with a PID only approach](trajectory/speed_control_and_pid.png).png)
+
+# How to use the predictive control? :
+The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 0x49. On the Dynaban firmware, the chart is increased with the following fields (to be continued...):
+
+    unsigned char trajPoly1Size;            // 0x4A 
+    float         trajPoly1[DXL_POLY_SIZE]; //[4B
+                                            //[4F
+                                            //[53
+                                            //[57
+                                            //[5B
+    unsigned char torquePoly1Size;          // 0x5F
+    float         torquePoly1[DXL_POLY_SIZE];//[60
+                                            //[64
+                                            //[68
+                                            //[6C
+                                            //[70
+    uint16        duration1;                // 0x75
+    unsigned char trajPoly2Size;            // 0x76
+    float         trajPoly2[DXL_POLY_SIZE]; //[77
+                                            //[7B
+                                            //[7F
+                                            //[83
+                                            //[87
+    unsigned char torquePoly2Size;          // 0x8B
+    float         torquePoly2[DXL_POLY_SIZE];//[8C
+                                            //[90
+                                            //[94
+                                            //[98 
 
 ## To do  :
 
      - Modify how the speed is calculated. The speed ranges from 0 to 1023 (and 1024 to 2047
      for the other direction). 1023 is 117.07rpm, 1 is 0.114rpm which is about 8 steps/s
      (the magnetic encoder has 4096 steps). Therefore, to be able to measure a speed of
-     0.114rpm, we need to wait 128ms. That's why, In the current version, the speed is
-     updated with a 128ms delay. This is very bad when you think "control loop", since delays
+     0.114rpm, we need to wait 128ms. This is very bad when you think "control loop", since delays
      create instability. The easy solution is to reduce precision (unless you're using your
      MX to build a clock, not sure it's useful to get a precision of  0.114rpm). A better
      solution is to reduce precision (ie reduce delay) as speed goes up.
