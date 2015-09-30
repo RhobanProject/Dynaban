@@ -14,58 +14,6 @@
 #define MAX_TEMPERATURE       70
 #define OVER_FLOW             3000
 
-/**
- * To do :
- * - Figure out what's the max binary size. Apparently, we've reached it since using a trigonomic function
- * (which adds ~6kB on the binary) can be enough for the uC refusing to accept the binary.
- * ----> Find a workaround (trig LUTs? Reducing the binary size elsewhere?)
- * elf size discussion :
- * text (functions, interrupt vector table and constants going to the flash)
- * 	32108
- * data is for initialized variables, and it counts for RAM and FLASH. The linker allocates the data in FLASH which then is copied from ROM to RAM in the startup code.
- * 	3440
- * bss (Block Started by Symbol) is for the uninitialized data in RAM which is initialized with zero in the startup code
- * 	6304
- * dec (sum of the 3 above)
- * 	41852
- *
- * 	  Flash used would be = text + data + bss + bootloader
- * 	  RAM used at start up would be = bss + data
- *
- * 	  bootloader size to be checked with robotis but ~~ 15.2kB for the maple mini boot loader and 16.3kB for Greg's adaption for cm900
- *
- *
- * Example, changing NB_POSITIONS_SAVED from 1024 to 1524. Increases the size of 2 int16 arrays. Extra size = 2*16*500 = 16kb. Results =
- * 	   text	   						data	    		bss
- * 	  32124 (increased by 16 B)	   3440 (unchanged)	   8304 (increased by 2000 B)
- *
- * 	  	Works :
- * 	     text	   data	    bss	    dec	    hex	filename
-  	  	  32108	   3440	   6304	  41852	   a37c	build/mx64.elf
- *
- *		Does not work (using the 3 lines with a cos in motor.cpp) :
-	     text	   data	    bss	    dec	    hex	filename
-  	  	  37748	   3448	   6304	  47500	   b98c	build/mx64.elf
-
-  	  	  Works (only the call to predictive_control_anti_gravity_tick with angleRad as value)
-		 text	   data	    bss	    dec	    hex	filename
-  	  	  32420	   3448	   6304	  42172
-
-
-  using a cos actually costs :
-  	     text	   data	    bss	    dec	    hex	filename
-  	  	  5409	   0	   0	  5409	   b98c	build/mx64.elf
-
- Unfortunately, creating a hand-made look-up table for calculating the trig functions wouldn't solve the problem since :
- 1024 (4096 steps of the magnetic encoder reduced to the first quadrant) * 32 b (float) = 4 kB ~= 5409 B
- *
- *
- *
- * - Re-test the anti-gravity arm (the speed update had a bug in it)
- * - Solve the com bug that "freezes" the servo from time to time. Try
- *    => Killing the 48Khz interruption for current read
- *    => Reduce heavily the frequency of the heavy float calculations with TRAJ_CALC_FREQ
- */
 
 /**
  * Schedules the hardware tasks
@@ -113,6 +61,14 @@ void print_detailed_trajectory_halt();
  **/
 void print_time_stamp();
 
+/*
+ * Automatic or manual inertial calibration helper
+ **/
+void inertial_calibration();
+
+/*
+ * Returns the score of the trajectory, based on a least square approach. If the trajectory is perfectly followed, the score is 0.
+ **/
 int32 evaluate_trajectory_least_square(uint16 (*pidealTraj)(uint16));
 
 /**
@@ -172,7 +128,7 @@ void setup() {
     gpio_set_mode(GPIOB, 7, GPIO_INPUT_FLOATING);
 
     // Hack for priting before inits
-    Serial1.begin(57600);
+    //Serial1.begin(57600);
 
     /*Setting the timer's prescale to get a 24KHz PWM.
       PWM1 and PWM2 share the same timer, channel 1 and 2.*/
@@ -256,70 +212,6 @@ void setup() {
     digitalWrite(BOARD_LED_PIN, HIGH);
     controlMode = OFF;
 
-        //motor_set_command(80); //80 doesn't move, 85 moves
-    //Temp :
-
-//     hardwareStruct.mot->targetAngle = 0;
-//     controlMode = POSITION_CONTROL;
-
-    // hardwareStruct.mot->targetSpeed = 500;
-    // controlMode = SPEED_CONTROL;
-
-    // int t = 0;
-
-    // while (t < 500) {
-    //     delay(1);
-    //     hardware_tick();
-    //     t++;
-    // }
-    // print_debug();
-    // while (t < 3000) {
-    //     delay(1);
-    //     hardware_tick();
-    //     t++;
-    // }
-
-    // motor_set_command(-MAX_COMMAND);
-    if (false) {
-        // Writing stuff in the suspicious areas of the flash
-
-        for (int i = 0; i < 4; i++) {
-            toggleLED();
-            delay(250);
-        }
-
-//    	digitalWrite(BOARD_TX_ENABLE, HIGH);
-//		Serial1.println("frappe chirurgicale = ");
-//		Serial1.print(frappe_chirurgicale());
-//    	Serial1.waitDataToBeSent();
-//    	digitalWrite(BOARD_TX_ENABLE, LOW);
-
-
-//		digitalWrite(BOARD_TX_ENABLE, HIGH);
-//		Serial1.println("Offset = ");
-//		Serial1.print(dxl_read_magic_offset());
-//		Serial1.waitDataToBeSent();
-//		digitalWrite(BOARD_TX_ENABLE, LOW);
-
-//        dxl_save_intrinsic_servo_data();
-
-//        digitalWrite(BOARD_TX_ENABLE, HIGH);
-//        Serial1.println("Attempting to write");
-//        Serial1.waitDataToBeSent();
-//        digitalWrite(BOARD_TX_ENABLE, LOW);
-//        int adress = 0x0800C000;
-//        dxl_persist_hack(adress);
-
-//		print_flash_start_adress();
-//		dump_flash();
-//		dump_section_of_flash(adress, adress + 1024);
-//        dump_section_of_flash(DXL_MAGIC_OFFSET_ADRESS, DXL_MAGIC_OFFSET_ADRESS + 64);
-//		test();
-
-//		return;
-    }
-
-
 }
 
 void loop() {
@@ -344,120 +236,21 @@ void loop() {
         motor_read_current();
     }
 
+    // Uncomment to output debug
 //     if (counter % 100*4 == 0) {
 //         print_debug();
 //     }
 
+    // Playing with the calibration :
+//    if (counter > 2000 && firstTime) {
+//    	inertial_calibration();
+//    }
 
-    if (counter > 2000 && firstTime && false) {
-        firstTime = false;
-            //Taking care of the V(0) problem (static annoying stuff)
-        // controlMode = OFF;
-
-            // motor_set_command(80);
-        // while (hardwareStruct.mot->angle > 5 && hardwareStruct.mot->angle < 4091) {
-        //     hardware_tick();
-        //     delay(1);
-        // }
-
-        timer3.pause();
-        timer3.refresh();
-        timer3.resume();
-
-        // hardwareStruct.mot->targetAngle = (hardwareStruct.mot->angle + 2048)%4096;
-        // controlMode = POSITION_CONTROL;
-        controlMode = PREDICTIVE_COMMAND_ONLY; // PID_AND_PREDICTIVE_COMMAND
-        dxl_regs.ram.positionTrackerOn = true;
-            //motor_set_command(2700); // max speed
-    }
-
-    // if (counter > 68000 && firstTimeNewSpeed == true) {
-    //     firstTimeNewSpeed = false;
-    //     motor_set_command(2700); // max speed
-    // }
-
-    if (firstTime == false && dxl_regs.ram.positionTrackerOn == false && firstTimePrint == true) {
-        controlMode = OFF;
-        hardwareStruct.mot->targetAngle = 0;
-        motor_compliant();
-        firstTimePrint = false;
-        print_detailed_trajectory();
-        timer3.pause();
-        digitalWrite(BOARD_TX_ENABLE, HIGH);
-        Serial1.println();
-        Serial1.print("Score :");
-        Serial1.print(evaluate_trajectory_least_square(traj_min_jerk));
-        Serial1.waitDataToBeSent();
-        digitalWrite(BOARD_TX_ENABLE, LOW);
-
-        return;
-            //Auto-calibration :
-        hardwareStruct.mot->targetAngle = 0;
-        controlMode = POSITION_CONTROL;
-        int32 tempScore = evaluate_trajectory_least_square(traj_min_jerk);
-        if (tempScore < 10000000) {
-            averageScore = averageScore + tempScore;
-            digitalWrite(BOARD_TX_ENABLE, HIGH);
-            Serial1.println();
-            Serial1.print("Score : ");
-            Serial1.print(tempScore);
-            // Serial1.print("Sum : ");
-            // Serial1.println(averageScore);
-            Serial1.waitDataToBeSent();
-            digitalWrite(BOARD_TX_ENABLE, LOW);
-        } else {
-                // This score is way too high, the least-square must have over-flowed. We'll redo the move
-            digitalWrite(BOARD_TX_ENABLE, HIGH);
-            Serial1.println();
-            Serial1.print("Score invalid");
-            Serial1.waitDataToBeSent();
-            digitalWrite(BOARD_TX_ENABLE, LOW);
-            repetitions--;
-        }
-
-
-        if (repetitions == 2) {
-            repetitions = 0;
-
-            previousScore = score;
-            score = averageScore/3;
-            averageScore = 0;
-            float temp = addedInertia;
-            addedInertia = auto_calibrate_inertia(previousInertia, addedInertia, previousScore, score);
-            previousInertia = temp;
-
-            digitalWrite(BOARD_TX_ENABLE, HIGH);
-            Serial1.println();
-            Serial1.print("Previous least square : ");
-            Serial1.println(previousScore);
-            Serial1.print("Current least square  : ");
-            Serial1.println(score);
-            Serial1.print("With inertia : ");
-            Serial1.println(previousInertia*1000);
-            Serial1.print("Next inertia to be tested : ");
-            Serial1.println(addedInertia*1000);
-            Serial1.waitDataToBeSent();
-            digitalWrite(BOARD_TX_ENABLE, LOW);
-        } else {
-            repetitions++;
-        }
-
-            // Shining new start
-        firstTime = true;
-        firstTimePrint = true;
-        dxl_regs.ram.positionTrackerOn = false;
-        counter = 0;
-    }
-
-    // if (timeIndex >= (TIME_STAMP_SIZE-3) && firstTime == false && positionTrackerOn == false && firstTimePrint == false) {
-    //     print_time_stamp();
-    //     motor_compliant();
-    //     while(true);
-    // }
 }
 
 void hardware_tick() {
         //These actions are performed at a rate of 1kh and cost ~98-102 us
+
     // add_benchmark_time();
         //Updating the encoder (~90-92 us)
     encoder_read_angles_sharing_pins_mode();
@@ -607,7 +400,108 @@ void print_detailed_current_debug() {
     }
 }
 
+void inertial_calibration() {
+	if (counter > 2000 && firstTime && false) {
+	        firstTime = false;
+	            //Taking care of the V(0) problem (static annoying stuff)
+	        // controlMode = OFF;
 
+	            // motor_set_command(80);
+	        // while (hardwareStruct.mot->angle > 5 && hardwareStruct.mot->angle < 4091) {
+	        //     hardware_tick();
+	        //     delay(1);
+	        // }
+
+	        timer3.pause();
+	        timer3.refresh();
+	        timer3.resume();
+
+	        // hardwareStruct.mot->targetAngle = (hardwareStruct.mot->angle + 2048)%4096;
+	        // controlMode = POSITION_CONTROL;
+	        controlMode = PREDICTIVE_COMMAND_ONLY; // PID_AND_PREDICTIVE_COMMAND
+	        dxl_regs.ram.positionTrackerOn = true;
+	            //motor_set_command(2700); // max speed
+	    }
+
+	    // if (counter > 68000 && firstTimeNewSpeed == true) {
+	    //     firstTimeNewSpeed = false;
+	    //     motor_set_command(2700); // max speed
+	    // }
+
+	    if (firstTime == false && dxl_regs.ram.positionTrackerOn == false && firstTimePrint == true) {
+	        //Used for manual calibration :
+	    	controlMode = OFF;
+	        hardwareStruct.mot->targetAngle = 0;
+	        motor_compliant();
+	        firstTimePrint = false;
+	        print_detailed_trajectory();
+	        timer3.pause();
+	        digitalWrite(BOARD_TX_ENABLE, HIGH);
+	        Serial1.println();
+	        Serial1.print("Score :");
+	        Serial1.print(evaluate_trajectory_least_square(traj_min_jerk));
+	        Serial1.waitDataToBeSent();
+	        digitalWrite(BOARD_TX_ENABLE, LOW);
+
+	        return;
+	            //Used for Auto-calibration :
+	        hardwareStruct.mot->targetAngle = 0;
+	        controlMode = POSITION_CONTROL;
+	        int32 tempScore = evaluate_trajectory_least_square(traj_min_jerk);
+	        if (tempScore < 10000000) {
+	            averageScore = averageScore + tempScore;
+	            digitalWrite(BOARD_TX_ENABLE, HIGH);
+	            Serial1.println();
+	            Serial1.print("Score : ");
+	            Serial1.print(tempScore);
+	            // Serial1.print("Sum : ");
+	            // Serial1.println(averageScore);
+	            Serial1.waitDataToBeSent();
+	            digitalWrite(BOARD_TX_ENABLE, LOW);
+	        } else {
+	                // This score is way too high, the least-square must have over-flowed. We'll redo the move
+	            digitalWrite(BOARD_TX_ENABLE, HIGH);
+	            Serial1.println();
+	            Serial1.print("Score invalid");
+	            Serial1.waitDataToBeSent();
+	            digitalWrite(BOARD_TX_ENABLE, LOW);
+	            repetitions--;
+	        }
+
+
+	        if (repetitions == 2) {
+	            repetitions = 0;
+
+	            previousScore = score;
+	            score = averageScore/3;
+	            averageScore = 0;
+	            float temp = addedInertia;
+	            addedInertia = auto_calibrate_inertia(previousInertia, addedInertia, previousScore, score);
+	            previousInertia = temp;
+
+	            digitalWrite(BOARD_TX_ENABLE, HIGH);
+	            Serial1.println();
+	            Serial1.print("Previous least square : ");
+	            Serial1.println(previousScore);
+	            Serial1.print("Current least square  : ");
+	            Serial1.println(score);
+	            Serial1.print("With inertia : ");
+	            Serial1.println(previousInertia*1000);
+	            Serial1.print("Next inertia to be tested : ");
+	            Serial1.println(addedInertia*1000);
+	            Serial1.waitDataToBeSent();
+	            digitalWrite(BOARD_TX_ENABLE, LOW);
+	        } else {
+	            repetitions++;
+	        }
+
+	            // Shining new start
+	        firstTime = true;
+	        firstTimePrint = true;
+	        dxl_regs.ram.positionTrackerOn = false;
+	        counter = 0;
+	    }
+}
 
 int32 evaluate_trajectory_least_square(uint16 (*pidealTraj)(uint16)) {
     uint16 time = 0;
