@@ -123,7 +123,18 @@ And almost perfect results (< 0.4°) when we combine the model and the PID :
 ![Following a trajectory with a PID only approach and with a model only approach (open loop)](trajectory/![Following a trajectory with a PID only approach](trajectory/speed_control_and_pid.png).png)
 
 # How to use the predictive control? :
-The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 0x49. On the Dynaban firmware, the chart is increased with the following fields (to be continued...):
+The idea here is to tell the servo what it will have to do in the near future and let it try to match it. More precisely :
+- The servo needs to know the positions it should be at in the near future
+- The servo needs to know the torques it should output in the near future
+
+In order to achieve that, you'll have to :
+- Choose the duration of the spline (i.e. what we called "near future")
+- Send a polynome describing the expected positions for the duration. You can choose the degree of the polynome between 0 and 4. If the polynome looks like a0 + a1*t + a2*t², then you'll have to send the 3 floats a0, a1 and a2 to the servo.
+- Send a polynome describing the expected torque for the duration. The 2 polynomes don't need to be of equal degrees.
+
+(to be continued)
+
+The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 0x49. On the Dynaban firmware, the chart is increased with the following fields :
 
     unsigned char trajPoly1Size;            // 0x4A 
     float         trajPoly1[DXL_POLY_SIZE]; //[4B
@@ -149,6 +160,7 @@ The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 
                                             //[90
                                             //[94
                                             //[98 
+
 
 ## To do  :
 
