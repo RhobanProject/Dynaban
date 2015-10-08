@@ -103,12 +103,17 @@ Here is the list of what is and is not currently implemented when you write into
 One of the motivations behind this project was to have full control over our hardware. Once the basic stuff was working, we started playing with more advanced funtionalities.
 
 # Predictive control background :
-One very big limitation of the default firmware is that the only control loop that is available is a PID (which is already an enhanced compared to the RX family that has only a P...).
-A PID is meant to compensate the differences between what is predicted by the model of our system and what actually happens. Those differences come from the model limitations (how is the friction modelized? Is the inertia taken in concideration? Etc.), the loopback imprecisions (accuracy and delay) and the external pertubations. The default firmware has no model, meaning that the PID has a lot of work to do.
-Let's say we want to follow a predefined trajectory, like a min-jerk trajectory. The servo is attached to a weight of 270g at a deistance of 12cm. With a PID-only approach, we compare the ideal trajectory with 3 actual trajectories the motor realized with orders sent at 25Hz, 50Hz and 1000Hz :
+One very big limitation of the default firmware is that the only control loop that is available is a PID (which is already an enhancement compared to the RX family that has only a P).
+A PID is meant to compensate the differences between what is predicted by the model of our system and what actually happens. 
+Those differences come from :
+- The model limitations (how is the friction modelized? Is the inertia taken in concideration? Etc.)
+- The loopback imprecisions (accuracy and delay) 
+- The external pertubations. 
+**The default firmware has no model**, meaning that the PID has a lot of work to do !
+Let's say that we want to follow a predefined trajectory, like a min-jerk trajectory. The servo is attached to a weight of 270g at a distance of 12cm. With a PID-only approach, we compare the ideal trajectory with 3 actual trajectories the motor realized with orders sent at 25Hz, 50Hz and 1000Hz :
 ![Following a trajectory with a PID only approach](trajectory/half_turn_min_jerk.png)
 
-Even though the static precision is perfect (the I part of the PID ensures a null static error), the dynamic precision is not and even reaches ~8° when the speed is maximum. In a 6 DOF robotic linear arm, where the error stack up, the lackof dynamic precision is prohibitive. Increasing the frequency of the orders improves the quality of the result but the enhancement is capped, there would be almost no diference in quality between the 1000Hz curve and a 2000Hz curve. By construction, a PID-only approach will always lag behind a moving command. Again, this is normal, the PID was not made to be used alone.
+Even though the static precision is perfect (the I part of the PID ensures a null static error), the dynamic precision is not and even reaches ~8° when the speed is maximum. In a 6 DOF robotic linear arm, where the errors stack up, the lack of dynamic precision is prohibitive. Increasing the frequency of the orders improves the quality of the result but the enhancement is capped, there would be almost no diference in quality between the 1000Hz curve and a 2000Hz curve. By construction, a PID-only approach will always lag behind a moving command. Again, this is normal, the PID was not made to be used alone.
 
 In order to overcome this problem, the Dynaban firmware implements a model of the motor. More precisely :
 
