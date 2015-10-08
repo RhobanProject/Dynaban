@@ -102,6 +102,9 @@ Here is the list of what is and is not currently implemented when you write into
 ## Advanced functionalities
 One of the motivations behind this project was to have full control over our hardware. Once the basic stuff was working, we started playing with more advanced funtionalities.
 
+# Using the field "mode" :
+To do
+
 # Predictive control background :
 One very big limitation of the default firmware is that the only control loop that is available is a PID (which is already an enhancement compared to the RX family that has only a P).
 A PID is meant to compensate the differences between what is predicted by the model of our system and what actually happens. 
@@ -139,14 +142,18 @@ In order to achieve that, you'll have to :
 
 (to be continued)
 
-# How to I smoothly continue a trajectory after the first one ended ?
-As you can notice in the "RAM mapping extention",  
+# How do I smoothly continue a trajectory after the first one ended ?
+As you can notice in the "RAM mapping extention", the fields needed to use the predictive control are present twice. Once under the name of traj1 and once under the name of traj2 (trajPoly2Size, trajPoly2, torquePoly2, etc).
+The fields traj2 are a buffer that will be copied into the traj1 fields once the traj1 finishes. 
 
-copyNextBuffer is automatically set to 0 when the buffer is copied. So, in order to continue a trajectory several times, the procedure would be :
+For this behaviour to happen, you'll have to set copyNextBuffer to 1. copyNextBuffer is automatically set to 0 when the buffer is copied. So, in order to continue a trajectory several times, the procedure would be :
 - Update traj2 and set copyNextBuffer to 1
 - Once traj1 is finished, update traj2 and set copyNextBuffer to 1
 - Once traj1 is finished, update traj2 and set copyNextBuffer to 1
 etc.
+
+The transitions between the trajectories should be made in a way that ensures the continuity of both torque and position trajectories and their derivates.
+![Don't do this :>)](docs/piece_wise_continuity.png)
 
 # RAM mapping extention
 The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 0x49. On the Dynaban firmware, the chart is increased with the following fields :
@@ -197,3 +204,4 @@ The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 
 ## License
 
 This is under [CC by-nc-sa](http://creativecommons.org/licenses/by-nc-sa/3.0/) license
+
