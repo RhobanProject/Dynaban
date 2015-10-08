@@ -104,13 +104,11 @@ One of the motivations behind this project was to have full control over our har
 
 # Using the field "mode" :
 A servo using the Dynaban has diferent mode it can be in. You can set the desired mode by writing a number in the "mode" field (adress 0xA2 in the RAM).
-| Value in the field | Description of the mode    |
-| ------------- | ----------- |
-| 0      | Default mode. Uses the PID to follow the goal position. The behaviour should be almost identical to the default firmware|
-| 1     | Predictive command only. Follows the trajectory set in the traj1 fields but only relying on the model of the motor. This mode can be useful when calibrating the model     |
-| 2     | PID only. Follows the trajectory set in the traj1 fields but only relying on the PID. |
-| 3     | PID and predictive command. Follows the trajectory set in the traj1 fields using both the PID and the predictive command. This should be the default mode when following a trajectory|
-| 4     | Compliant-kind-of mode. In this mode, the servo will try to act compliant     |
+* 0 : Default mode. Uses the PID to follow the goal position. The behaviour should be almost identical to the default firmware
+* 1 : Predictive command only. Follows the trajectory set in the traj1 fields but only relying on the model of the motor. This mode can be useful when calibrating the model     
+* 2 : PID only. Follows the trajectory set in the traj1 fields but only relying on the PID. 
+* 3 : PID and predictive command. Follows the trajectory set in the traj1 fields using both the PID and the predictive command. This should be the default mode when following a trajectory
+* 4 : Compliant-kind-of mode. In this mode, the servo will try to act compliant     
 
 
 # Predictive control background :
