@@ -139,32 +139,47 @@ In order to achieve that, you'll have to :
 
 (to be continued)
 
+# How to I smoothly continue a trajectory after the first one ended ?
+As you can notice in the "RAM mapping extention",  
+
+copyNextBuffer is automatically set to 0 when the buffer is copied. So, in order to continue a trajectory several times, the procedure would be :
+- Update traj2 and set copyNextBuffer to 1
+- Once traj1 is finished, update traj2 and set copyNextBuffer to 1
+- Once traj1 is finished, update traj2 and set copyNextBuffer to 1
+etc.
+
+# RAM mapping extention
 The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 0x49. On the Dynaban firmware, the chart is increased with the following fields :
 
-    unsigned char trajPoly1Size;            // 0x4A 
-    float         trajPoly1[DXL_POLY_SIZE]; //[4B
-                                            //[4F
-                                            //[53
-                                            //[57
-                                            //[5B
+    unsigned char trajPoly1Size;            // 0x4A
+    float         trajPoly1[DXL_POLY_SIZE]; //[0x4B
+                                            //[0x4F
+                                            //[0x53
+                                            //[0x57
+                                            //[0x5B
     unsigned char torquePoly1Size;          // 0x5F
-    float         torquePoly1[DXL_POLY_SIZE];//[60
-                                            //[64
-                                            //[68
-                                            //[6C
-                                            //[70
+    float         torquePoly1[DXL_POLY_SIZE];//[0x60
+                                            //[0x64
+                                            //[0x68
+                                            //[0x6C
+                                            //[0x70
     uint16        duration1;                // 0x75
+
     unsigned char trajPoly2Size;            // 0x76
-    float         trajPoly2[DXL_POLY_SIZE]; //[77
-                                            //[7B
-                                            //[7F
-                                            //[83
-                                            //[87
+    float         trajPoly2[DXL_POLY_SIZE]; //[0x77
+                                            //[0x7B
+                                            //[0x7F
+                                            //[0x83
+                                            //[0x87
     unsigned char torquePoly2Size;          // 0x8B
-    float         torquePoly2[DXL_POLY_SIZE];//[8C
-                                            //[90
-                                            //[94
-                                            //[98 
+    float         torquePoly2[DXL_POLY_SIZE];//[0x8C
+                                            //[0x90
+                                            //[0x94
+                                            //[0x98
+                                            //[0x9C
+    uint16        duration2;                // 0xA0
+    unsigned char mode;                     // 0xA2
+    unsigned char copyNextBuffer;           // 0xA3
 
 
 ## To do  :
