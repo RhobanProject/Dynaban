@@ -103,7 +103,15 @@ Here is the list of what is and is not currently implemented when you write into
 One of the motivations behind this project was to have full control over our hardware. Once the basic stuff was working, we started playing with more advanced funtionalities.
 
 # Using the field "mode" :
-To do
+A servo using the Dynaban has diferent mode it can be in. You can set the desired mode by writing a number in the "mode" field (adress 0xA2 in the RAM).
+| Value in the field | Description of the mode    |
+| ------------- | ----------- |
+| 0      | Default mode. Uses the PID to follow the goal position. The behaviour should be almost identical to the default firmware|
+| 1     | Predictive command only. Follows the trajectory set in the traj1 fields but only relying on the model of the motor. This mode can be useful when calibrating the model     |
+| 2     | PID only. Follows the trajectory set in the traj1 fields but only relying on the PID. |
+| 3     | PID and predictive command. Follows the trajectory set in the traj1 fields using both the PID and the predictive command. This should be the default mode when following a trajectory|
+| 4     | Compliant-kind-of mode. In this mode, the servo will try to act compliant     |
+
 
 # Predictive control background :
 One very big limitation of the default firmware is that the only control loop that is available is a PID (which is already an enhancement compared to the RX family that has only a P).
@@ -152,7 +160,7 @@ For this behaviour to happen, you'll have to set copyNextBuffer to 1. copyNextBu
 - Once traj1 is finished, update traj2 and set copyNextBuffer to 1
 etc.
 
-The transitions between the trajectories should be made in a way that ensures the continuity of both torque and position trajectories and their derivates.
+The transitions between the trajectories should be made in a way that ensures the continuity of both torque and position trajectories and their derivates. Don't do this :>)
 ![Don't do this :>)](docs/piece_wise_continuity.png)
 
 # RAM mapping extention
