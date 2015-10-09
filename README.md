@@ -42,7 +42,7 @@ make install
 This should run the flash script (see `scripts/` directory), that will wait for the servo
 to boot for flashing it. Then, simply power on your servo.
 
-## What's new ?
+# What's new ?
 
 The hardware detection part of the firmware is complete. We can read the magnetic encoder, control the 2 half-bridges that command the motor,  read/write into the ram and the eeprom (flash actually), read the motor's current, read the temperature and read the input voltage.
 
@@ -53,9 +53,9 @@ A servo using our firmware will be recognized as a MX-64. You can communicate wi
 (Updated 30/08/2015)
 **The firmware is on a stable and usable version**. 
 The fields that are not mapped below are either considered of little use or considered not doable with the hardware capacities. Nevertheless, these functionalities can be implemented if  the need arises.
-**New, powerfull functionalities have been implemented. More on it below**
+**New, powerfull functionalities have been implemented. More on it [below](#Advanced functionnalities)**
 
-## Basic functionalities
+# Basic functionalities
 
 Here is the list of what is and is not currently implemented when you write into the MX's RAM:
 
@@ -99,17 +99,26 @@ Here is the list of what is and is not currently implemented when you write into
     - Multi turn offset : not mapped.
     - Resolution Divider : not mapped.
 
-## Advanced functionalities
+# <a name="Advanced functionnalities"></a>Advanced functionalities
 One of the motivations behind this project was to have full control over our hardware. Once the basic stuff was working, we started playing with more advanced funtionalities.
 
-# Predictive control background :
+## <a name="Using the field mode"></a>Using the field 'mode' :
+A servo using the Dynaban has diferent mode it can be in. You can set the desired mode by writing a number in the "mode" field (adress 0xA2 in the RAM).
+* 0 : Default mode. Uses the PID to follow the goal position. The behaviour should be almost identical to the default firmware
+* 1 : Predictive command only. Follows the trajectory set in the traj1 fields but only relying on the model of the motor. This mode can be useful when calibrating the model     
+* 2 : PID only. Follows the trajectory set in the traj1 fields but only relying on the PID. 
+* 3 : PID and predictive command. Follows the trajectory set in the traj1 fields using both the PID and the predictive command. This should be the default mode when following a trajectory
+* 4 : Compliant-kind-of mode. In this mode, the servo will try to act compliant     
+
+
+## <a name="Predictive control background"></a>Predictive control background :
 One very big limitation of the default firmware is that the only control loop that is available is a PID (which is already an enhancement compared to the RX family that has only a P).
 A PID is meant to compensate the differences between what is predicted by the model of our system and what actually happens. 
 Those differences come from :
 - The model limitations (how is the friction modelized? Is the inertia taken in concideration? Etc.)
 - The loopback imprecisions (accuracy and delay) 
 - The external pertubations. 
-**The default firmware has no model**, meaning that the PID has a lot of work to do !
+**The default firmware has no model**, so the PID has a lot of work to do !
 Let's say that we want to follow a predefined trajectory, like a min-jerk trajectory. The servo is attached to a weight of 270g at a distance of 12cm. With a PID-only approach, we compare the ideal trajectory with 3 actual trajectories the motor realized with orders sent at 25Hz, 50Hz and 1000Hz :
 ![Following a trajectory with a PID only approach](trajectory/half_turn_min_jerk.png)
 
@@ -122,33 +131,39 @@ In order to overcome this problem, the Dynaban firmware implements a model of th
 - An inertial model
 
 After tuning the model, we managed to get decent results with a **full open loop approach** : 
-![Following a trajectory with a PID only approach and with a model only approach (open loop)](trajectory/![Following a trajectory with a PID only approach](trajectory/open_loop_speed_trajectory_270g_12cm_45degrees_weight_compensation.png).png)
+![Following a trajectory with a PID only approach and with a model only approach (open loop)](trajectory/open_loop_speed_trajectory_270g_12cm_45degrees_weight_compensation.png)
 
 And almost perfect results (< 0.4°) when we combine the model and the PID :
-![Following a trajectory with a PID only approach and with a model only approach (open loop)](trajectory/![Following a trajectory with a PID only approach](trajectory/speed_control_and_pid.png).png)
+![Following a trajectory with a PID only approach and with a model only approach (open loop)](trajectory/speed_control_and_pid.png)
 
-# How to use the predictive control? :
+## <a name="How to use the predictive control?"></a>How to use the predictive control? :
 The idea here is to tell the servo what it will have to do in the near future and let it try to match it. More precisely :
 - The servo needs to know the positions it should be at in the near future
 - The servo needs to know the torques it should output in the near future
 
 In order to achieve that, you'll have to :
 - Choose the duration of the spline (i.e. what we called "near future")
-- Send a polynome describing the expected positions for the duration. You can choose the degree of the polynome between 0 and 4. If the polynome looks like a0 + a1*t + a2*t², then you'll have to send the 3 floats a0, a1 and a2 to the servo.
+- Send a polynome describing the expected positions for the duration. You can choose the degree of the polynome between 0 and 4. If the polynome looks like a0 + a1*t + a2*t², then you'll have to send the 3 floats a0, a1 and a2 to the servo and set trajPoly1Size to 3.
 - Send a polynome describing the expected torque for the duration. The 2 polynomes don't need to be of equal degrees.
 
-(to be continued)
+Once these informations have been set, the servo will try to follow the trajectory as soon as the field "mode" is set to 1, 2 or 3 (cf [Using the field mode](#Using the field mode)).
 
-# How to I smoothly continue a trajectory after the first one ended ?
-As you can notice in the "RAM mapping extention",  
+When the trajectory ends, the field "mode" will automatically be set to 0 (default, position control mode). Basically, the servo will try to stay where it landed at the end of the trajectory. [Unless you want to continue your trajectory with an other one.](#How do I smoothly continue a trajectory after the first one ended ?)
 
-copyNextBuffer is automatically set to 0 when the buffer is copied. So, in order to continue a trajectory several times, the procedure would be :
+## <a name="How do I smoothly continue a trajectory after the first one ended ?"></a>How do I smoothly continue a trajectory after the first one ended ?
+As you can notice in the [RAM mapping extention](#RAM mapping extention), the fields needed to use the predictive control are present twice. Once under the name of traj1 and once under the name of traj2 (trajPoly2Size, trajPoly2, torquePoly2, etc).
+The fields traj2 are a buffer that will be copied into the traj1 fields once the traj1 finishes. 
+
+For this behaviour to happen, you'll have to set copyNextBuffer to 1. copyNextBuffer is automatically set to 0 when the buffer is copied. So, in order to continue a trajectory several times, the procedure would be :
 - Update traj2 and set copyNextBuffer to 1
 - Once traj1 is finished, update traj2 and set copyNextBuffer to 1
 - Once traj1 is finished, update traj2 and set copyNextBuffer to 1
 etc.
 
-# RAM mapping extention
+The transitions between the trajectories should be made in a way that ensures the continuity of both torque and position trajectories and their derivates. Don't do this :>)
+![Don't do this :>)](docs/piece_wise_continuity.png)
+
+## <a name="RAM mapping extention"></a>RAM mapping extention
 The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 0x49. On the Dynaban firmware, the chart is increased with the following fields :
 
     unsigned char trajPoly1Size;            // 0x4A
@@ -197,3 +212,4 @@ The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 
 ## License
 
 This is under [CC by-nc-sa](http://creativecommons.org/licenses/by-nc-sa/3.0/) license
+
