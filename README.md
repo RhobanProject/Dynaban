@@ -143,7 +143,7 @@ The idea here is to tell the servo what it will have to do in the near future an
 
 In order to achieve that, you'll have to :
 - Choose the duration of the spline (i.e. what we called "near future")
-- Send a polynome describing the expected positions for the duration. You can choose the degree of the polynome between 0 and 4. If the polynome looks like a0 + a1*t + a2*t², then you'll have to send the 3 floats a0, a1 and a2 to the servo.
+- Send a polynome describing the expected positions for the duration. You can choose the degree of the polynome between 0 and 4. If the polynome looks like a0 + a1*t + a2*t², then you'll have to send the 3 floats a0, a1 and a2 to the servo and set trajPoly1Size to 3.
 - Send a polynome describing the expected torque for the duration. The 2 polynomes don't need to be of equal degrees.
 
 Once these informations have been set, the servo will try to follow the trajectory as soon as the field "mode" is set to 1, 2 or 3 (cf [Using the field mode](#Using the field mode)).
