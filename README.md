@@ -131,10 +131,10 @@ In order to overcome this problem, the Dynaban firmware implements a model of th
 - An inertial model
 
 After tuning the model, we managed to get decent results with a **full open loop approach** : 
-![Following a trajectory with a PID only approach and with a model only approach (open loop)](trajectory/![Following a trajectory with a PID only approach](trajectory/open_loop_speed_trajectory_270g_12cm_45degrees_weight_compensation.png).png)
+![Following a trajectory with a PID only approach and with a model only approach (open loop)](trajectory/open_loop_speed_trajectory_270g_12cm_45degrees_weight_compensation.png)
 
 And almost perfect results (< 0.4°) when we combine the model and the PID :
-![Following a trajectory with a PID only approach and with a model only approach (open loop)](trajectory/![Following a trajectory with a PID only approach](trajectory/speed_control_and_pid.png).png)
+![Following a trajectory with a PID only approach and with a model only approach (open loop)](trajectory/speed_control_and_pid.png)
 
 ## <a name="How to use the predictive control?"></a>How to use the predictive control? :
 The idea here is to tell the servo what it will have to do in the near future and let it try to match it. More precisely :
@@ -148,10 +148,10 @@ In order to achieve that, you'll have to :
 
 Once these informations have been set, the servo will try to follow the trajectory as soon as the field "mode" is set to 1, 2 or 3 (cf [Using the field mode](#Using the field mode)).
 
-When the trajectory ends, the field "mode" will automatically be set to 0 (default, position control mode). Basically, the servo will try to stay where it landed at the end of the trajectory. [Unless you want to continue your trajectory with an other one.](#"How do I smoothly continue a trajectory after the first one ended ?")
+When the trajectory ends, the field "mode" will automatically be set to 0 (default, position control mode). Basically, the servo will try to stay where it landed at the end of the trajectory. [Unless you want to continue your trajectory with an other one.](#How do I smoothly continue a trajectory after the first one ended ?)
 
 ## <a name="How do I smoothly continue a trajectory after the first one ended ?"></a>How do I smoothly continue a trajectory after the first one ended ?
-As you can notice in the [RAM mapping extention](#"RAM mapping extention"), the fields needed to use the predictive control are present twice. Once under the name of traj1 and once under the name of traj2 (trajPoly2Size, trajPoly2, torquePoly2, etc).
+As you can notice in the [RAM mapping extention](#RAM mapping extention), the fields needed to use the predictive control are present twice. Once under the name of traj1 and once under the name of traj2 (trajPoly2Size, trajPoly2, torquePoly2, etc).
 The fields traj2 are a buffer that will be copied into the traj1 fields once the traj1 finishes. 
 
 For this behaviour to happen, you'll have to set copyNextBuffer to 1. copyNextBuffer is automatically set to 0 when the buffer is copied. So, in order to continue a trajectory several times, the procedure would be :
