@@ -176,7 +176,6 @@ void predictive_control_init() {
  * -> a(t) = (pVGoal - v)/dt
  */
 void predictive_control_tick(motor * pMot, int16 pVGoal, uint16 pDt, float pOutputTorque, float pIAdded) {
-        // PUT THIS BACK YOU FOOL
     int16 v = pControl.estimatedSpeed;//pMot->speed;//pControl.estimatedSpeed;
 
     int8 signV = sign(v);
@@ -346,7 +345,10 @@ void predictive_control_tick_simple(motor * pMot, int16 pVGoal) {
         u = -MAX_COMMAND;
     }
     pMot->predictiveCommand = u;
-    pControl.estimatedSpeed = pVGoal; // This is crazy and will never work. Actually it does work quite well.
+    pControl.estimatedSpeed = pVGoal; 	/* Would be better if we could get the real-life speed from time to time to update this value.
+     	 	 	 	 	 	 	 	 	 * This is no easy task since getting the speed from a derivate of the position comes with the
+										 * tradeoff delay VS accuracy.
+										 */
 
 }
 
