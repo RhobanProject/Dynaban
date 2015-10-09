@@ -55,6 +55,9 @@ A servo using our firmware will be recognized as a MX-64. You can communicate wi
 The fields that are not mapped below are either considered of little use or considered not doable with the hardware capacities. Nevertheless, these functionalities can be implemented if  the need arises.
 **New, powerfull functionalities have been implemented. More on it [below](#Advanced functionnalities)**
 
+(Updated 09/09/2015)
+Putting the CW limit and the CCW limit to the same value already put the servo in wheel mode. Now, putting both limits to 4095 puts the servo in "multi-turn" mode. In that mode, the goal position ranges from -32768 to +32768. Example : if the servo is at position 0° and you ask 720°, the servo will do 2 full rotations before stopping.
+
 # Basic functionalities
 
 Here is the list of what is and is not currently implemented when you write into the MX's RAM:
