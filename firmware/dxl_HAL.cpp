@@ -1,6 +1,7 @@
 #include "dxl.h"
 #include "dxl_HAL.h"
 #include <string.h>
+#include "circular_buffer.h"
 
 void dxl_print_debug();
 
@@ -75,11 +76,33 @@ void read_dxl_ram() {
     get_control_struct()->iCoef = dxl_regs.ram.servoKi;
     get_control_struct()->pCoef = dxl_regs.ram.servoKp;
 
+    if ((hardwareStruct.mot->posAngleLimit == 4095) && (hardwareStruct.mot->negAngleLimit == 4095)) {
+    	hardwareStruct.mot->multiTurnOn = true;
+    	digitalWrite(BOARD_LED_PIN, LOW);
+    } else {
+    	digitalWrite(BOARD_LED_PIN, HIGH);
+    	/* Multiturn mode is off.
+    	 * Beware though, if we were in multiturn mode before, we'll reset the circular buffer containing the past positions to avoid weirdness
+    	 * (going from [-32768, +32767] to [0, 4096] would create errors in the speed calculations)
+    	 */
+    	if (hardwareStruct.mot->multiTurnOn) {
+    		buffer_reset_values(&(hardwareStruct.mot->angleBuffer), hardwareStruct.mot->angle);
+
+    	}
+    	hardwareStruct.mot->multiTurnOn = false;
+    }
     if ((dxl_regs.ram.mode == 0) && (hardwareStruct.mot->targetAngle != dxl_regs.ram.goalPosition)) {
-        // The angle might be out of bounds, this function handles it and updates mot->targetAngle accordingly
-        motor_set_target_angle(dxl_regs.ram.goalPosition);
-        dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
-        controlMode = POSITION_CONTROL;
+    	if (hardwareStruct.mot->multiTurnOn == false) {
+            // The angle might be out of bounds, this function handles it and updates mot->targetAngle accordingly
+            motor_set_target_angle(dxl_regs.ram.goalPosition);
+            dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
+            controlMode = POSITION_CONTROL;
+    	} else {
+    		// Multi turn mode, no limits on the target angle
+    		motor_set_target_angle_multi_turn_mode(dxl_regs.ram.goalPosition);
+			controlMode = POSITION_CONTROL;
+    	}
+
     }
 
     //Moving speed actually means "goalSpeed"

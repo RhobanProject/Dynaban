@@ -85,6 +85,8 @@ struct motor {
     long negAngleLimit;
     unsigned char testChar;
     long offset;
+    boolean multiTurnOn;
+    long multiTurnAngle;
 };
 
 void motor_init(encoder * pEnc);
@@ -100,6 +102,8 @@ void motor_update_sign_of_speed();
 void motor_set_command(long pCommand);
 
 void motor_set_target_angle(long pAngle);
+
+void motor_set_target_angle_multi_turn_mode(long pAngle);
 
 void motor_set_target_current(int pCurrent);
 

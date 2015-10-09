@@ -34,6 +34,13 @@ long buffer_get(buffer * pBuf) {
 
 }
 
+void buffer_reset_values(buffer * pBuf, long pValue) {
+    for (int i = 0; i < pBuf->size; i++) {
+        pBuf->buf[i] = pValue;
+    }
+
+}
+
 void buffer_print(buffer * pBuf) {
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.print("Start : ");

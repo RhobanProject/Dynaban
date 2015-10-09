@@ -13,6 +13,7 @@ struct buffer {
 void buffer_init(buffer * pBuf, int pSize, long pInit);
 void buffer_add(buffer * pBuf, long pValue);
 long buffer_get(buffer * pBuf);
+void buffer_reset_values(buffer * pBuf, long pValue);
 void buffer_print(buffer * pBuf);
 
 #endif /* _CIRCULAR_BUFFER_H_*/

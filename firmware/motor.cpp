@@ -78,10 +78,12 @@ void motor_init(encoder * pEnc) {
     mot.current = 0;
     mot.averageCurrent = 0;
     mot.targetCurrent = 0;
-    mot.posAngleLimit = 2047;//3584;
-    mot.negAngleLimit = 2049;//512;
+    mot.posAngleLimit = 2047;
+    mot.negAngleLimit = 2048;
     // Reading the magic offset in the flash
     mot.offset = dxl_read_magic_offset();
+    mot.multiTurnOn = false;
+    mot.multiTurnAngle = mot.angle;
 
     timer3.setPrescaleFactor(7200); // 1 for current debug, 7200 => 10 tick per ms
     timer3.setOverflow(65535);
@@ -108,10 +110,25 @@ void motor_update(encoder * pEnc) {
     	tempAngle = MAX_ANGLE + tempAngle + 1;
     }
 
-    // Should not be useful, just being carefull
+	// Should not be useful, just being careful
 	tempAngle = tempAngle%(MAX_ANGLE+1);
 
-    mot.angle = tempAngle;
+	mot.angle = tempAngle;
+	if (mot.multiTurnOn == false) {
+		mot.multiTurnAngle = mot.angle;
+	} else {
+		if ((mot.angle - mot.previousAngle) > (MAX_ANGLE+1)/2) {
+			//Went from 3 to 4092 (4092 - 3 > 2048), the multiturn angle should be what it was minus 7
+			mot.multiTurnAngle = mot.multiTurnAngle + mot.angle - mot.previousAngle - (MAX_ANGLE+1);
+		} else if ((mot.angle - mot.previousAngle) < (-MAX_ANGLE-1)/2) {
+			//Went from 4095 to 1, the multiturn angle should be what it was plus 2
+			mot.multiTurnAngle = mot.multiTurnAngle + mot.angle - mot.previousAngle + (MAX_ANGLE+1);
+		} else {
+			mot.multiTurnAngle = mot.multiTurnAngle + mot.angle - mot.previousAngle;
+		}
+	}
+
+
     long oldPosition = buffer_get(&(mot.angleBuffer));
 
     motor_update_sign_of_speed();
@@ -133,7 +150,7 @@ void motor_update(encoder * pEnc) {
                 }
 
             }
-            // These 3 lines makes it impossible for the bootloader to load the binary file, manly because of the cos ...
+            // These 3 lines makes it impossible for the bootloader to load the binary file, manly because of the cos import. -> Known bug and known solution but quite time consuming.
 //             float angleRad = (mot.angle * (float)PI) / 2048.0;
 //             float weightCompensation = cos(angleRad) * 71;
 //             predictive_control_anti_gravity_tick(&mot, mot.speed, dt*TRAJ_CALC_FREQ, weightCompensation, addedInertia);
@@ -305,6 +322,13 @@ void motor_set_target_angle(long pAngle) {
     }
 
     mot.targetAngle = motor_check_limit_angles(pAngle);
+}
+
+void motor_set_target_angle_multi_turn_mode(long pAngle) {
+    //Reseting the control to avoid inertia with the integral part
+    control_reset();
+
+    mot.targetAngle = pAngle;
 }
 
 long motor_check_limit_angles(long pAngle) {

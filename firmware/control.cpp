@@ -40,15 +40,19 @@ void control_reset() {
 
 
 void control_tick_PID_on_position(motor * pMot) {
-    controlStruct.deltaAngle = control_angle_diff(pMot->targetAngle, pMot->angle);
-    int8 direction = choose_direction(pMot);
-    if ((direction != 0) && (controlStruct.deltaAngle * direction < 0)) {
-            // The shortest way is not viable, we'll have to go the other way around
-        controlStruct.deltaAngle = control_other_angle_diff(pMot->targetAngle, pMot->angle);
-        digitalWrite(BOARD_LED_PIN, LOW);
-    } else {
-        digitalWrite(BOARD_LED_PIN, HIGH);
-    }
+	if (pMot->multiTurnOn == false) {
+		// normal behavior, respecting angle limits
+	    controlStruct.deltaAngle = control_angle_diff(pMot->targetAngle, pMot->angle);
+	    int8 direction = choose_direction(pMot);
+	    if ((direction != 0) && (controlStruct.deltaAngle * direction < 0)) {
+	            // The shortest way is not viable, we'll have to go the other way around
+	        controlStruct.deltaAngle = control_other_angle_diff(pMot->targetAngle, pMot->angle);
+	    }
+	} else {
+		// Multi-turn mode
+		controlStruct.deltaAngle = pMot->targetAngle - pMot->multiTurnAngle;
+	}
+
 
     controlStruct.sumOfDeltas = controlStruct.sumOfDeltas + controlStruct.deltaAngle;
     if (controlStruct.sumOfDeltas > MAX_DELTA_SUM) {
@@ -62,7 +66,7 @@ void control_tick_PID_on_position(motor * pMot) {
                       + (controlStruct.sumOfDeltas * controlStruct.iCoef) / I_PRESCALE
                       + pMot->speed * controlStruct.dCoef);
     /*
-     * Beware, the pMot->speed value id the difference between the current position and an old position.
+     * Beware, the pMot->speed value is the difference between the current position and an old position.
      * How old the position is depends on the value of NB_TICKS_BEFORE_UPDATING_SPEED which is 25 at the time of writing this.
      * Introducing a delay in the (speed * D) term of the PID is dangerous since is can cause instability (which is ironic since the D's goal
      * is to ensure stability). On the other hand, not introducing a delay in the (speed * D) term makes no sense since the position
