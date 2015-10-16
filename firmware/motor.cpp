@@ -132,6 +132,7 @@ void motor_update(encoder * pEnc) {
     long oldPosition = buffer_get(&(mot.angleBuffer));
 
     motor_update_sign_of_speed();
+
     if (predictiveCommandOn) {
         if (counterUpdate%TRAJ_CALC_FREQ == 0) {
             time = timer3.getCount();
@@ -167,7 +168,7 @@ void motor_update(encoder * pEnc) {
             }
 
 
-            if (controlMode == PID_AND_PREDICTIVE_COMMAND) {
+            if (controlMode == PID_AND_PREDICTIVE_COMMAND || controlMode == PID_ONLY) {
                 mot.targetAngle = traj_magic_modulo(
                 traj_eval_poly(dxl_regs.ram.trajPoly1, dxl_regs.ram.trajPoly1Size, dxl_regs.ram.duration1, time), MAX_ANGLE+1
                                                 );
