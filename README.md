@@ -145,7 +145,7 @@ The idea here is to tell the servo what it will have to do in the near future an
 - The servo needs to know the torques it should output in the near future
 
 In order to achieve that, you'll have to :
-- Choose the duration of the spline (i.e. what we called "near future"). *Beware though*, the duration is an integer in tenth of milliseconds (10000 is 1 s)
+- Choose the duration of the spline (i.e. what we called "near future"). **Beware though**, the duration is an integer in tenth of milliseconds (10000 is 1 s)
 - Send a polynome describing the expected positions for the duration. You can choose the degree of the polynome between 0 and 4. If the polynome looks like a0 + a1*t + a2*t², then you'll have to send the 3 floats a0, a1 and a2 to the servo and set trajPoly1Size to 3.
 - Send a polynome describing the expected torque for the duration. The 2 polynomes don't need to be of equal degrees.
 
