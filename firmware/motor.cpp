@@ -145,7 +145,8 @@ void motor_update(encoder * pEnc) {
                     time = 0;
                 } else {
                         // Default action : forcing the motor to stay where it stands (through PID)
-                    controlMode = POSITION_CONTROL;
+                	controlMode = POSITION_CONTROL;
+                	dxl_regs.ram.mode = 0;
                     hardwareStruct.mot->targetAngle = hardwareStruct.mot->angle;
                     dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
                 }
