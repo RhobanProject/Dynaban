@@ -17,7 +17,7 @@ bool temperatureIsCritic = false;
 
 // Benchmarking
 bool activateBenchmark = false;
-const int TIME_STAMP_SIZE_MOTOR = 1000;
+const int TIME_STAMP_SIZE_MOTOR = 0;
 static int32 arrayOfTimeStampsMotor[TIME_STAMP_SIZE_MOTOR];
 uint16 timeIndexMotor = 0;
 int changeId = 0;
@@ -106,16 +106,6 @@ void motor_restart_traj_timer() {
 }
 
 void motor_update(encoder * pEnc) {
-	if (dxl_regs.ram.mode == 5) {
-		activateBenchmark = true;
-	}
-	if (activateBenchmark) {
-		motor_add_benchmark_time();
-		if (timeIndexMotor >= (TIME_STAMP_SIZE_MOTOR - 1)) {
-			motor_print_time_stamp();
-		}
-	}
-
     uint16 time = timer3.getCount();
 
     int16 dt = 10; /*
@@ -248,9 +238,6 @@ void motor_update(encoder * pEnc) {
     mot.acceleration = mot.speed - oldSpeed;
 
     nbUpdates++;
-    if (activateBenchmark) {
-    	motor_add_benchmark_time();
-    }
 }
 
 void motor_read_current() {
