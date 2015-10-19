@@ -37,7 +37,7 @@ static predictiveControl pControl;
 uint8 punchTicksRemaining = 0;
 
 
-uint16 traj_constant_speed(uint16 pDistance, uint16 pTotalTime, uint16 pTime) {
+uint16 traj_constant_speed(uint32 pDistance, uint16 pTotalTime, uint16 pTime) {
     return ((float)pDistance/(float)pTotalTime) * pTime;
 }
 
@@ -49,9 +49,9 @@ uint16 traj_min_jerk(uint16 pTime) {
     float time_3 = time*time*time;
     float time_4 = time_3*time;
     float time_5 = time_4*time;
-    int16 a3     = 20480;
-    int16 a4     = -30720;
-    int16 a5     = 12288;
+    int32 a3     = 20480;
+    int32 a4     = -30720;
+    int32 a5     = 12288;
 
     return time_3*a3 + time_4*a4 + time_5*a5;
 }
@@ -64,93 +64,66 @@ uint16 traj_min_jerk_on_speed(uint16 pTime) {
     float time_2 = time*time;
     float time_3 = time_2*time;
     float time_4 = time_3*time;
-    int16 a3     = 20480;
-    int16 a4     = -30720;
-    int16 a5     = 12288;
+    int32 a3     = 20480;
+    int32 a4     = -30720;
+    int32 a5     = 12288;
 
     return time_2*a3*3 + time_3*a4*4 + time_4*a5*5;
 }
 
-int16 traj_eval_poly(volatile float * pPoly, unsigned char pPolySize, uint16 pDuration, uint16 pTime) {
-    if (pTime >= pDuration) {
-        pTime = pDuration;
-    }
-
-    float timePowers[4];
-    if (pPolySize >= 5) {
-        timePowers[0] = pTime/10000.0; // t
-        timePowers[1] = timePowers[0]*timePowers[0]; // t**2
-        timePowers[2] = timePowers[1]*timePowers[0]; // t**3
-        timePowers[3] = timePowers[2]*timePowers[0]; // t**4
-    } else if (pPolySize == 4) {
-        timePowers[0] = pTime/10000.0; // t
-        timePowers[1] = timePowers[0]*timePowers[0]; // t**2
-        timePowers[2] = timePowers[1]*timePowers[0]; // t**3
-        timePowers[3] = 0.0;
-    } else if (pPolySize == 3) {
-        timePowers[0] = pTime/10000.0; // t
-        timePowers[1] = timePowers[0]*timePowers[0]; // t**2
-        timePowers[2] = 0.0;
-        timePowers[3] = 0.0;
-    } else if (pPolySize == 2) {
-        timePowers[0] = pTime/10000.0; // t
-        timePowers[1] = 0.0;
-        timePowers[2] = 0.0;
-        timePowers[3] = 0.0;
-    } else {
-        timePowers[0] = 0.0;
-        timePowers[1] = 0.0;
-        timePowers[2] = 0.0;
-        timePowers[3] = 0.0;
-    }
-
-
-    return pPoly[0]
-        + timePowers[0]*pPoly[1]
-        + timePowers[1]*pPoly[2]
-        + timePowers[2]*pPoly[3]
-        + timePowers[3]*pPoly[4];
+void eval_powers_of_t(float * pTimePowers, uint16 pTime, uint8 pPolySize, uint16 pPrescaler) {
+	if (pPolySize >= 5) {
+		pTimePowers[0] = pTime/(float)pPrescaler; // t
+		pTimePowers[1] = pTimePowers[0]*pTimePowers[0]; // t**2
+		pTimePowers[2] = pTimePowers[1]*pTimePowers[0]; // t**3
+		pTimePowers[3] = pTimePowers[2]*pTimePowers[0]; // t**4
+	} else if (pPolySize == 4) {
+		pTimePowers[0] = pTime/(float)pPrescaler; // t
+		pTimePowers[1] = pTimePowers[0]*pTimePowers[0]; // t**2
+		pTimePowers[2] = pTimePowers[1]*pTimePowers[0]; // t**3
+		pTimePowers[3] = 0.0;
+	} else if (pPolySize == 3) {
+		pTimePowers[0] = pTime/(float)pPrescaler; // t
+		pTimePowers[1] = pTimePowers[0]*pTimePowers[0]; // t**2
+		pTimePowers[2] = 0.0;
+		pTimePowers[3] = 0.0;
+	} else if (pPolySize == 2) {
+		pTimePowers[0] = pTime/(float)pPrescaler; // t
+		pTimePowers[1] = 0.0;
+		pTimePowers[2] = 0.0;
+		pTimePowers[3] = 0.0;
+	} else {
+		pTimePowers[0] = 0.0;
+		pTimePowers[1] = 0.0;
+		pTimePowers[2] = 0.0;
+		pTimePowers[3] = 0.0;
+	}
 }
 
-int16 traj_eval_poly_derivate(volatile float * pPoly, unsigned char pPolySize, uint16 pDuration, uint16 pTime) {
-    if (pTime >= pDuration) {
-            // pTime = pDuration;
-        return 0; // Since this function is used for setting the speed, I'd rather set it to 0 if something went wrong
-    }
+int32 traj_eval_poly(volatile float * pPoly, float * pTimePowers) {
 
-    float timePowers[3];
-    if (pPolySize >= 5) {
-        timePowers[0] = pTime/10000.0; // t
-        timePowers[1] = timePowers[0]*timePowers[0]; // t**2
-        timePowers[2] = timePowers[1]*timePowers[0]; // t**3
-    } else if (pPolySize == 4) {
-        timePowers[0] = pTime/10000.0; // t
-        timePowers[1] = timePowers[0]*timePowers[0]; // t**2
-        timePowers[2] = 0.0;
-    } else if (pPolySize == 3) {
-        timePowers[0] = pTime/10000.0; // t
-        timePowers[1] = 0.0;
-        timePowers[2] = 0.0;
-    } else {
-        timePowers[0] = 0.0;
-        timePowers[1] = 0.0;
-        timePowers[2] = 0.0;
-    }
+    return pPoly[0]
+        + pTimePowers[0]*pPoly[1]
+        + pTimePowers[1]*pPoly[2]
+        + pTimePowers[2]*pPoly[3]
+        + pTimePowers[3]*pPoly[4];
+}
 
+int32 traj_eval_poly_derivate(volatile float * pPoly, float * pTimePowers) {
     return pPoly[1]
-        + timePowers[0]*2*pPoly[2]
-        + timePowers[1]*3*pPoly[3]
-        + timePowers[2]*4*pPoly[4];
+        + pTimePowers[0]*2*pPoly[2]
+        + pTimePowers[1]*3*pPoly[3]
+        + pTimePowers[2]*4*pPoly[4];
 }
 
 /*
  * a modulo b with a handling of the negative values that matches our needs
  */
-uint16 traj_magic_modulo(int16 a, int16 b) {
+uint32 traj_magic_modulo(int32 a, uint32 b) {
     if (a > 0) {
         return a%b;
     } else {
-        uint16 div = a/b;
+        uint32 div = a/b;
         a = a + (abs(div)+1)*b;
         return a%b;
     }
@@ -175,8 +148,8 @@ void predictive_control_init() {
  * -> I = I0 + pIAdded (I0 is the moment of inertia of the gearbox)
  * -> a(t) = (pVGoal - v)/dt
  */
-void predictive_control_tick(motor * pMot, int16 pVGoal, uint16 pDt, float pOutputTorque, float pIAdded) {
-    int16 v = pControl.estimatedSpeed;//pMot->speed;//pControl.estimatedSpeed;
+void predictive_control_tick(motor * pMot, int32 pVGoal, uint32 pDt, float pOutputTorque, float pIAdded) {
+    int32 v = pControl.estimatedSpeed;//pMot->speed;//pControl.estimatedSpeed;
 
     int8 signV = sign(v);
         // Hack for anti-gravity arm :
@@ -190,7 +163,7 @@ void predictive_control_tick(motor * pMot, int16 pVGoal, uint16 pDt, float pOutp
     float accelTorque = ((float)(pVGoal - v) * (I0 + pIAdded) * 10000)/((float)pDt); // dt is in 1/10 of a ms
     float frictionTorque = signV * (beta * kstat + (1 - beta) * kcoul);
 
-    int16 u = unitFactor *
+    int32 u = unitFactor *
         (kv * v + torqueToCommand * (accelTorque + frictionTorque + pOutputTorque));
 
     if (u > MAX_COMMAND) {
@@ -219,8 +192,8 @@ void predictive_control_tick(motor * pMot, int16 pVGoal, uint16 pDt, float pOutp
  * -> I = I0 + pIAdded (I0 is the moment of inertia of the gearbox)
  * -> a(t) = (pVGoal - v)/dt
  */
-void predictive_control_anti_gravity_tick(motor * pMot, int16 pVGoal, uint16 pDt, float pOutputTorque, float pIAdded) {
-	int16 v = pMot->speed;//(pMot->averageSpeed);//pControl.estimatedSpeed;
+void predictive_control_anti_gravity_tick(motor * pMot, int32 pVGoal, uint32 pDt, float pOutputTorque, float pIAdded) {
+	int32 v = pMot->speed;//(pMot->averageSpeed);//pControl.estimatedSpeed;
 
     pVGoal = v;
 
@@ -254,7 +227,7 @@ void predictive_control_anti_gravity_tick(motor * pMot, int16 pVGoal, uint16 pDt
     float accelTorque = 0;
     float frictionTorque = signV * (beta * kstat + (1 - beta) * kcoul);
 
-    int16 u = unitFactor *
+    int32 u = unitFactor *
         (kv * v + torqueToCommand * (accelTorque + frictionTorque + pOutputTorque));
 
     if (u > MAX_COMMAND) {
@@ -267,9 +240,9 @@ void predictive_control_anti_gravity_tick(motor * pMot, int16 pVGoal, uint16 pDt
     pControl.estimatedSpeed = pVGoal;
 }
 
-void predictive_control_compliant_kind_of(motor * pMot, uint16 pDt) {
-    int16 v = pMot->speed;
-    int16 vGoal = v;
+void predictive_control_compliant_kind_of(motor * pMot, uint32 pDt) {
+    int32 v = pMot->speed;
+    int32 vGoal = v;
 
     // Hack for anti-gravity/friction arm :
         /* The issue here is that our initial model states that the static friction depends on the sign of the current speed
@@ -281,7 +254,7 @@ void predictive_control_compliant_kind_of(motor * pMot, uint16 pDt) {
     float beta = exp(-abs( v / ((float)STAT_TO_COUL_TRANS) ));
     float frictionTorque = signV * (beta * kstat + (1 - beta) * kcoul);
 
-    int16 u = unitFactor *
+    int32 u = unitFactor *
         (kv * v + torqueToCommand * (frictionTorque));
 
     if (u > MAX_COMMAND) {
@@ -299,9 +272,9 @@ void predictive_control_compliant_kind_of(motor * pMot, uint16 pDt) {
  * Where kDelta = (I*r)/(dt*ke) ~= 4.820
  * and ke ~=0.6426
  */
-void predictive_control_tick_simple(motor * pMot, int16 pVGoal) {
-    int16 v = pControl.estimatedSpeed;
-    int16 punchValue = 350;
+void predictive_control_tick_simple(motor * pMot, int32 pVGoal) {
+    int32 v = pControl.estimatedSpeed;
+    int32 punchValue = 350;
 
     if (punchTicksRemaining > 0) {
             // We are in punch mode
@@ -326,18 +299,18 @@ void predictive_control_tick_simple(motor * pMot, int16 pVGoal) {
         // Normal case
 //    float angleRad = (pMot->angle * (float)PI) / 2048.0;
 //    float weightCompensation = cos(angleRad) * 140.0;//235.0;
-        // int16 u = kDelta * (float)(pVGoal - v) + ke * (float)v;
-        // int16 u = kDelta * (float)(pVGoal - v + acceleration_from_weight_calib(pMot->angle)) + ke * (float)v;
-    int16 u = kDelta_old * (float)(pVGoal - v)
+        // int32 u = kDelta * (float)(pVGoal - v) + ke * (float)v;
+        // int32 u = kDelta * (float)(pVGoal - v + acceleration_from_weight_calib(pMot->angle)) + ke * (float)v;
+    int32 u = kDelta_old * (float)(pVGoal - v)
         + ke_old * (float)v
         + static_friction(v);
 
         // + weightCompensation
         // + static_friction(v)
         // + viscous_friction(v);
-        // int16 u = kDelta * (float)(acceleration_from_weight_calib(pMot->angle));
+        // int32 u = kDelta * (float)(acceleration_from_weight_calib(pMot->angle));
 
-        // int16 u = kDelta * ((float)(pVGoal - v) + acceleration_from_weight(pMot->angle, L)) + ke * (float)v;
+        // int32 u = kDelta * ((float)(pVGoal - v) + acceleration_from_weight(pMot->angle, L)) + ke * (float)v;
     if (u > MAX_COMMAND) {
         u = MAX_COMMAND;
     }
@@ -353,7 +326,7 @@ void predictive_control_tick_simple(motor * pMot, int16 pVGoal) {
 }
 
 
-int8 sign(int16 pInput) {
+int8 sign(int32 pInput) {
     if (pInput > 0) {
         return 1;
     } else if (pInput < 0) {

@@ -53,6 +53,6 @@ void read_dxl_eeprom();
 /**
  * From a signed convention to the dynamiel's unsigned convention
  */
-unsigned short terrible_sign_convention(long pInput, long pIamZeroISwear);
+unsigned short terrible_sign_convention(int32 pInput, int32 pIamZeroISwear);
 
 #endif /* _DXL_HAL_H_ */

@@ -37,9 +37,9 @@
 
 static const uint16 SPEED_COEF = 1000/NB_TICKS_BEFORE_UPDATING_SPEED;
 static const uint16 MAX_SPEED = 8096/SPEED_COEF + 5;
-static const long PRESCALE = 1 << 10;
-extern long currentRawMeasures[C_NB_RAW_MEASURES];
-extern long currentTimming[C_NB_RAW_MEASURES];
+static const int32 PRESCALE = 1 << 10;
+extern int32 currentRawMeasures[C_NB_RAW_MEASURES];
+extern int32 currentTimming[C_NB_RAW_MEASURES];
 extern int currentMeasureIndex;
 extern bool currentDetailedDebugOn;
 
@@ -49,6 +49,7 @@ extern uint16 positionIndex;
 extern bool positionTrackerOn;
 extern bool predictiveCommandOn;
 extern float addedInertia;
+
 
 //Debug timer
 extern HardwareTimer timer3;
@@ -60,33 +61,33 @@ enum motorState {
 };
 
 struct motor {
-    long command;
-    long predictiveCommand;
-    long previousCommand;
-    long angle;
-    long previousAngle;
+    int32 command;
+    int32 predictiveCommand;
+    int32 previousCommand;
+    int32 angle;
+    int32 previousAngle;
     buffer angleBuffer;
     buffer speedBuffer;
-    long targetAngle;
-    long speed;
-    long averageSpeed;
-    long previousSpeed;
+    int32 targetAngle;
+    int32 speed;
+    int32 averageSpeed;
+    int32 previousSpeed;
     int8 signOfSpeed;
-    long targetSpeed;
+    int32 targetSpeed;
     bool speedUpdated;
-    long acceleration;
-    long targetAcceleration;
+    int32 acceleration;
+    int32 targetAcceleration;
     bool accelerationUpdated;
     motorState state;
-    long current;
-    long averageCurrent;
-    long targetCurrent;
-    long posAngleLimit;
-    long negAngleLimit;
+    int32 current;
+    int32 averageCurrent;
+    int32 targetCurrent;
+    int32 posAngleLimit;
+    int32 negAngleLimit;
     unsigned char testChar;
-    long offset;
+    int32 offset;
     boolean multiTurnOn;
-    long multiTurnAngle;
+    int32 multiTurnAngle;
 };
 
 void motor_init(encoder * pEnc);
@@ -99,23 +100,23 @@ void motor_read_current();
 
 void motor_update_sign_of_speed();
 
-void motor_set_command(long pCommand);
+void motor_set_command(int32 pCommand);
 
-void motor_set_target_angle(long pAngle);
+void motor_set_target_angle(int32 pAngle);
 
-void motor_set_target_angle_multi_turn_mode(long pAngle);
+void motor_set_target_angle_multi_turn_mode(int32 pAngle);
 
 void motor_set_target_current(int pCurrent);
 
 /**
  * Returns pAngle if it's a valid target angle, otherwise it will return the closest valid angle
  */
-long motor_check_limit_angles(long pAngle);
+int32 motor_check_limit_angles(int32 pAngle);
 
 /**
  * Returns true is pAngle is valid, false otherwise
  */
-bool motor_is_valid_angle(long pAngle);
+bool motor_is_valid_angle(int32 pAngle);
 
 void motor_secure_pwm_write(uint8 pPin, uint16 pCommand);
 /**

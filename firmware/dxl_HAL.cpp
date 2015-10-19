@@ -200,7 +200,7 @@ void read_dxl_eeprom() {
 
 /* Dxl uses a convention with two zeros. Per example, if the second zero is 1024 then the values from 0 to 1023 are unchanged but 1025 means -1.
  */
-unsigned short terrible_sign_convention(long pInput, long pIamZeroISwear) {
+unsigned short terrible_sign_convention(int32 pInput, int32 pIamZeroISwear) {
     if (pInput >= 0) {
         return (unsigned short) pInput;
     } else {

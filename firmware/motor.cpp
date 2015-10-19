@@ -3,17 +3,24 @@
 #include "trajectory_manager.h"
 #include "dxl_HAL.h"
 
-#define TRAJ_CALC_FREQ 2
+#define TRAJ_CALC_FREQ 10
 
 static motor mot;
 static int nbUpdates = 0;
 static buffer previousAngleBuffer;
 
-long currentRawMeasures[C_NB_RAW_MEASURES];
-long currentTimming[C_NB_RAW_MEASURES];
+int32 currentRawMeasures[C_NB_RAW_MEASURES];
+int32 currentTimming[C_NB_RAW_MEASURES];
 int currentMeasureIndex = 0;
 bool currentDetailedDebugOn = false;
 bool temperatureIsCritic = false;
+
+// Benchmarking
+bool activateBenchmark = false;
+const int TIME_STAMP_SIZE_MOTOR = 1000;
+static int32 arrayOfTimeStampsMotor[TIME_STAMP_SIZE_MOTOR];
+uint16 timeIndexMotor = 0;
+int changeId = 0;
 
 int16 positionArray[NB_POSITIONS_SAVED];
 uint16 timeArray[NB_POSITIONS_SAVED];
@@ -28,7 +35,10 @@ uint16 trackingDivider = 3;
                          * I0 is a constant defined in trajectory_manager */
 
 
-//Debug timer
+void motor_add_benchmark_time();
+void motor_print_time_stamp();
+
+//Timer for trajectory management
 HardwareTimer timer3(3);
 
 motor * motor_get_motor() {
@@ -96,11 +106,25 @@ void motor_restart_traj_timer() {
 }
 
 void motor_update(encoder * pEnc) {
-    uint16 time;
+	if (dxl_regs.ram.mode == 5) {
+		activateBenchmark = true;
+	}
+	if (activateBenchmark) {
+		motor_add_benchmark_time();
+		if (timeIndexMotor >= (TIME_STAMP_SIZE_MOTOR - 1)) {
+			motor_print_time_stamp();
+		}
+	}
+
+    uint16 time = timer3.getCount();
+
     int16 dt = 10; /*
-                    * This function should be called every dt*10 ms.
+                    * This function should be called every 1 ms.
                     * The plan B would be to estimate dt = time - previousTime;
                     * */
+//    int16 dt = time - previousTime; // Need to check for the case where the timer overflows or resets.
+//    previousTime = time;
+
     //Updating the motor position (ie angle)
     buffer_add(&(mot.angleBuffer), mot.angle);
     mot.previousAngle = mot.angle;
@@ -129,13 +153,15 @@ void motor_update(encoder * pEnc) {
 	}
 
 
-    long oldPosition = buffer_get(&(mot.angleBuffer));
+    int32 oldPosition = buffer_get(&(mot.angleBuffer));
 
     motor_update_sign_of_speed();
 
     if (predictiveCommandOn) {
+    	if (changeId == 0) {
+    		changeId = timeIndexMotor;
+    	}
         if (counterUpdate%TRAJ_CALC_FREQ == 0) {
-            time = timer3.getCount();
             if (time > dxl_regs.ram.duration1 && controlMode != COMPLIANT_KIND_OF) {
                 motor_restart_traj_timer();
                 if (dxl_regs.ram.copyNextBuffer != 0) {
@@ -157,25 +183,29 @@ void motor_update(encoder * pEnc) {
 //             float weightCompensation = cos(angleRad) * 71;
 //             predictive_control_anti_gravity_tick(&mot, mot.speed, dt*TRAJ_CALC_FREQ, weightCompensation, addedInertia);
 
+            // We're going to evaluate at least one polynom (and more often than not, 3 polynoms). We'll calculate the powers of t only once :
+            int maxPower = max(dxl_regs.ram.trajPoly1Size, dxl_regs.ram.torquePoly1Size);
+            float timePowers[4];
+            eval_powers_of_t(timePowers, time, maxPower, 10000);
 
             if (controlMode == COMPLIANT_KIND_OF) {
                 predictive_control_compliant_kind_of(&mot, dt*TRAJ_CALC_FREQ);
             } else {
                 predictive_control_tick(&mot,
-                                    traj_eval_poly_derivate(dxl_regs.ram.trajPoly1, dxl_regs.ram.trajPoly1Size, dxl_regs.ram.duration1, time),
+                                    traj_eval_poly_derivate(dxl_regs.ram.trajPoly1, timePowers),
                                     dt*TRAJ_CALC_FREQ,
-                                    traj_eval_poly(dxl_regs.ram.torquePoly1, dxl_regs.ram.torquePoly1Size, dxl_regs.ram.duration1, time),
+                                    traj_eval_poly(dxl_regs.ram.torquePoly1, timePowers),
                                     0);
             }
 
 
             if (controlMode == PID_AND_PREDICTIVE_COMMAND || controlMode == PID_ONLY) {
                 mot.targetAngle = traj_magic_modulo(
-                traj_eval_poly(dxl_regs.ram.trajPoly1, dxl_regs.ram.trajPoly1Size, dxl_regs.ram.duration1, time), MAX_ANGLE+1
-                                                );
+                traj_eval_poly(dxl_regs.ram.trajPoly1, timePowers), MAX_ANGLE+1);
             }
 
             if (dxl_regs.ram.positionTrackerOn == true) {
+            	// For arbitrary measures
                 if (counterUpdate%trackingDivider == 0) {
                     positionArray[positionIndex] = mot.angle;//mot.targetAngle;//(int16)weightCompensation;//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount());
                     timeArray[positionIndex] = time;
@@ -191,16 +221,12 @@ void motor_update(encoder * pEnc) {
             }
 
         }
-        if (counterUpdate%40 == 0) {
-                //mot.targetAngle = traj_constant_speed(2048, 10000, timer3.getCount());
-            // mot.targetAngle = traj_min_jerk(timer3.getCount());
-        }
 
         counterUpdate++;
     }
 
         //Updating the motor speed
-    long previousSpeed = mot.speed;
+    int32 previousSpeed = mot.speed;
 
     mot.speed = mot.angle - oldPosition;//((mot.speed*12) + ((mot.angle - oldPosition)*speedCoef)*4)/16.0;
     if (abs(mot.speed) > MAX_SPEED) {
@@ -218,10 +244,13 @@ void motor_update(encoder * pEnc) {
     buffer_add(&(mot.speedBuffer), mot.speed);
 
     //Updating the motor acceleration
-    long oldSpeed = buffer_get(&(mot.speedBuffer));
+    int32 oldSpeed = buffer_get(&(mot.speedBuffer));
     mot.acceleration = mot.speed - oldSpeed;
 
     nbUpdates++;
+    if (activateBenchmark) {
+    	motor_add_benchmark_time();
+    }
 }
 
 void motor_read_current() {
@@ -265,7 +294,7 @@ void motor_update_sign_of_speed() {
         // mot.signOfSpeed = sign(mot.averageCurrent);
 }
 
-void motor_set_command(long pCommand) {
+void motor_set_command(int32 pCommand) {
     if (temperatureIsCritic == true) {
         // Nope, go cool down yourself before you consider spinning again, motor bro.
         return;
@@ -279,8 +308,8 @@ void motor_set_command(long pCommand) {
         mot.command = pCommand;
     }
 
-    long command = mot.command;
-    long previousCommand = mot.previousCommand;
+    int32 command = mot.command;
+    int32 previousCommand = mot.previousCommand;
     if (mot.state != COMPLIANT) {
 
 		if (command >= 0 && previousCommand >= 0) {
@@ -312,7 +341,7 @@ void motor_secure_pwm_write(uint8 pPin, uint16 pCommand){
     }
 }
 
-void motor_set_target_angle(long pAngle) {
+void motor_set_target_angle(int32 pAngle) {
     //Reseting the control to avoid inertia with the integral part
     control_reset();
     if (pAngle > MAX_ANGLE) {
@@ -326,21 +355,21 @@ void motor_set_target_angle(long pAngle) {
     mot.targetAngle = motor_check_limit_angles(pAngle);
 }
 
-void motor_set_target_angle_multi_turn_mode(long pAngle) {
+void motor_set_target_angle_multi_turn_mode(int32 pAngle) {
     //Reseting the control to avoid inertia with the integral part
     control_reset();
 
     mot.targetAngle = pAngle;
 }
 
-long motor_check_limit_angles(long pAngle) {
+int32 motor_check_limit_angles(int32 pAngle) {
     if (motor_is_valid_angle(pAngle)) {
         return pAngle;
     }
 
         // pAngle is not a valid angle, the function will return the closest valid angle
-    long posDiff = control_angle_diff(pAngle, mot.posAngleLimit);
-    long negDiff = control_angle_diff(pAngle, mot.negAngleLimit);
+    int32 posDiff = control_angle_diff(pAngle, mot.posAngleLimit);
+    int32 negDiff = control_angle_diff(pAngle, mot.negAngleLimit);
 
     if (abs(posDiff) < abs(negDiff)) {
         return mot.posAngleLimit;
@@ -349,7 +378,7 @@ long motor_check_limit_angles(long pAngle) {
     }
 }
 
-bool motor_is_valid_angle(long pAngle) {
+bool motor_is_valid_angle(int32 pAngle) {
     if (mot.posAngleLimit == mot.negAngleLimit) {
             // Free wheel mode
         return true;
@@ -423,6 +452,32 @@ void print_detailed_trajectory() {
         // Serial1.print(timeArray[i] - NB_TICKS_BEFORE_UPDATING_SPEED*10); // Taking into account the speed update delay
         Serial1.print(" ");
         Serial1.println(positionArray[i]);
+    }
+
+    Serial1.waitDataToBeSent();
+    digitalWrite(BOARD_TX_ENABLE, LOW);
+}
+
+void motor_add_benchmark_time() {
+    if (timeIndexMotor < TIME_STAMP_SIZE_MOTOR) {
+        arrayOfTimeStampsMotor[timeIndexMotor] = timer3.getCount();
+        timeIndexMotor++;
+    }
+}
+
+void motor_print_time_stamp() {
+	digitalWrite(BOARD_LED_PIN, LOW);
+
+    digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.println("");
+    for (int i = 0; i < TIME_STAMP_SIZE_MOTOR; i++) {
+            Serial1.println("Wait for it");
+        }
+    for (int i = 0; i < TIME_STAMP_SIZE_MOTOR; i++) {
+    	if (i == changeId) {
+            Serial1.println("The change is now !");
+    	}
+        Serial1.println(arrayOfTimeStampsMotor[i]);
     }
 
     Serial1.waitDataToBeSent();

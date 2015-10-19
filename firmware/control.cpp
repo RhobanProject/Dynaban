@@ -6,7 +6,7 @@ static control controlStruct;
 // Returns the spin direction the motor needs to follow in order to respect its limit angles
 int8 choose_direction(motor * pMot);
 
-int8 viable_direction(motor * pMot, long pDiffToGoal);
+int8 viable_direction(motor * pMot, int32 pDiffToGoal);
 
 control * get_control_struct() {
     return &controlStruct;
@@ -133,7 +133,7 @@ void control_tick_P_on_torque(motor * pMot) {
     controlStruct.deltaAverageCurrent = pMot->targetCurrent - pMot->averageCurrent;
 
     // /!\ the -1 conspiracy continues
-    long command = - controlStruct.deltaAverageCurrent * INITIAL_TORQUE_P_COEF;
+    int32 command = - controlStruct.deltaAverageCurrent * INITIAL_TORQUE_P_COEF;
 
     motor_set_command(command);
 }
@@ -141,9 +141,9 @@ void control_tick_P_on_torque(motor * pMot) {
 /**
  * Returns the signed difference between 2 angles
  */
-long control_angle_diff(long a, long b) {
-    long diff = a - b;
-    long limit = (MAX_ANGLE+1)/2;
+int32 control_angle_diff(int32 a, int32 b) {
+    int32 diff = a - b;
+    int32 limit = (MAX_ANGLE+1)/2;
 
     if (diff > limit) {
         return diff - (MAX_ANGLE + 1);
@@ -158,8 +158,8 @@ long control_angle_diff(long a, long b) {
 /**
  * Returns the other angle between 2 angles (the bigger one, aka the one that is bigger than MAX_ANGLE/2)
  */
-long control_other_angle_diff(long a, long b) {
-    long diff = control_angle_diff(a, b);
+int32 control_other_angle_diff(int32 a, int32 b) {
+    int32 diff = control_angle_diff(a, b);
     if (diff > 0) {
     	return diff - (MAX_ANGLE + 1);
     } else {
@@ -185,7 +185,7 @@ int8 choose_direction(motor * pMot) {
         return -1;
     }
 
-    long diff = control_angle_diff(pMot->targetAngle, pMot->angle);
+    int32 diff = control_angle_diff(pMot->targetAngle, pMot->angle);
     if (diff == 0) {
         return 0;
     } else {
@@ -194,8 +194,8 @@ int8 choose_direction(motor * pMot) {
 }
 
 
-int8 viable_direction(motor * pMot, long pDiffToGoal) {
-    long diffToLimit = 0;
+int8 viable_direction(motor * pMot, int32 pDiffToGoal) {
+    int32 diffToLimit = 0;
 
     if (pDiffToGoal > 0) {
             // We are spining positively
