@@ -21,6 +21,7 @@ const int TIME_STAMP_SIZE_MOTOR = 0;
 static int32 arrayOfTimeStampsMotor[TIME_STAMP_SIZE_MOTOR];
 uint16 timeIndexMotor = 0;
 int changeId = 0;
+bool notPrintedYet = true;
 
 int16 positionArray[NB_POSITIONS_SAVED];
 uint16 timeArray[NB_POSITIONS_SAVED];
@@ -200,7 +201,8 @@ void motor_update(encoder * pEnc) {
                     positionArray[positionIndex] = mot.angle;//mot.targetAngle;//(int16)weightCompensation;//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount());
                     timeArray[positionIndex] = time;
 
-                    if (positionIndex == NB_POSITIONS_SAVED || time > dxl_regs.ram.duration1) {
+                    if (positionIndex == NB_POSITIONS_SAVED) {
+                    	notPrintedYet = false;
                         positionIndex = 0;
                         dxl_regs.ram.positionTrackerOn = false;
                         print_detailed_trajectory();
@@ -213,6 +215,13 @@ void motor_update(encoder * pEnc) {
         }
 
         counterUpdate++;
+    } else {
+    	if (dxl_regs.ram.positionTrackerOn == true && notPrintedYet) {
+    		notPrintedYet = false;
+    		positionIndex = 0;
+    		dxl_regs.ram.positionTrackerOn = false;
+			print_detailed_trajectory();
+    	}
     }
 
         //Updating the motor speed
@@ -429,6 +438,7 @@ void motor_temperature_is_critic() {
 }
 
 void print_detailed_trajectory() {
+	digitalWrite(BOARD_LED_PIN, LOW);
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.println("");
     for (int i = 0; i < NB_POSITIONS_SAVED; i++) {
@@ -443,6 +453,7 @@ void print_detailed_trajectory() {
 
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
+    digitalWrite(BOARD_LED_PIN, HIGH);
 }
 
 void motor_add_benchmark_time() {
