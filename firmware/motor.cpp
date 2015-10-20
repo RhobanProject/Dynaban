@@ -89,8 +89,8 @@ void motor_init(encoder * pEnc) {
     mot.current = 0;
     mot.averageCurrent = 0;
     mot.targetCurrent = 0;
-    mot.posAngleLimit = 2047;
-    mot.negAngleLimit = 2048;
+    mot.posAngleLimit = 0;
+    mot.negAngleLimit = 0;
     // Reading the magic offset in the flash
     mot.offset = dxl_read_magic_offset();
     mot.multiTurnOn = false;

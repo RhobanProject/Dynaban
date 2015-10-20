@@ -94,6 +94,12 @@ void control_tick_predictive_command_only(motor * pMot) {
 
 void control_tick_PID_and_predictive_command(motor * pMot) {
     controlStruct.deltaAngle = control_angle_diff(pMot->targetAngle, pMot->angle);
+    if (abs(controlStruct.deltaAngle) > 56) {
+    	//Turning the led on if the trajectory is not being followed close enough
+    	digitalWrite(BOARD_LED_PIN, LOW);
+    } else {
+    	digitalWrite(BOARD_LED_PIN, HIGH);
+    }
     int8 direction = choose_direction(pMot);
     if ((direction != 0) && (controlStruct.deltaAngle * direction < 0)) {
             // The shortest way is not viable, we'll have to go the other way around
