@@ -85,7 +85,7 @@ void motor_init(encoder * pEnc) {
     mot.targetSpeed = 0;
     mot.acceleration = 0;
     mot.targetAcceleration = 0;
-    mot.state = MOVING;
+    mot.state = COMPLIANT;
     mot.current = 0;
     mot.averageCurrent = 0;
     mot.targetCurrent = 0;

@@ -78,9 +78,7 @@ void read_dxl_ram() {
 
     if ((hardwareStruct.mot->posAngleLimit == 4095) && (hardwareStruct.mot->negAngleLimit == 4095)) {
     	hardwareStruct.mot->multiTurnOn = true;
-    	digitalWrite(BOARD_LED_PIN, LOW);
     } else {
-    	digitalWrite(BOARD_LED_PIN, HIGH);
     	/* Multiturn mode is off.
     	 * Beware though, if we were in multiturn mode before, we'll reset the circular buffer containing the past positions to avoid weirdness
     	 * (going from [-32768, +32767] to [0, 4096] would create errors in the speed calculations)
