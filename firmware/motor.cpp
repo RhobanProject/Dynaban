@@ -169,10 +169,10 @@ void motor_update(encoder * pEnc) {
                 }
 
             }
-            // These 3 lines makes it impossible for the bootloader to load the binary file, manly because of the cos import. -> Known bug and known solution but quite time consuming.
+            // These 3 lines make it impossible for the bootloader to load the binary file, manly because of the cos import. -> Known bug and known solution but quite time consuming.
 //             float angleRad = (mot.angle * (float)PI) / 2048.0;
 //             float weightCompensation = cos(angleRad) * 71;
-//             predictive_control_anti_gravity_tick(&mot, mot.speed, dt*TRAJ_CALC_FREQ, weightCompensation, addedInertia);
+//             predictive_control_anti_gravity_tick(&mot, mot.speed, weightCompensation, addedInertia);
 
             // We're going to evaluate at least one polynom (and more often than not, 3 polynoms). We'll calculate the powers of t only once :
             int maxPower = max(dxl_regs.ram.trajPoly1Size, dxl_regs.ram.torquePoly1Size);
@@ -180,7 +180,7 @@ void motor_update(encoder * pEnc) {
             eval_powers_of_t(timePowers, time, maxPower, 10000);
 
             if (controlMode == COMPLIANT_KIND_OF) {
-                predictive_control_compliant_kind_of(&mot, dt*TRAJ_CALC_FREQ);
+                predictive_control_compliant_kind_of(&mot);
             } else {
                 predictive_control_tick(&mot,
                                     traj_eval_poly_derivate(dxl_regs.ram.trajPoly1, timePowers),

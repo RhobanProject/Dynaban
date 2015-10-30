@@ -15,6 +15,23 @@
 #define TRAJECTORY_MANAGER_H
 
 struct predictiveControl {
+	uint16 staticFriction;
+	float i0;
+	float vAlim;
+	float r;
+	float ke;
+	float kvis;
+	uint16 statToCoulTrans;
+	float coulombCommandDivider;
+
+	float unitFactor;
+
+	float torqueToCommand ;
+	float kv;
+	float kstat;
+	float coulombMaxCommand;
+	float kcoul;
+
     int32 estimatedSpeed;
     int32 previousCommand;
 };
@@ -30,14 +47,11 @@ int32 traj_eval_poly_derivate(volatile float * pPoly, float * pTimePowers);
  */
 uint32 traj_magic_modulo(int32 a, uint32 b);
 void predictive_control_init();
+void predictive_control_update();
+predictiveControl * get_predictive_control();
 void predictive_control_tick(motor * pMot, int32 pVGoal, uint32 pDt, float pOutputTorque, float pIAdded);
-void predictive_control_anti_gravity_tick(motor * pMot, int32 pVGoal, uint32 pDt, float pOutputTorque, float pIAdded);
-void predictive_control_compliant_kind_of(motor * pMot, uint32 pDt);
-void predictive_control_tick_simple(motor * pMot, int32 pVGoal);
-float acceleration_from_weight(uint32 angle, float l);
-float acceleration_from_weight_calib(uint32 angle);
-int32 static_friction(int32 v);
-float viscous_friction(int32 v);
+void predictive_control_anti_gravity_tick(motor * pMot, int32 pVGoal, float pOutputTorque, float pIAdded);
+void predictive_control_compliant_kind_of(motor * pMot);
 int8 sign(int32 pInput);
 
 

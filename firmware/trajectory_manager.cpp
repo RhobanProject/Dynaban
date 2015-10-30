@@ -11,31 +11,44 @@
 
 #include "trajectory_manager.h"
 
-
-#define kDelta_old 3.5//5.076//4.820 -> first calibration with an empty arm
-#define ke_old     0.582//0.614//0.6426
-#define g      9.80665
-#define m      0.270
-#define L      0.12
-
-#define STATIC_FRICTION 80
-#define I0     0 //0.00353 kg.m**2 is the measured moment of inertia when empty (gear box)
-#define V_ALIM 12
-#define r      6
-#define STAT_TO_COUL_TRANS 1300 // To be checked
-
-static const float unitFactor = (3000*2*PI) / ((float)(V_ALIM*4096)); // == 0.3834 at 12V
-
-static float torqueToCommand   = 3.75;//3.56; // Should be r/ke (ke ~ 1.6) = 3.75. To be used with torques expressed in [N.m * 4096 / 2*PI]
-static float kv                = 1.65;//1.705;//1.462 // kv = ke + kvis
-static float kstat             = STATIC_FRICTION / (torqueToCommand * unitFactor); // kstat * 1 * torqueToVolt * unitFactor should be equal to STATIC_FRICTION (min command to get the motor moving).
-static float coulombMaxCommand = STATIC_FRICTION/4.567;
-static float kcoul             = coulombMaxCommand / (torqueToCommand * unitFactor);
-
 static predictiveControl pControl;
 
-uint8 punchTicksRemaining = 0;
 
+void predictive_control_init() {
+
+	pControl.staticFriction = 80;
+	pControl.i0 = 0; //0.00353 kg.m**2 is the measured moment of inertia when empty (gear box)
+	pControl.vAlim = 12;
+	pControl.r = 6;
+	pControl.ke = 1.6;
+	pControl.kvis = 0.05;
+	pControl.statToCoulTrans = 1300; // To be checked
+	pControl.coulombCommandDivider = 4.567;
+
+
+	pControl.unitFactor = (3000*2*PI) / ((float)(pControl.vAlim*4096)); // == 0.3834 at 12V
+	pControl.torqueToCommand   = pControl.r / pControl.ke; //3.75 //3.56; // Should be r/ke (ke ~ 1.6) = 3.75. To be used with torques expressed in [N.m * 4096 / 2*PI]
+	pControl.kv                = pControl.ke + pControl.kvis;
+	pControl.kstat             = pControl.staticFriction / (pControl.torqueToCommand * pControl.unitFactor); // kstat * 1 * torqueToVolt * unitFactor should be equal to staticFriction (min command to get the motor moving).
+	pControl.coulombMaxCommand = pControl.staticFriction/pControl.coulombCommandDivider;
+	pControl.kcoul             = pControl.coulombMaxCommand / (pControl.torqueToCommand * pControl.unitFactor);
+
+	pControl.estimatedSpeed = 1;
+	pControl.previousCommand = 0;
+}
+
+void predictive_control_update() {
+	pControl.unitFactor = (3000*2*PI) / ((float)(pControl.vAlim*4096)); // == 0.3834 at 12V
+	pControl.torqueToCommand   = pControl.r / pControl.ke; //3.75 //3.56; // Should be r/ke (ke ~ 1.6) = 3.75. To be used with torques expressed in [N.m * 4096 / 2*PI]
+	pControl.kv                = pControl.ke + pControl.kvis;
+	pControl.kstat             = pControl.staticFriction / (pControl.torqueToCommand * pControl.unitFactor); // kstat * 1 * torqueToVolt * unitFactor should be equal to staticFriction (min command to get the motor moving).
+	pControl.coulombMaxCommand = pControl.staticFriction/pControl.coulombCommandDivider;
+	pControl.kcoul             = pControl.coulombMaxCommand / (pControl.torqueToCommand * pControl.unitFactor);
+}
+
+predictiveControl * get_predictive_control() {
+	return &pControl;
+}
 
 uint16 traj_constant_speed(uint32 pDistance, uint16 pTotalTime, uint16 pTime) {
     return ((float)pDistance/(float)pTotalTime) * pTime;
@@ -130,11 +143,6 @@ uint32 traj_magic_modulo(int32 a, uint32 b) {
 }
 
 
-void predictive_control_init() {
-    pControl.estimatedSpeed = 1;
-    pControl.previousCommand = 0;
-}
-
 /**
  * The formula used here is u(t) = unitFactor*[kv * v + torqueToCommand*(outputTorque + accelTorque + frictionTorque)]
  *
@@ -145,26 +153,20 @@ void predictive_control_init() {
  * -> outputTorque is the actual torque that could be measured outside the motor
  * -> accelTorque  = I * a(t) is the torque needed to create an acceleration of a(t) during dt, provided that 'outputTorque' is
  * either null or absorbed by the environment (which is typically the case when it's used as a weight compensation)
- * -> I = I0 + pIAdded (I0 is the moment of inertia of the gearbox)
- * -> a(t) = (pVGoal - v)/dt
+ * 		-> I = I0 + pIAdded (I0 is the moment of inertia of the gearbox)
+ * 		-> a(t) = (pVGoal - v)/dt
  */
 void predictive_control_tick(motor * pMot, int32 pVGoal, uint32 pDt, float pOutputTorque, float pIAdded) {
     int32 v = pControl.estimatedSpeed;//pMot->speed;//pControl.estimatedSpeed;
 
     int8 signV = sign(v);
-        // Hack for anti-gravity arm :
-        /* The issue here is that our initial model states that the static friction depends on the sign of the current speed
-         * which is true as long as the speed is not null.
-         * When the speed is null, the static friction will oppose itself to the torque applied on the motor.
-         **/
-    // signV = pMot->signOfSpeed; // 1;
 
-    float beta = exp(-abs( v / ((float)STAT_TO_COUL_TRANS) ));
-    float accelTorque = ((float)(pVGoal - v) * (I0 + pIAdded) * 10000)/((float)pDt); // dt is in 1/10 of a ms
-    float frictionTorque = signV * (beta * kstat + (1 - beta) * kcoul);
+    float beta = exp(-abs( v / ((float)pControl.statToCoulTrans) ));
+    float accelTorque = ((float)(pVGoal - v) * (pControl.i0 + pIAdded) * 10000)/((float)pDt); // dt is in 1/10 of a ms
+    float frictionTorque = signV * (beta * pControl.kstat + (1 - beta) * pControl.kcoul);
 
-    int32 u = unitFactor *
-        (kv * v + torqueToCommand * (accelTorque + frictionTorque + pOutputTorque));
+    int32 u = pControl.unitFactor *
+        (pControl.kv * v + pControl.torqueToCommand * (accelTorque + frictionTorque + pOutputTorque));
 
     if (u > MAX_COMMAND) {
         u = MAX_COMMAND;
@@ -189,21 +191,18 @@ void predictive_control_tick(motor * pMot, int32 pVGoal, uint32 pDt, float pOutp
  * -> outputTorque is the actual torque that could be measured outside the motor
  * -> accelTorque  = I * a(t) is the torque needed to create an acceleration of a(t) during dt, provided that 'outputTorque' is
  * either null or absorbed by the environment (which is typically the case when it's used as a weight compensation)
- * -> I = I0 + pIAdded (I0 is the moment of inertia of the gearbox)
- * -> a(t) = (pVGoal - v)/dt
+ * 		-> I = I0 + pIAdded (I0 is the moment of inertia of the gearbox)
+ * 		-> a(t) = (pVGoal - v)/dt
  */
-void predictive_control_anti_gravity_tick(motor * pMot, int32 pVGoal, uint32 pDt, float pOutputTorque, float pIAdded) {
+void predictive_control_anti_gravity_tick(motor * pMot, int32 pVGoal, float pOutputTorque, float pIAdded) {
 	int32 v = pMot->speed;//(pMot->averageSpeed);//pControl.estimatedSpeed;
 
-    pVGoal = v;
-
-    int8 signV = sign(v);
         // Hack for anti-gravity/friction arm :
         /* The issue here is that our initial model states that the static friction depends on the sign of the current speed
          * which is true as long as the speed is not null.
          * When the speed is null, the static friction will oppose itself to the torque applied on the motor.
          **/
-    signV = pMot->signOfSpeed;
+    int8 signV = pMot->signOfSpeed;
     if (signV == 1) {
         digitalWrite(BOARD_LED_PIN, HIGH);
     } else if (signV == -1) {
@@ -211,7 +210,7 @@ void predictive_control_anti_gravity_tick(motor * pMot, int32 pVGoal, uint32 pDt
     } else {
         // digitalWrite(BOARD_LED_PIN, LOW);
     }
-        // Un-comment this to emulate an old windows loading a program (quite funny actually)
+        // Un-comment this to emulate an old windows PC loading a program (quite funny actually)
     // if (pMot->averageCurrent > 0) {
     //     signV = 1;
     //     digitalWrite(BOARD_LED_PIN, LOW);
@@ -223,12 +222,12 @@ void predictive_control_anti_gravity_tick(motor * pMot, int32 pVGoal, uint32 pDt
     //     digitalWrite(BOARD_LED_PIN, HIGH);
     // }
 
-    float beta = exp(-abs( v / ((float)STAT_TO_COUL_TRANS) ));
+    float beta = exp(-abs( v / ((float)pControl.statToCoulTrans) ));
     float accelTorque = 0;
-    float frictionTorque = signV * (beta * kstat + (1 - beta) * kcoul);
+    float frictionTorque = signV * (beta * pControl.kstat + (1 - beta) * pControl.kcoul);
 
-    int32 u = unitFactor *
-        (kv * v + torqueToCommand * (accelTorque + frictionTorque + pOutputTorque));
+    int32 u = pControl.unitFactor *
+        (pControl.kv * v + pControl.torqueToCommand * (accelTorque + frictionTorque + pOutputTorque));
 
     if (u > MAX_COMMAND) {
         u = MAX_COMMAND;
@@ -237,12 +236,14 @@ void predictive_control_anti_gravity_tick(motor * pMot, int32 pVGoal, uint32 pDt
         u = -MAX_COMMAND;
     }
     pMot->predictiveCommand = u;
-    pControl.estimatedSpeed = pVGoal;
+    pControl.estimatedSpeed = v;
 }
 
-void predictive_control_compliant_kind_of(motor * pMot, uint32 pDt) {
-    int32 v = pMot->speed;
-    int32 vGoal = v;
+/**
+ * Same thing that predictive_control_anti_gravity_tick but simplified (no added torque and no added I)
+ */
+void predictive_control_compliant_kind_of(motor * pMot) {
+    int32 v = pMot->speed; // pMot->averageSpeed; //pMot->speed;//pControl.estimatedSpeed;
 
     // Hack for anti-gravity/friction arm :
         /* The issue here is that our initial model states that the static friction depends on the sign of the current speed
@@ -251,11 +252,12 @@ void predictive_control_compliant_kind_of(motor * pMot, uint32 pDt) {
          **/
     int8 signV = pMot->signOfSpeed;
 
-    float beta = exp(-abs( v / ((float)STAT_TO_COUL_TRANS) ));
-    float frictionTorque = signV * (beta * kstat + (1 - beta) * kcoul);
+    float beta = exp(-abs( v / ((float)pControl.statToCoulTrans) ));
+    float frictionTorque = signV * (beta * pControl.kstat + (1 - beta) * pControl.kcoul);
 
-    int32 u = unitFactor *
-        (kv * v + torqueToCommand * (frictionTorque));
+    int32 u = pControl.unitFactor *
+        (pControl.kv * v + pControl.torqueToCommand * (frictionTorque));
+
 
     if (u > MAX_COMMAND) {
         u = MAX_COMMAND;
@@ -264,65 +266,7 @@ void predictive_control_compliant_kind_of(motor * pMot, uint32 pDt) {
         u = -MAX_COMMAND;
     }
     pMot->predictiveCommand = u;
-    pControl.estimatedSpeed = vGoal;
-}
-
-/**
- * The formula used here is u(t) = ke*v(t)  + (vGoal - v(t))*kDelta
- * Where kDelta = (I*r)/(dt*ke) ~= 4.820
- * and ke ~=0.6426
- */
-void predictive_control_tick_simple(motor * pMot, int32 pVGoal) {
-    int32 v = pControl.estimatedSpeed;
-    int32 punchValue = 350;
-
-    if (punchTicksRemaining > 0) {
-            // We are in punch mode
-        punchTicksRemaining--;
-        pMot->predictiveCommand = sign(pVGoal) * punchValue;
-        if (punchTicksRemaining == 0) {
-            pControl.estimatedSpeed = 40;
-        }
-        return;
-    }
-
-    if (abs(v) < 40 && abs(v) < abs(pVGoal)) {
-            // We assume that the actual speed is 0. The time the motor needs to start moving depends on the command.
-            // The idea is to minimize that time. The motor needs ~6.1 ms to start moving when the command is at its maximum
-        punchTicksRemaining = 1;
-        pMot->predictiveCommand = (sign(pVGoal) * punchValue);
-        pControl.estimatedSpeed = 0;
-        return;
-
-    }
-
-        // Normal case
-//    float angleRad = (pMot->angle * (float)PI) / 2048.0;
-//    float weightCompensation = cos(angleRad) * 140.0;//235.0;
-        // int32 u = kDelta * (float)(pVGoal - v) + ke * (float)v;
-        // int32 u = kDelta * (float)(pVGoal - v + acceleration_from_weight_calib(pMot->angle)) + ke * (float)v;
-    int32 u = kDelta_old * (float)(pVGoal - v)
-        + ke_old * (float)v
-        + static_friction(v);
-
-        // + weightCompensation
-        // + static_friction(v)
-        // + viscous_friction(v);
-        // int32 u = kDelta * (float)(acceleration_from_weight_calib(pMot->angle));
-
-        // int32 u = kDelta * ((float)(pVGoal - v) + acceleration_from_weight(pMot->angle, L)) + ke * (float)v;
-    if (u > MAX_COMMAND) {
-        u = MAX_COMMAND;
-    }
-    if (u < -MAX_COMMAND) {
-        u = -MAX_COMMAND;
-    }
-    pMot->predictiveCommand = u;
-    pControl.estimatedSpeed = pVGoal; 	/* Would be better if we could get the real-life speed from time to time to update this value.
-     	 	 	 	 	 	 	 	 	 * This is no easy task since getting the speed from a derivate of the position comes with the
-										 * tradeoff delay VS accuracy.
-										 */
-
+    pControl.estimatedSpeed = v;
 }
 
 

@@ -160,7 +160,11 @@ void setup() {
     //Motor init
     motor_init(encoder_get_encoder(0));
 
+    //Control
     control_init();
+
+    //Traj
+    predictive_control_init();
 
     //Dxl
     dxl_init();
@@ -199,9 +203,6 @@ void setup() {
     //Dxl struct init
     init_dxl_ram();
     init_dxl_eeprom();
-
-        //traj
-    predictive_control_init();
 
     // Heartbit
     for (int i = 0; i < 4; i++) {

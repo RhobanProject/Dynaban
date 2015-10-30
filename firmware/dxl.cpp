@@ -115,6 +115,7 @@ void dxl_init_regs()
     dxl_regs.ram.debugOn = false;
 
     dxl_regs.eeprom_dirty = false;
+
 }
 
 void dxl_start_serial() {

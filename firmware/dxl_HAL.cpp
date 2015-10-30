@@ -2,6 +2,7 @@
 #include "dxl_HAL.h"
 #include <string.h>
 #include "circular_buffer.h"
+#include "trajectory_manager.h"
 
 void dxl_print_debug();
 
@@ -44,6 +45,15 @@ void init_dxl_ram() {
     dxl_regs.ram.goalAcceleration = hardwareStruct.mot->targetAcceleration;
     dxl_regs.ram.goalTorque = hardwareStruct.mot->targetCurrent;
     dxl_regs.ram.mode = POSITION_CONTROL;
+
+    predictiveControl * pControl = get_predictive_control();
+    dxl_regs.ram.staticFriction = pControl->staticFriction;
+	dxl_regs.ram.i0 = pControl->i0;
+	dxl_regs.ram.r = pControl->r;
+	dxl_regs.ram.ke = pControl->ke;
+	dxl_regs.ram.kvis = pControl->kvis;
+	dxl_regs.ram.statToCoulTrans = pControl->statToCoulTrans;
+	dxl_regs.ram.coulombCommandDivider = pControl->coulombCommandDivider;
 
     //The other registers are updated here :
     update_dxl_ram();
@@ -174,6 +184,27 @@ void read_dxl_ram() {
     if (dxl_regs.ram.debugOn == true) {
         dxl_print_debug();
     }
+
+    predictiveControl * pControl = get_predictive_control();
+    if (pControl->staticFriction != dxl_regs.ram.staticFriction
+    		|| pControl->i0 != dxl_regs.ram.i0
+			|| pControl->r != dxl_regs.ram.r
+			|| pControl->ke != dxl_regs.ram.ke
+			|| pControl->kvis != dxl_regs.ram.kvis
+			|| pControl->statToCoulTrans != dxl_regs.ram.statToCoulTrans
+			|| pControl->coulombCommandDivider != dxl_regs.ram.coulombCommandDivider) {
+        pControl->staticFriction = dxl_regs.ram.staticFriction;
+        pControl->i0 = dxl_regs.ram.i0;
+        pControl->r = dxl_regs.ram.r;
+        pControl->ke = dxl_regs.ram.ke;
+        pControl->kvis = dxl_regs.ram.kvis;
+        pControl->statToCoulTrans = dxl_regs.ram.statToCoulTrans;
+        pControl->coulombCommandDivider = dxl_regs.ram.coulombCommandDivider;
+
+    	predictive_control_update();
+    }
+
+
 
 }
 
