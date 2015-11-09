@@ -98,7 +98,7 @@ static bool     DXL_COM_ON = true; // /!\
 
 long           counter               = 0;
 int            posCounter            = 0;
-unsigned char  hardwareCounter       = 0;
+unsigned int   hardwareCounter       = 0;
 unsigned int   slowHardwareCounter   = 0;
 bool           readyToUpdateHardware = false;
 bool           readyToUpdateCurrent  = false;
@@ -119,6 +119,7 @@ const int TIME_STAMP_SIZE = 1000;
 static long arrayOfTimeStamps[TIME_STAMP_SIZE];
 HardwareTimer timer2(2);
 uint16 timeIndex = 0;
+bool temp = false;
 
 void setup() {
     disableDebugPorts();
@@ -301,14 +302,15 @@ void hardware_tick() {
             //These actions are performed at 1 Hz
         hardwareCounter = 0;
 
-            //Updating power supply value (the value is 10 times bigger than the real value)
-        hardwareStruct.voltage = (unsigned char)((analogRead(POWER_SUPPLY_ADC_PIN) * 33 *766)/409600);
+        //Updating power supply value (the value is 10 times bigger than the real value)
+        hardwareStruct.voltage = (unsigned char)((analogRead(POWER_SUPPLY_ADC_PIN) * 33 * 766)/409600);
 
             //Updating the temperature
         hardwareStruct.temperature = read_temperature();
         if (hardwareStruct.temperature > MAX_TEMPERATURE) {
             motor_temperature_is_critic();
         }
+
     }
 }
 

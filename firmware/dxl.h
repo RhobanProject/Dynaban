@@ -160,6 +160,9 @@ struct dxl_ram {
 	float kvis;                             // 0xB4
 	uint16 statToCoulTrans;                 // 0xB8
 	float coulombCommandDivider;            // 0xBA
+	int16 speedCalculationDelay;			// 0xBE
+	float ouputTorque;                      // 0xC0
+	float outputTorqueWithoutFriction;       // 0xC4
 
 } __attribute__((packed));
 

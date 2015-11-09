@@ -55,6 +55,10 @@ void init_dxl_ram() {
 	dxl_regs.ram.statToCoulTrans = pControl->statToCoulTrans;
 	dxl_regs.ram.coulombCommandDivider = pControl->coulombCommandDivider;
 
+	dxl_regs.ram.speedCalculationDelay = 40;
+	dxl_regs.ram.ouputTorque = 0.0;
+	dxl_regs.ram.outputTorqueWithoutFriction = 0.0;
+
     //The other registers are updated here :
     update_dxl_ram();
 }
@@ -94,7 +98,7 @@ void read_dxl_ram() {
     	 * (going from [-32768, +32767] to [0, 4096] would create errors in the speed calculations)
     	 */
     	if (hardwareStruct.mot->multiTurnOn) {
-    		buffer_reset_values(&(hardwareStruct.mot->angleBuffer), hardwareStruct.mot->angle);
+    		buffer_reset_values(hardwareStruct.mot->angleBuffer, hardwareStruct.mot->angle);
 
     	}
     	hardwareStruct.mot->multiTurnOn = false;
@@ -192,7 +196,8 @@ void read_dxl_ram() {
 			|| pControl->ke != dxl_regs.ram.ke
 			|| pControl->kvis != dxl_regs.ram.kvis
 			|| pControl->statToCoulTrans != dxl_regs.ram.statToCoulTrans
-			|| pControl->coulombCommandDivider != dxl_regs.ram.coulombCommandDivider) {
+			|| pControl->coulombCommandDivider != dxl_regs.ram.coulombCommandDivider
+			|| pControl->vAlim != hardwareStruct.voltage/10.0) {
         pControl->staticFriction = dxl_regs.ram.staticFriction;
         pControl->i0 = dxl_regs.ram.i0;
         pControl->r = dxl_regs.ram.r;
@@ -200,9 +205,16 @@ void read_dxl_ram() {
         pControl->kvis = dxl_regs.ram.kvis;
         pControl->statToCoulTrans = dxl_regs.ram.statToCoulTrans;
         pControl->coulombCommandDivider = dxl_regs.ram.coulombCommandDivider;
+        pControl->vAlim = hardwareStruct.voltage/10.0;
 
     	predictive_control_update();
     }
+
+//    if (hardwareStruct.mot->angleBuffer->size != (int)(1000/(dxl_regs.ram.speedCalculationDelay))) {
+//    	// Dynamically changing the size of the buffer
+//    	buffer_delete(hardwareStruct.mot->angleBuffer);
+//    	hardwareStruct.mot->angleBuffer = buffer_creation((int)(1000/(dxl_regs.ram.speedCalculationDelay)), hardwareStruct.mot->angle);
+//    }
 
 
 
@@ -299,3 +311,4 @@ void dxl_print_debug() {
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
 }
+

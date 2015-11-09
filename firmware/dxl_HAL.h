@@ -55,4 +55,5 @@ void read_dxl_eeprom();
  */
 unsigned short terrible_sign_convention(int32 pInput, int32 pIamZeroISwear);
 
+
 #endif /* _DXL_HAL_H_ */

@@ -75,8 +75,8 @@ void motor_init(encoder * pEnc) {
     mot.angle = pEnc->angle;
     mot.previousAngle = pEnc->angle;
     //mot.angleBuffer = previousAngleBuffer;
-    buffer_init(&(mot.angleBuffer), NB_TICKS_BEFORE_UPDATING_SPEED, mot.angle);
-    buffer_init(&(mot.speedBuffer), NB_TICKS_BEFORE_UPDATING_ACCELERATION, 0);
+    mot.angleBuffer = buffer_creation(NB_TICKS_BEFORE_UPDATING_SPEED, mot.angle); // (int)(1000/(dxl_regs.ram.speedCalculationDelay))
+    mot.speedBuffer = buffer_creation(NB_TICKS_BEFORE_UPDATING_ACCELERATION, 0);
     mot.targetAngle = pEnc->angle;
     mot.speed = 0;
     mot.averageSpeed = 0;
@@ -117,7 +117,7 @@ void motor_update(encoder * pEnc) {
 //    previousTime = time;
 
     //Updating the motor position (ie angle)
-    buffer_add(&(mot.angleBuffer), mot.angle);
+    buffer_add(mot.angleBuffer, mot.angle);
     mot.previousAngle = mot.angle;
     // Taking into account the magic offset
     int tempAngle = pEnc->angle + mot.offset;
@@ -144,7 +144,7 @@ void motor_update(encoder * pEnc) {
 	}
 
 
-    int32 oldPosition = buffer_get(&(mot.angleBuffer));
+    int32 oldPosition = buffer_get(mot.angleBuffer);
 
     motor_update_sign_of_speed();
 
@@ -169,7 +169,7 @@ void motor_update(encoder * pEnc) {
                 }
 
             }
-            // These 3 lines make it impossible for the bootloader to load the binary file, manly because of the cos import. -> Known bug and known solution but quite time consuming.
+            // These 3 lines make it impossible for the bootloader to load the binary file, mainly because of the cos import. -> Known bug and known solution but quite time consuming.
 //             float angleRad = (mot.angle * (float)PI) / 2048.0;
 //             float weightCompensation = cos(angleRad) * 71;
 //             predictive_control_anti_gravity_tick(&mot, mot.speed, weightCompensation, addedInertia);
@@ -227,8 +227,9 @@ void motor_update(encoder * pEnc) {
         //Updating the motor speed
     int32 previousSpeed = mot.speed;
 
-    mot.speed = mot.angle - oldPosition;//((mot.speed*12) + ((mot.angle - oldPosition)*speedCoef)*4)/16.0;
-    if (abs(mot.speed) > MAX_SPEED) {
+    mot.speed = mot.angle - oldPosition;
+    uint16 maxSpeed = 8096/dxl_regs.ram.speedCalculationDelay + 5;
+    if (abs(mot.speed) > maxSpeed) {
         //Position went from near max to near 0 or vice-versa
         if (mot.angle >= oldPosition) {
             mot.speed = mot.speed - MAX_ANGLE - 1;
@@ -236,14 +237,14 @@ void motor_update(encoder * pEnc) {
             mot.speed = mot.speed + MAX_ANGLE + 1;
         }
     }
-    mot.speed = mot.speed * SPEED_COEF;
+    mot.speed = mot.speed * dxl_regs.ram.speedCalculationDelay;
 
         //Averaging with previous value :
-    mot.averageSpeed = ((previousSpeed*99) + (mot.speed))/100.0;
-    buffer_add(&(mot.speedBuffer), mot.speed);
+    mot.averageSpeed = ((previousSpeed*99) + (mot.speed))/100.0; // Dangerous approach :/
+    buffer_add(mot.speedBuffer, mot.speed);
 
     //Updating the motor acceleration
-    int32 oldSpeed = buffer_get(&(mot.speedBuffer));
+    int32 oldSpeed = buffer_get(mot.speedBuffer);
     mot.acceleration = mot.speed - oldSpeed;
 
     nbUpdates++;
@@ -272,7 +273,7 @@ void motor_read_current() {
 }
 
 void motor_update_sign_of_speed() {
-    if (abs(mot.speed) < (1*SPEED_COEF)) {
+    if (abs(mot.speed) < (1*dxl_regs.ram.speedCalculationDelay)) {
             // Sign will remain what it was before
         return;
     }

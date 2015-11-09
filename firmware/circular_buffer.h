@@ -10,7 +10,8 @@ struct buffer {
     int nbElements;
 };
 
-void buffer_init(buffer * pBuf, int pSize, long pInit);
+buffer * buffer_creation(int pSize, long pInit);
+void buffer_delete(buffer * pBuffer);
 void buffer_add(buffer * pBuf, long pValue);
 long buffer_get(buffer * pBuf);
 void buffer_reset_values(buffer * pBuf, long pValue);

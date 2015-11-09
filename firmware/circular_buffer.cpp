@@ -1,16 +1,37 @@
 #include <stdlib.h>
 #include "circular_buffer.h"
 
-void buffer_init(buffer * pBuf, int pSize, long pInit) {
-    pBuf->start = 0;
-    pBuf->end = 0;
-    pBuf->size = pSize;
-    pBuf->buf = (long*)malloc(sizeof(long) * pSize);
+buffer * buffer_creation(int pSize, long pInit) {
+	// Allocating space for the struct (the buf field will still be only a pointer)
+	buffer *  result = (buffer *) malloc (sizeof(buffer));
+	if (result == NULL) {
+		return NULL;
+	}
+
+	// Allocating space for the buf field
+	result->buf = (long *) malloc (pSize * sizeof(long));
+	if (result->buf == NULL) {
+		return NULL;
+	}
+
+    result->start = 0;
+    result->end = 0;
+    result->size = pSize;
 
     for (int i = 0; i < pSize; i++) {
-        pBuf->buf[i] = pInit;
+        result->buf[i] = pInit;
     }
+
+    return result;
 }
+
+void buffer_delete(buffer * pBuffer) {
+	if (pBuffer != NULL) {
+		free (pBuffer->buf);
+		free (pBuffer);
+	}
+}
+
 
 void buffer_add(buffer * pBuf, long pValue) {
     pBuf->buf[pBuf->end] = pValue;
