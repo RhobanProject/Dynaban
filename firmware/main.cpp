@@ -239,7 +239,7 @@ void loop() {
     }
 
     // Uncomment to output debug
-//     if (counter % 100*4 == 0) {
+//     if (counter % 100*40 == 0) {
 //         print_debug();
 //     }
 

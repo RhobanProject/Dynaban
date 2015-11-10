@@ -17,6 +17,7 @@ buffer * buffer_creation(int pSize, long pInit) {
     result->start = 0;
     result->end = 0;
     result->size = pSize;
+    result->nbElements = 0;
 
     for (int i = 0; i < pSize; i++) {
         result->buf[i] = pInit;
@@ -62,8 +63,11 @@ void buffer_reset_values(buffer * pBuf, long pValue) {
 
 }
 
-void buffer_print(buffer * pBuf) {
-    digitalWrite(BOARD_TX_ENABLE, HIGH);
+void buffer_print_buffer(buffer * pBuf) {
+	Serial1.print("Size : ");
+	Serial1.println(pBuf->size);
+	Serial1.print("Nb elements : ");
+	Serial1.println(pBuf->nbElements);
     Serial1.print("Start : ");
     Serial1.println(pBuf->start);
     Serial1.print("End : ");
@@ -73,7 +77,5 @@ void buffer_print(buffer * pBuf) {
         Serial1.print(", ");
     }
     Serial1.println();
-    Serial1.waitDataToBeSent();
-    digitalWrite(BOARD_TX_ENABLE, LOW);
 
 }

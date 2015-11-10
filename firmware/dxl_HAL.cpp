@@ -55,7 +55,7 @@ void init_dxl_ram() {
 	dxl_regs.ram.statToCoulTrans = pControl->statToCoulTrans;
 	dxl_regs.ram.coulombCommandDivider = pControl->coulombCommandDivider;
 
-	dxl_regs.ram.speedCalculationDelay = 40;
+	dxl_regs.ram.speedCalculationDelay = 50;
 	dxl_regs.ram.ouputTorque = 0.0;
 	dxl_regs.ram.outputTorqueWithoutFriction = 0.0;
 
@@ -98,7 +98,7 @@ void read_dxl_ram() {
     	 * (going from [-32768, +32767] to [0, 4096] would create errors in the speed calculations)
     	 */
     	if (hardwareStruct.mot->multiTurnOn) {
-    		buffer_reset_values(hardwareStruct.mot->angleBuffer, hardwareStruct.mot->angle);
+    		buffer_reset_values(&(hardwareStruct.mot->angleBuffer), hardwareStruct.mot->angle);
 
     	}
     	hardwareStruct.mot->multiTurnOn = false;
@@ -210,11 +210,13 @@ void read_dxl_ram() {
     	predictive_control_update();
     }
 
-//    if (hardwareStruct.mot->angleBuffer->size != (int)(1000/(dxl_regs.ram.speedCalculationDelay))) {
-//    	// Dynamically changing the size of the buffer
-//    	buffer_delete(hardwareStruct.mot->angleBuffer);
-//    	hardwareStruct.mot->angleBuffer = buffer_creation((int)(1000/(dxl_regs.ram.speedCalculationDelay)), hardwareStruct.mot->angle);
-//    }
+    if (hardwareStruct.mot->angleBuffer.size != (int)(1000/(dxl_regs.ram.speedCalculationDelay))) {
+    	// Dynamically changing the size of the buffer
+    	buffer_delete(&(hardwareStruct.mot->angleBuffer));
+//    	buffer_delete(&(hardwareStruct.mot->commandBuffer));
+    	hardwareStruct.mot->angleBuffer = *buffer_creation((int)(1000/(dxl_regs.ram.speedCalculationDelay)), hardwareStruct.mot->angle);
+//    	hardwareStruct.mot->commandBuffer = *buffer_creation((int)(1000/(dxl_regs.ram.speedCalculationDelay)), 0);
+    }
 
 
 

@@ -30,7 +30,7 @@
   => NB_TICK_BEFORE_UPDATING_SPEED = 526 * NB_TICKS_PER_SECOND / 4096
                                    = 128.418 ~= 128
  */
-#define NB_TICKS_BEFORE_UPDATING_SPEED 25
+#define NB_TICKS_BEFORE_UPDATING_SPEED 50
 #define NB_TICKS_BEFORE_UPDATING_ACCELERATION 8
 #define C_NB_RAW_MEASURES 60
 #define NB_POSITIONS_SAVED 1024 // 2048 over flows by 392 bytes
@@ -66,8 +66,9 @@ struct motor {
     int32 previousCommand;
     int32 angle;
     int32 previousAngle;
-    buffer * angleBuffer;
-    buffer * speedBuffer;
+    buffer angleBuffer;
+    buffer speedBuffer;
+//    buffer commandBuffer;
     int32 targetAngle;
     int32 speed;
     int32 averageSpeed;
@@ -88,6 +89,8 @@ struct motor {
     int32 offset;
     boolean multiTurnOn;
     int32 multiTurnAngle;
+    float outputTorqueWithoutFriction;
+    float outputTorque;
 };
 
 void motor_init(encoder * pEnc);

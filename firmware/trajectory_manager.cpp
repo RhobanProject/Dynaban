@@ -10,6 +10,7 @@
 *************************************************************************/
 
 #include "trajectory_manager.h"
+#include "dxl_HAL.h"
 
 static predictiveControl pControl;
 
@@ -179,6 +180,27 @@ void predictive_control_tick(motor * pMot, int32 pVGoal, uint32 pDt, float pOutp
                                        * This is no easy task since getting the speed from a derivate of the position comes with the
                                        * tradeoff delay VS accuracy.
                                        */
+}
+
+/**
+ * Estimates the torque that'soutputed by the motor (with and without accounting for friction), when the command is pCommand and the rotationnal speed
+ * is pSpeed.
+ * Same formula as predictive_control_tick but this function is used only to update the output torques. Torque units in in [N.m * 4096 / 2*PI] (don't judge me)
+ *
+ */
+void predictive_update_output_torques(int32 pCommand, int32 pSpeed) {
+    int32 v = pSpeed;
+
+    int8 signV = sign(v);
+
+    float beta = exp(-abs( v / ((float)pControl.statToCoulTrans) ));
+    float frictionTorque = signV * (beta * pControl.kstat + (1 - beta) * pControl.kcoul);
+
+    //int32 u = pControl.unitFactor * (pControl.kv * v + pControl.torqueToCommand * (accelTorque + frictionTorque + pOutputTorque));
+    float outputTorque = ((pCommand/pControl.unitFactor) - pControl.kv * v) / pControl.torqueToCommand; // == accelTorque + frictionTorque + pOutputTorque
+
+    dxl_regs.ram.ouputTorque = pCommand;//outputTorque;
+    dxl_regs.ram.outputTorqueWithoutFriction = pSpeed; //outputTorque - frictionTorque;
 }
 
 /**

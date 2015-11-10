@@ -6,7 +6,6 @@
 #define TRAJ_CALC_FREQ 10
 
 static motor mot;
-static int nbUpdates = 0;
 static buffer previousAngleBuffer;
 
 int32 currentRawMeasures[C_NB_RAW_MEASURES];
@@ -75,8 +74,11 @@ void motor_init(encoder * pEnc) {
     mot.angle = pEnc->angle;
     mot.previousAngle = pEnc->angle;
     //mot.angleBuffer = previousAngleBuffer;
-    mot.angleBuffer = buffer_creation(NB_TICKS_BEFORE_UPDATING_SPEED, mot.angle); // (int)(1000/(dxl_regs.ram.speedCalculationDelay))
-    mot.speedBuffer = buffer_creation(NB_TICKS_BEFORE_UPDATING_ACCELERATION, 0);
+    mot.angleBuffer = *buffer_creation(NB_TICKS_BEFORE_UPDATING_SPEED, mot.angle); // (int)(1000/(dxl_regs.ram.speedCalculationDelay))
+    mot.speedBuffer = *buffer_creation(NB_TICKS_BEFORE_UPDATING_ACCELERATION, 0);
+//    mot.commandBuffer = *buffer_creation(NB_TICKS_BEFORE_UPDATING_SPEED, 0);
+//    buffer_init(&(mot.angleBuffer), NB_TICKS_BEFORE_UPDATING_SPEED, mot.angle);
+//    buffer_init(&(mot.speedBuffer), NB_TICKS_BEFORE_UPDATING_ACCELERATION, 0);
     mot.targetAngle = pEnc->angle;
     mot.speed = 0;
     mot.averageSpeed = 0;
@@ -95,6 +97,8 @@ void motor_init(encoder * pEnc) {
     mot.offset = dxl_read_magic_offset();
     mot.multiTurnOn = false;
     mot.multiTurnAngle = mot.angle;
+    mot.outputTorqueWithoutFriction = 0.0;
+    mot.outputTorque = 0.0;
 
     timer3.setPrescaleFactor(7200); // 1 for current debug, 7200 => 10 tick per ms
     timer3.setOverflow(65535);
@@ -117,7 +121,9 @@ void motor_update(encoder * pEnc) {
 //    previousTime = time;
 
     //Updating the motor position (ie angle)
-    buffer_add(mot.angleBuffer, mot.angle);
+    buffer_add(&(mot.angleBuffer), mot.angle);
+    // This command is the one from the previous tick since the control is updated after the motor.
+//    buffer_add(&(mot.commandBuffer), mot.command);
     mot.previousAngle = mot.angle;
     // Taking into account the magic offset
     int tempAngle = pEnc->angle + mot.offset;
@@ -144,7 +150,7 @@ void motor_update(encoder * pEnc) {
 	}
 
 
-    int32 oldPosition = buffer_get(mot.angleBuffer);
+    int32 oldPosition = buffer_get(&(mot.angleBuffer));
 
     motor_update_sign_of_speed();
 
@@ -228,7 +234,8 @@ void motor_update(encoder * pEnc) {
     int32 previousSpeed = mot.speed;
 
     mot.speed = mot.angle - oldPosition;
-    uint16 maxSpeed = 8096/dxl_regs.ram.speedCalculationDelay + 5;
+    // max speed is 2 revolutions per second. Which is 8096 steps per second. Which is 80 960/speedCalculationDelay steps per speedCalculationDelay (in ms)
+    uint16 maxSpeed = 80960/dxl_regs.ram.speedCalculationDelay + 5;
     if (abs(mot.speed) > maxSpeed) {
         //Position went from near max to near 0 or vice-versa
         if (mot.angle >= oldPosition) {
@@ -237,17 +244,20 @@ void motor_update(encoder * pEnc) {
             mot.speed = mot.speed + MAX_ANGLE + 1;
         }
     }
-    mot.speed = mot.speed * dxl_regs.ram.speedCalculationDelay;
+    // This speed will be in steps/ms :
+    mot.speed = (mot.speed * 1000) / dxl_regs.ram.speedCalculationDelay;
 
         //Averaging with previous value :
     mot.averageSpeed = ((previousSpeed*99) + (mot.speed))/100.0; // Dangerous approach :/
-    buffer_add(mot.speedBuffer, mot.speed);
+    buffer_add(&(mot.speedBuffer), mot.speed);
 
     //Updating the motor acceleration
-    int32 oldSpeed = buffer_get(mot.speedBuffer);
+    int32 oldSpeed = buffer_get(&(mot.speedBuffer));
     mot.acceleration = mot.speed - oldSpeed;
 
-    nbUpdates++;
+    predictive_update_output_torques(mot.command, mot.speed);
+    mot.outputTorqueWithoutFriction = dxl_regs.ram.outputTorqueWithoutFriction;
+    mot.outputTorque = dxl_regs.ram.ouputTorque;
 }
 
 void motor_read_current() {
@@ -511,9 +521,12 @@ void motor_print_motor() {
     SerialUSB.println(mot.current);
     SerialUSB.print("averageCurrent : ");
     SerialUSB.println(mot.averageCurrent);
+    SerialUSB.print("offset : ");
+    SerialUSB.println(mot.offset);
+
 }
 #else
-void motor_printMotor() {
+void motor_print_motor() {
     Serial1.println();
     Serial1.println("*** Motor :");
     Serial1.print("command : ");
@@ -530,6 +543,8 @@ void motor_printMotor() {
     Serial1.println(mot.state);
     Serial1.print("speed : ");
     Serial1.println(mot.speed);
+    Serial1.print("averageSpeed : ");
+    Serial1.println(mot.averageSpeed);
     Serial1.print("target speed : ");
     Serial1.println(mot.targetSpeed);
     Serial1.print("acceleration : ");
@@ -540,5 +555,15 @@ void motor_printMotor() {
     Serial1.println(mot.current);
     Serial1.print("averageCurrent : ");
     Serial1.println(mot.averageCurrent);
+    Serial1.print("magicOffset : ");
+    Serial1.println(mot.offset);
+    Serial1.print("angle buffer : ");
+    buffer_print_buffer(&mot.angleBuffer);
+    Serial1.print("outputTorqueWithoutFriction : ");
+    Serial1.println(mot.outputTorqueWithoutFriction);
+    Serial1.print("outputTorque : ");
+    Serial1.println(mot.outputTorque);
+
+
 }
 #endif
