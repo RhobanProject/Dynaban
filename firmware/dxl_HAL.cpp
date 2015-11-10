@@ -210,13 +210,15 @@ void read_dxl_ram() {
     	predictive_control_update();
     }
 
-    if (hardwareStruct.mot->angleBuffer.size != (int)(1000/(dxl_regs.ram.speedCalculationDelay))) {
-    	// Dynamically changing the size of the buffer
-    	buffer_delete(&(hardwareStruct.mot->angleBuffer));
-//    	buffer_delete(&(hardwareStruct.mot->commandBuffer));
-    	hardwareStruct.mot->angleBuffer = *buffer_creation((int)(1000/(dxl_regs.ram.speedCalculationDelay)), hardwareStruct.mot->angle);
-//    	hardwareStruct.mot->commandBuffer = *buffer_creation((int)(1000/(dxl_regs.ram.speedCalculationDelay)), 0);
-    }
+  XXX The problem comes from here :
+//    int nbTicksForSpeed = (int)(1000/(dxl_regs.ram.speedCalculationDelay));
+//    if (hardwareStruct.mot->angleBuffer.size != nbTicksForSpeed) {
+//    	// Dynamically changing the size of the buffer
+//    	buffer_delete(&(hardwareStruct.mot->angleBuffer));
+////    	buffer_delete(&(hardwareStruct.mot->commandBuffer));
+//    	hardwareStruct.mot->angleBuffer = *buffer_creation(nbTicksForSpeed, hardwareStruct.mot->angle);
+////    	hardwareStruct.mot->commandBuffer = *buffer_creation((int)(1000/(dxl_regs.ram.speedCalculationDelay)), 0);
+//    }
 
 
 
