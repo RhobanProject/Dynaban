@@ -183,7 +183,7 @@ void predictive_control_tick(motor * pMot, int32 pVGoal, uint32 pDt, float pOutp
 }
 
 /**
- * Estimates the torque that'soutputed by the motor (with and without accounting for friction), when the command is pCommand and the rotationnal speed
+ * Estimates the torque that's outputed by the motor (with and without accounting for friction), when the command is pCommand and the rotationnal speed
  * is pSpeed.
  * Same formula as predictive_control_tick but this function is used only to update the output torques. Torque units in in [N.m * 4096 / 2*PI] (don't judge me)
  *
@@ -199,8 +199,8 @@ void predictive_update_output_torques(int32 pCommand, int32 pSpeed) {
     //int32 u = pControl.unitFactor * (pControl.kv * v + pControl.torqueToCommand * (accelTorque + frictionTorque + pOutputTorque));
     float outputTorque = ((pCommand/pControl.unitFactor) - pControl.kv * v) / pControl.torqueToCommand; // == accelTorque + frictionTorque + pOutputTorque
 
-    dxl_regs.ram.ouputTorque = pCommand;//outputTorque;
-    dxl_regs.ram.outputTorqueWithoutFriction = pSpeed; //outputTorque - frictionTorque;
+    dxl_regs.ram.ouputTorque = outputTorque;
+    dxl_regs.ram.outputTorqueWithoutFriction = outputTorque - frictionTorque;
 }
 
 /**

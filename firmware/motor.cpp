@@ -69,7 +69,7 @@ void motor_init(encoder * pEnc) {
     //Releasing the shutdown
     digitalWrite(SHUT_DOWN_PIN, HIGH);
 
-    mot.command = pEnc->angle;
+    mot.command = 0;
     mot.previousCommand = pEnc->angle;
     mot.angle = pEnc->angle;
     mot.previousAngle = pEnc->angle;
