@@ -318,25 +318,24 @@ void motor_set_command(int32 pCommand) {
     int32 command = mot.command;
     int32 previousCommand = mot.previousCommand;
     if (mot.state != COMPLIANT) {
-
-		if (command >= 0 && previousCommand >= 0) {
-			//No need to change the spin direction
+    	if (command >= 0 && previousCommand >= 0) {
+    		//No need to change the spin direction
 			motor_secure_pwm_write(PWM_2_PIN, command);
 		} else if (command <= 0 && previousCommand <= 0) {
 			motor_secure_pwm_write(PWM_1_PIN, abs(command));
-				} else {
-					// Change of spin direction procedure
-					if (command > 0) {
-						motor_secure_pwm_write(PWM_1_PIN, 0);
-						motor_secure_pwm_write(PWM_2_PIN, 0);
-						motor_secure_pwm_write(PWM_2_PIN, command);
-					} else {
-						motor_secure_pwm_write(PWM_2_PIN, 0);
-						motor_secure_pwm_write(PWM_1_PIN, 0);
-						motor_secure_pwm_write(PWM_1_PIN, abs(command));
-					}
-				}
+		} else {
+			// Change of spin direction procedure
+			if (command > 0) {
+				motor_secure_pwm_write(PWM_1_PIN, 0);
+				motor_secure_pwm_write(PWM_2_PIN, 0);
+				motor_secure_pwm_write(PWM_2_PIN, command);
+			} else {
+				motor_secure_pwm_write(PWM_2_PIN, 0);
+				motor_secure_pwm_write(PWM_1_PIN, 0);
+				motor_secure_pwm_write(PWM_1_PIN, abs(command));
+			}
 		}
+    }
 
 }
 
