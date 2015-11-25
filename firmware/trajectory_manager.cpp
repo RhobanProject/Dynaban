@@ -200,7 +200,7 @@ void predictive_update_output_torques(int32 pCommand, int32 pSpeed) {
     float outputTorque = ((pCommand/pControl.unitFactor) - pControl.kv * v) / pControl.torqueToCommand; // == accelTorque + frictionTorque + pOutputTorque
 
     dxl_regs.ram.ouputTorque = outputTorque;
-    dxl_regs.ram.outputTorqueWithoutFriction = pCommand;//outputTorque - frictionTorque;
+    dxl_regs.ram.outputTorqueWithoutFriction = outputTorque - frictionTorque;
 }
 
 /**
