@@ -41,3 +41,7 @@ Voltage: division de tension
 Trouver les pins?
 
 Températeur: thermistor soudé au plus près du moteur
+
+- Motor (to be checked) : maxon re max 21
+
+- Gear-box ratio = 200

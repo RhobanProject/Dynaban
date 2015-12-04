@@ -20,15 +20,16 @@ void predictive_control_init() {
 	pControl.staticFriction = 80;
 	pControl.i0 = 0; //0.00353 kg.m**2 is the measured moment of inertia when empty (gear box)
 	pControl.vAlim = 12;
-	pControl.r = 6;
-	pControl.ke = 1.6;
+	pControl.r = 6; // Datasheet says 5.86 ohm
+	pControl.ke = 1.6; // V*s/rad (voltage/rotational speed). Datasheet says 694/200 rpm/V (the 200 come from the gear box ratio) = 0.3634 rad/(s*V) => ke = 2.75 V*s/rad
+	//Btw the ke (in rad/s) == kt (in N.m/A) is valid in the datasheet since they give torqueConstant = 13.8*200 mN.m/A (the 200 come from the gear box ratio) = 2.76 N.m/A
 	pControl.kvis = 0.05;
 	pControl.statToCoulTrans = 1300; // To be checked
 	pControl.coulombCommandDivider = 4.567;
 
 
 	pControl.unitFactor = (3000*2*PI) / ((float)(pControl.vAlim*4096)); // == 0.3834 at 12V
-	pControl.torqueToCommand   = pControl.r / pControl.ke; //3.75 //3.56; // Should be r/ke (ke ~ 1.6) = 3.75. To be used with torques expressed in [N.m * 4096 / 2*PI]
+	pControl.torqueToCommand   = pControl.r / pControl.ke; // r/ke (ke ~ 1.6) = 3.75. To be used with torques expressed in [N.m * 4096 / 2*PI]
 	pControl.kv                = pControl.ke + pControl.kvis;
 	pControl.kstat             = pControl.staticFriction / (pControl.torqueToCommand * pControl.unitFactor); // kstat * 1 * torqueToVolt * unitFactor should be equal to staticFriction (min command to get the motor moving).
 	pControl.coulombMaxCommand = pControl.staticFriction/pControl.coulombCommandDivider;
@@ -39,10 +40,10 @@ void predictive_control_init() {
 }
 
 void predictive_control_update() {
-	pControl.unitFactor = (3000*2*PI) / ((float)(pControl.vAlim*4096)); // == 0.3834 at 12V
-	pControl.torqueToCommand   = pControl.r / pControl.ke; //3.75 //3.56; // Should be r/ke (ke ~ 1.6) = 3.75. To be used with torques expressed in [N.m * 4096 / 2*PI]
+	pControl.unitFactor = (3000*2*PI) / ((float)(pControl.vAlim*4096));
+	pControl.torqueToCommand   = pControl.r / pControl.ke;
 	pControl.kv                = pControl.ke + pControl.kvis;
-	pControl.kstat             = pControl.staticFriction / (pControl.torqueToCommand * pControl.unitFactor); // kstat * 1 * torqueToVolt * unitFactor should be equal to staticFriction (min command to get the motor moving).
+	pControl.kstat             = pControl.staticFriction / (pControl.torqueToCommand * pControl.unitFactor);
 	pControl.coulombMaxCommand = pControl.staticFriction/pControl.coulombCommandDivider;
 	pControl.kcoul             = pControl.coulombMaxCommand / (pControl.torqueToCommand * pControl.unitFactor);
 }
