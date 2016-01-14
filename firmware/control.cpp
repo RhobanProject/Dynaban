@@ -136,12 +136,14 @@ void control_tick_P_on_acceleration(motor * pMot) {
 }
 
 void control_tick_P_on_torque(motor * pMot) {
-    controlStruct.deltaAverageCurrent = pMot->targetCurrent - pMot->averageCurrent;
+	//RIP current measure
+//    controlStruct.deltaAverageCurrent = pMot->targetCurrent - pMot->averageCurrent;
 
-    // /!\ the -1 conspiracy continues
-    int32 command = - controlStruct.deltaAverageCurrent * INITIAL_TORQUE_P_COEF;
+//      // /!\ the -1 conspiracy continues
+//    int32 command = - controlStruct.deltaAverageCurrent * INITIAL_TORQUE_P_COEF;
 
-    motor_set_command(command);
+	int32 command = (-pMot->outputTorque + pMot->targetTorque) * controlStruct.torquePCoef;
+	motor_set_command(command);
 }
 
 /**

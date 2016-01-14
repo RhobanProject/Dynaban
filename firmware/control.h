@@ -13,7 +13,7 @@ const int INITIAL_D_COEF = 0;
 
 const float INITIAL_SPEED_P_COEF = 0.5;
 const int INITIAL_ACCELERATION_P_COEF = 20;
-const int INITIAL_TORQUE_P_COEF = 45;
+const int INITIAL_TORQUE_P_COEF = 1;
 
 const float P_FOR_SPEED = MAX_COMMAND/(1024.0);
 
@@ -28,7 +28,7 @@ struct control {
     int dCoef;
     int speedPCoef;
     int accelerationPCoef;
-    int torquePCoef;
+    int16 torquePCoef;
 };
 
 control * get_control_struct();

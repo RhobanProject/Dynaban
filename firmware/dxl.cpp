@@ -92,7 +92,7 @@ void dxl_init_regs()
     dxl_regs.ram.punch = 0;
     dxl_regs.ram.current = 0;
     dxl_regs.ram.torqueMode = 0;
-    dxl_regs.ram.goalTorque = 0;
+    dxl_regs.ram.goalCurrent = 0;
     dxl_regs.ram.goalAcceleration = 0;
 
         // New stuff :
@@ -113,9 +113,9 @@ void dxl_init_regs()
     dxl_regs.ram.copyNextBuffer = 0;
     dxl_regs.ram.positionTrackerOn = false;
     dxl_regs.ram.debugOn = false;
-    dxl_regs.ram.frozenRamOn = false;
 
     dxl_regs.eeprom_dirty = false;
+
 
 }
 

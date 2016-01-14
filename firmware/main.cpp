@@ -292,6 +292,8 @@ void hardware_tick() {
     } else if (controlMode == COMPLIANT_KIND_OF) {
         predictiveCommandOn = true;
         control_tick_predictive_command_only(hardwareStruct.mot);
+    } else if (controlMode == CURRENT_CONTROL) {
+        //Disabled, current measure is not reliable
     } else {
         predictiveCommandOn = false;
             // No control

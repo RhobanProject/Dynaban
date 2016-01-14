@@ -124,7 +124,7 @@ struct dxl_ram {
     unsigned char _padding4[18];            // 0x32
     unsigned short current;                 // 0x44
     unsigned char torqueMode;               // 0x46
-    unsigned short goalTorque;              // 0x47 ---> Some padding here would not hurt !
+    unsigned short goalCurrent;              // 0x47 ---> Some padding here would not hurt !
     unsigned char goalAcceleration;         // 0x49
     unsigned char trajPoly1Size;            // 0x4A
     float         trajPoly1[DXL_POLY_SIZE]; //[4B
@@ -168,6 +168,8 @@ struct dxl_ram {
 	float ouputTorque;                      // 0xC0
 	float outputTorqueWithoutFriction;      // 0xC4
 	unsigned char frozenRamOn;              // 0xC8
+	uint16 torqueKp;                        // 0xC9
+	float goalTorque;						// 0xCB
 
 } __attribute__((packed));
 

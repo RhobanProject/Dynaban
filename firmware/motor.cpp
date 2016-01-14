@@ -99,6 +99,7 @@ void motor_init(encoder * pEnc) {
     mot.multiTurnAngle = mot.angle;
     mot.outputTorqueWithoutFriction = 0.0;
     mot.outputTorque = 0.0;
+    mot.targetTorque = 0.0;
 
     timer3.setPrescaleFactor(7200); // 1 for current debug, 7200 => 10 tick per ms
     timer3.setOverflow(65535);

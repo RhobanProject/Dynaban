@@ -24,6 +24,7 @@ enum controlModeEnum {
     PID_ONLY                    = 7,
     PID_AND_PREDICTIVE_COMMAND  = 8,
     COMPLIANT_KIND_OF           = 9,
+	CURRENT_CONTROL				= 10,
 
 };
 

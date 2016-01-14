@@ -37,27 +37,30 @@ void init_dxl_ram() {
     dxl_regs.ram.lock = 0;
     dxl_regs.ram.punch = 0;
     dxl_regs.ram.torqueMode = 0;
-    dxl_regs.ram.goalTorque = 0;
+    dxl_regs.ram.goalCurrent = 0;
     dxl_regs.ram.goalAcceleration = 0;
 
     dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
     dxl_regs.ram.movingSpeed = hardwareStruct.mot->targetSpeed;
     dxl_regs.ram.goalAcceleration = hardwareStruct.mot->targetAcceleration;
-    dxl_regs.ram.goalTorque = hardwareStruct.mot->targetCurrent;
+    dxl_regs.ram.goalCurrent = hardwareStruct.mot->targetCurrent;
     dxl_regs.ram.mode = POSITION_CONTROL;
 
-    predictiveControl * pControl = get_predictive_control();
-    dxl_regs.ram.staticFriction = pControl->staticFriction;
-	dxl_regs.ram.i0 = pControl->i0;
-	dxl_regs.ram.r = pControl->r;
-	dxl_regs.ram.ke = pControl->ke;
-	dxl_regs.ram.kvis = pControl->kvis;
-	dxl_regs.ram.statToCoulTrans = pControl->statToCoulTrans;
-	dxl_regs.ram.coulombCommandDivider = pControl->coulombCommandDivider;
+    predictiveControl * predictiveControl = get_predictive_control();
+    dxl_regs.ram.staticFriction = predictiveControl->staticFriction;
+	dxl_regs.ram.i0 = predictiveControl->i0;
+	dxl_regs.ram.r = predictiveControl->r;
+	dxl_regs.ram.ke = predictiveControl->ke;
+	dxl_regs.ram.kvis = predictiveControl->kvis;
+	dxl_regs.ram.statToCoulTrans = predictiveControl->statToCoulTrans;
+	dxl_regs.ram.coulombCommandDivider = predictiveControl->coulombCommandDivider;
 
 	dxl_regs.ram.speedCalculationDelay = 50;
 	dxl_regs.ram.ouputTorque = 0.0;
 	dxl_regs.ram.outputTorqueWithoutFriction = 0.0;
+
+	dxl_regs.ram.frozenRamOn = false;
+	dxl_regs.ram.torqueKp = get_control_struct()->torquePCoef;
 
     //The other registers are updated here :
     update_dxl_ram();
@@ -89,6 +92,7 @@ void read_dxl_ram() {
     get_control_struct()->dCoef = dxl_regs.ram.servoKd;
     get_control_struct()->iCoef = dxl_regs.ram.servoKi;
     get_control_struct()->pCoef = dxl_regs.ram.servoKp;
+    get_control_struct()->torquePCoef = dxl_regs.ram.torqueKp;
 
     if ((hardwareStruct.mot->posAngleLimit == 4095) && (hardwareStruct.mot->negAngleLimit == 4095)) {
     	hardwareStruct.mot->multiTurnOn = true;
@@ -132,9 +136,9 @@ void read_dxl_ram() {
     //To do  : //dxl_regs.ram.lock;
     //To do : //dxl_regs.ram.punch;
 
-    if (hardwareStruct.mot->targetCurrent != dxl_regs.ram.goalTorque) {
-        hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalTorque;
-        controlMode = TORQUE_CONTROL;
+    if (hardwareStruct.mot->targetCurrent != dxl_regs.ram.goalCurrent) {
+        hardwareStruct.mot->targetCurrent = dxl_regs.ram.goalCurrent;
+        controlMode = CURRENT_CONTROL;
     }
 
     if (hardwareStruct.mot->targetAcceleration != dxl_regs.ram.goalAcceleration) {
@@ -144,7 +148,14 @@ void read_dxl_ram() {
 
     if (dxl_regs.ram.torqueMode) {
         controlMode = TORQUE_CONTROL;
+    } else {
+    	if (controlMode == TORQUE_CONTROL) {
+    		controlMode = POSITION_CONTROL;
+    	}
     }
+
+    hardwareStruct.mot->targetTorque = dxl_regs.ram.goalTorque;
+
 
     if (dxl_regs.ram.torqueEnable) {
         if (hardwareStruct.mot->state == COMPLIANT) {
@@ -158,7 +169,7 @@ void read_dxl_ram() {
 
     if (dxl_regs.ram.mode == 0) {
             //Stable mode
-        if (controlMode != POSITION_CONTROL) {
+        if (controlMode != POSITION_CONTROL && controlMode != TORQUE_CONTROL) {
                 controlMode = POSITION_CONTROL;
                 hardwareStruct.mot->targetAngle = hardwareStruct.mot->angle;
                 dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;

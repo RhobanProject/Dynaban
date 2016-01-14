@@ -91,6 +91,7 @@ struct motor {
     int32 multiTurnAngle;
     float outputTorqueWithoutFriction;
     float outputTorque;
+    float targetTorque;
 };
 
 void motor_init(encoder * pEnc);
