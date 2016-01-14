@@ -113,6 +113,7 @@ void dxl_init_regs()
     dxl_regs.ram.copyNextBuffer = 0;
     dxl_regs.ram.positionTrackerOn = false;
     dxl_regs.ram.debugOn = false;
+    dxl_regs.ram.frozenRamOn = false;
 
     dxl_regs.eeprom_dirty = false;
 
@@ -280,11 +281,20 @@ static void dxl_write_data(ui8 addr, ui8 *values, ui8 length)
     if (addr < DXL_RAM_BEGIN) {
         dxl_regs.eeprom_dirty = true;
     }
+
+    if (dxl_regs.ram.frozenRamOn && (addr >= DXL_START_OF_RAM)) {
+    	// The frozen mode is on and the user wrote something into the RAM, time to freeze the read-only values :
+    	dxl_freeze_values();
+    }
 }
 
 static void dxl_read_data(ui8 addr, ui8 *values, ui8 length, ui8 *error)
 {
+    if (dxl_regs.ram.frozenRamOn) {
+    	dxl_copy_frozen_value();
+    }
     memcpy(values, ((ui8*)&dxl_regs)+addr, length);
+
 }
 
 bool dxl_process()
@@ -437,7 +447,7 @@ uint16 dxl_read_magic_offset() {
  * - Either we load the bootloader on the flash before the mass erase happens, quite beautiful if it works
  * - Or we mass erase, then we load a corrected version of the bootloader through the physical bootloader.
  *
- * -> we might do it if we really need a bigger firmware but the procedure might become to heavy for a user wanted to
+ * -> we might do it if we really need a bigger firmware but the procedure might become to heavy for a user wanting to
  * swap to our firmware.
  */
 boolean frappe_chirurgicale() {
@@ -496,4 +506,18 @@ boolean frappe_chirurgicale() {
 		return true;
 	}
 	return false;
+}
+
+void dxl_freeze_values() {
+	dxl_regs.frozen_ram.presentPosition =  dxl_regs.ram.presentPosition;
+	dxl_regs.frozen_ram.presentSpeed =  dxl_regs.ram.presentSpeed;
+	dxl_regs.frozen_ram.presentLoad =  dxl_regs.ram.presentLoad;
+	dxl_regs.frozen_ram.ouputTorque =  dxl_regs.ram.ouputTorque;
+}
+
+void dxl_copy_frozen_value() {
+	dxl_regs.ram.presentPosition =  dxl_regs.frozen_ram.presentPosition;
+	dxl_regs.ram.presentSpeed =  dxl_regs.frozen_ram.presentSpeed;
+	dxl_regs.ram.presentLoad =  dxl_regs.frozen_ram.presentLoad;
+	dxl_regs.ram.ouputTorque =  dxl_regs.frozen_ram.ouputTorque;
 }

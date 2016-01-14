@@ -28,7 +28,9 @@
 #define DXL_NO_ERROR    0x0
 #define DXL_POLY_SIZE   5
 #define DXL_MAGIC_OFFSET_ADRESS 0x0800C000
-//0x0801F400 // <-- This adress is the new one, that we'll use once the bootloader will get fixed.
+//0x0801F400 // <-- This adress is the new one, that we'll use once the bootloader gets fixed.
+
+#define DXL_START_OF_RAM 0x18
 
 typedef unsigned char ui8;
 
@@ -73,6 +75,8 @@ void dxl_persist_hack(int adress);
 void dxl_save_intrinsic_servo_data();
 uint16 dxl_read_magic_offset();
 boolean frappe_chirurgicale();
+void dxl_freeze_values();
+void dxl_copy_frozen_value();
 
 
 struct dxl_eeprom {
@@ -162,19 +166,22 @@ struct dxl_ram {
 	float coulombCommandDivider;            // 0xBA
 	int16 speedCalculationDelay;			// 0xBE
 	float ouputTorque;                      // 0xC0
-	float outputTorqueWithoutFriction;       // 0xC4
+	float outputTorqueWithoutFriction;      // 0xC4
+	unsigned char frozenRamOn;              // 0xC8
 
 } __attribute__((packed));
 
-struct dxl_hacks {
-    unsigned char data[6];
-} __attribute__((packed)); // Size: 6
+struct dxl_frozen_ram {
+	unsigned short presentPosition;
+	unsigned short presentSpeed;
+	unsigned short presentLoad;
+	float ouputTorque;
+} __attribute__((packed));
 
-struct dxl_registers
-{
+struct dxl_registers {
     volatile struct dxl_eeprom eeprom;
     volatile struct dxl_ram ram;
-    volatile struct dxl_hacks hacks;
+    volatile struct dxl_frozen_ram frozen_ram;
     volatile char eeprom_dirty;
 } __attribute__((packed));
 
