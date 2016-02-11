@@ -212,10 +212,11 @@ The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 
      - Make it possible to set a speed in joint mode (connect control
      loops to each other)
      - Write documentation for this new portion of RAM :
-    
-    bool          positionTrackerOn;        // 0xA4
-    bool          debugOn;                  // 0xA5
-    uint16 staticFriction;                  // 0xA6
+
+	
+	bool          positionTrackerOn;        // 0xA4
+    	bool          debugOn;                  // 0xA5
+    	uint16 staticFriction;                  // 0xA6
 	float i0;								// 0xA8
 	float r;								// 0xAC
 	float ke;                               // 0xB0
@@ -226,6 +227,9 @@ The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 
 	float ouputTorque;                      // 0xC0
 	float outputTorqueWithoutFriction;      // 0xC4
 	unsigned char frozenRamOn;              // 0xC8
+	unsigned char useValuesNow;             // 0xC9
+	uint16 torqueKp;                        // 0xCA
+	float goalTorque;						// 0xCC
 
 ## License
 
