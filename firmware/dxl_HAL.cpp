@@ -269,14 +269,7 @@ unsigned short terrible_sign_convention(int32 pInput, int32 pIamZeroISwear) {
 void dxl_print_debug() {
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.println();
-    Serial1.print("present pos = ");
-    Serial1.println(hardwareStruct.mot->angle);
-    Serial1.print("goal pos = ");
-    Serial1.println(hardwareStruct.mot->targetAngle);
-    Serial1.print("pos limit = ");
-    Serial1.println(hardwareStruct.mot->posAngleLimit);
-    Serial1.print("neg limit = ");
-    Serial1.println(hardwareStruct.mot->negAngleLimit);
+    motor_print_motor();
 
 
     Serial1.print("trajPoly1Size = ");
