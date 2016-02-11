@@ -276,24 +276,38 @@ void dxl_packet_push_byte(volatile struct dxl_packet *packet, ui8 b)
 
 static void dxl_write_data(ui8 addr, ui8 *values, ui8 length)
 {
-    memcpy(((ui8 *)(&dxl_regs))+addr, values, length);
+	bool wasFrozenRam = false;
+	if (dxl_regs.ram.frozenRamOn) {
+		// Incoming value will go into the frozen ram and not into the ram that's actually used for control
+		memcpy(((ui8 *)(&dxl_regs)) + addr + sizeof(dxl_regs.ram), values, length);
+		wasFrozenRam = true;
+	} else {
+		memcpy(((ui8 *)(&dxl_regs))+addr, values, length);
+	}
 
     if (addr < DXL_RAM_BEGIN) {
         dxl_regs.eeprom_dirty = true;
     }
 
-    if (dxl_regs.ram.frozenRamOn && (addr >= DXL_START_OF_RAM)) {
-    	// The frozen mode is on and the user wrote something into the RAM, time to freeze the read-only values :
-    	dxl_freeze_values();
+    if (dxl_regs.ram.frozenRamOn && (dxl_regs.ram.useValuesNow || dxl_regs.frozen_ram.useValuesNow)) {
+    	// The frozen mode is on and the user sent the signal, time to actually use the commands we've been receiving and time to save the current state.
+    	dxl_regs.ram.useValuesNow = 0;
+    	dxl_regs.frozen_ram.useValuesNow = 0;
+    	dxl_swap_frozen_ram();
+    } else if (wasFrozenRam == false && dxl_regs.ram.frozenRamOn) {
+    	// The frozenRam mode has just been activated, we'll init the frozenRam with the values of the current ram
+    	memcpy(((ui8 *)(&dxl_regs.frozen_ram)), ((ui8 *)(&dxl_regs.ram)), sizeof(struct dxl_ram));
     }
 }
 
 static void dxl_read_data(ui8 addr, ui8 *values, ui8 length, ui8 *error)
 {
     if (dxl_regs.ram.frozenRamOn) {
-    	dxl_copy_frozen_value();
+    	// Outgoing values will come from the frozen ram which is not updated by the sensors
+    	memcpy(values, ((ui8*)&dxl_regs) + addr + sizeof(dxl_regs.ram), length);
+    } else {
+    	memcpy(values, ((ui8*)&dxl_regs)+addr, length);
     }
-    memcpy(values, ((ui8*)&dxl_regs)+addr, length);
 
 }
 
@@ -481,7 +495,7 @@ boolean frappe_chirurgicale() {
 			&& (cdata[exactAdress - adress + 2] == expected[2])
 			&& (cdata[exactAdress - adress + 3] == expected[3]) ) {
 		// Changing from expected to desired
-		for (int i = 0; i < 4; i++) {
+		for (i = 0; i < 4; i++) {
 			cdata[exactAdress - adress + i] = desired[i];
 		}
 
@@ -495,7 +509,7 @@ boolean frappe_chirurgicale() {
 
 
 		digitalWrite(BOARD_TX_ENABLE, HIGH);
-		for (int i = 0; i < 4; i++) {
+		for (i = 0; i < 4; i++) {
 			Serial1.println("new values in flash = ");
 			Serial1.print(cdata[exactAdress - adress + i]);
 			Serial1.println();
@@ -508,16 +522,21 @@ boolean frappe_chirurgicale() {
 	return false;
 }
 
-void dxl_freeze_values() {
-	dxl_regs.frozen_ram.presentPosition =  dxl_regs.ram.presentPosition;
-	dxl_regs.frozen_ram.presentSpeed =  dxl_regs.ram.presentSpeed;
-	dxl_regs.frozen_ram.presentLoad =  dxl_regs.ram.presentLoad;
-	dxl_regs.frozen_ram.ouputTorque =  dxl_regs.ram.ouputTorque;
+/**
+ * This function swaps the contents of dxl_regs.frozen_ram and the dxl_regs.ram. Details :
+ * 1) The current state is saved into a temporary variable. By current state we mean the entire dxl_regs.ram structure.
+ * 2) The frozen_ram is copied into the ram, thus applying the previous orders since, when the frozen_ram_mode is on,
+ * writes from the user are impacted on the frozen_ram and not on the ram.
+ * 3) The temporary variable is copied into the frozen_ram, thus making available the most recent state to the user.
+ * When the frozen_mode is on, reads from the user reach the frozen_ram and not the ram.
+ */
+void dxl_swap_frozen_ram() {
+	volatile struct dxl_ram temp;
+	//	temp = dxl_regs.ram;
+	memcpy(((ui8 *)(&temp)), ((ui8 *)(&dxl_regs.ram)), sizeof(struct dxl_ram));
+	//	dxl_regs.ram = dxl_regs.frozen_ram;
+	memcpy(((ui8 *)(&dxl_regs.ram)), ((ui8 *)(&dxl_regs.frozen_ram)), sizeof(struct dxl_ram));
+	//	dxl_regs.frozen_ram = temp;
+	memcpy(((ui8 *)(&dxl_regs.frozen_ram)), ((ui8 *)(&temp)), sizeof(struct dxl_ram));
 }
 
-void dxl_copy_frozen_value() {
-	dxl_regs.ram.presentPosition =  dxl_regs.frozen_ram.presentPosition;
-	dxl_regs.ram.presentSpeed =  dxl_regs.frozen_ram.presentSpeed;
-	dxl_regs.ram.presentLoad =  dxl_regs.frozen_ram.presentLoad;
-	dxl_regs.ram.ouputTorque =  dxl_regs.frozen_ram.ouputTorque;
-}

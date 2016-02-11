@@ -60,6 +60,7 @@ void init_dxl_ram() {
 	dxl_regs.ram.outputTorqueWithoutFriction = 0.0;
 
 	dxl_regs.ram.frozenRamOn = false;
+	dxl_regs.ram.useValuesNow = false;
 	dxl_regs.ram.torqueKp = get_control_struct()->torquePCoef;
 
     //The other registers are updated here :
@@ -322,6 +323,22 @@ void dxl_print_debug() {
 
     Serial1.print("controlMode = ");
     Serial1.println(controlMode);
+
+    Serial1.print("sizeOfRam = ");
+    Serial1.println(sizeof(dxl_regs.ram));
+
+    Serial1.print("sizeof struct dxl_ram ");
+    Serial1.println(sizeof(struct dxl_ram));
+
+    Serial1.print("present position in ram = ");
+    Serial1.println(dxl_regs.ram.presentPosition);
+    Serial1.print("present position in frozen ram = ");
+    Serial1.println(dxl_regs.frozen_ram.presentPosition);
+
+    Serial1.print("goal position in ram = ");
+	Serial1.println(dxl_regs.ram.goalPosition);
+	Serial1.print("goal position in frozen ram = ");
+	Serial1.println(dxl_regs.frozen_ram.goalPosition);
 
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
