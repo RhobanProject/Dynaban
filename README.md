@@ -215,7 +215,20 @@ etc.
 The transitions between the trajectories should be made in a way that ensures the continuity of both torque and position trajectories and their derivates. Don't do this :>)
 ![Don't do this :>)](docs/piece_wise_continuity.png)
     
+## <a name="Model parameters"></a>Model parameters :
+Dynaban uses a model of the electrical motor and a model of friction. These models have parameters that can be adjusted by the user with the following fields :
+(TO DO : explain a bit the model)
+- staticFriction
+- i0
+- r
+- ke
+- kvis
+- statToCoulTrans
+- coulombCommandDivider
+    
 ## <a name="Miscellaneous"></a>Miscellaneous :
+When the debugOn field is set to 1, debug information will be printed through the serial interface everytime something is written by the user on the serial interface.
+
 Don't mind the positionTrackerOn field, it's used by us when testing and benchmarking but it's not meant to be user-friendly. The idea here is to store information (typically the present position) on the RAM as fast as posible and, only when the experience is over, send the data through the serial port. The position sensor is currenlty read at 1KHz (could be read up to 10KHz) which is way more than what's achievable through the dxl protocol.
 ## To do  :
 
