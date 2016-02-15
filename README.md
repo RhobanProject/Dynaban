@@ -237,7 +237,7 @@ We did some benchmarks. Measures were done with a hardware timer with a precisio
 1 000 000 floating point multiplications done in 1.1431 seconds, which implies ~82 clock cycles per multiplication.
 1 000 000 floating point divisions done in 1.0995 seconds, which implies ~79 clock cycles per division.
 
-~80 cycles for an operation is a lot, but Dynaban works well even though the hardware is ticked at 1 kHz. When Dynaban will be implemented for devices with lesser uC performances, we'll use fixed point arithmetics instead.
+~80 cycles for an operation is a lot, but Dynaban works well even though the hardware is ticked at 1 kHz. Using floats when talking torques and following timed trajectories is handy but when Dynaban will be implemented on devices with lesser uC performances, we'll use fixed point arithmetics instead.
 
 
 
