@@ -227,9 +227,20 @@ Dynaban uses a model of the electrical motor and a model of friction. These mode
 - coulombCommandDivider
     
 ## <a name="Miscellaneous"></a>Miscellaneous :
-When the debugOn field is set to 1, debug information will be printed through the serial interface everytime something is written by the user on the serial interface.
+When the debugOn field is set to 1, debug information will be printed through the serial interface every time something is written by the user on the serial interface.
 
-Don't mind the positionTrackerOn field, it's used by us when testing and benchmarking but it's not meant to be user-friendly. The idea here is to store information (typically the present position) on the RAM as fast as posible and, only when the experience is over, send the data through the serial port. The position sensor is currenlty read at 1KHz (could be read up to 10KHz) which is way more than what's achievable through the dxl protocol.
+Don't mind the positionTrackerOn field, it's used by us when testing and benchmarking but it's not meant to be user-friendly. The idea here is to store information (typically the present position) on the RAM as fast as possible and, only when the experience is over, send the data through the serial port. The position sensor is currently read at 1KHz (could be read up to 10KHz) which is way more than what's achievable through the dxl protocol.
+
+## <a name="Is using floating point values a good idea ?"></a> Is using floating point values a good idea ?:
+Dynaban started on a MX-64 which is powered by a Cortex M3 with a 72MHz clock. The embedded micro controller doesn't have a FPU, which means that both floating point multiplications and floating point divisions take a lot of time to process. 
+We did some benchmarks. Measures were done with a hardware timer with a precision of 0.1 ms :
+1 000 000 floating point multiplications done in 1.1431 seconds, which implies ~82 clock cycles per multiplication.
+1 000 000 floating point divisions done in 1.0995 seconds, which implies ~79 clock cycles per division.
+
+~80 cycles for an operation is a lot, but Dynaban works well even though the hardware is ticked at 1 kHz. When Dynaban will be implemented for devices with lesser uC performances, we'll use fixed point arithmetics instead.
+
+
+
 ## To do  :
 
      - Modify how the speed is calculated. The speed ranges from 0 to 1023 (and 1024 to 2047
