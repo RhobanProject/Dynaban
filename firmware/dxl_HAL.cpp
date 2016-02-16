@@ -55,9 +55,9 @@ void init_dxl_ram() {
 	dxl_regs.ram.statToCoulTrans = predictiveControl->statToCoulTrans;
 	dxl_regs.ram.coulombCommandDivider = predictiveControl->coulombCommandDivider;
 
-	dxl_regs.ram.speedCalculationDelay = 50;
 	dxl_regs.ram.ouputTorque = 0.0;
 	dxl_regs.ram.outputTorqueWithoutFriction = 0.0;
+    dxl_regs.ram.speedCalculationDelay = 500;
 
 	dxl_regs.ram.frozenRamOn = false;
 	dxl_regs.ram.useValuesNow = false;

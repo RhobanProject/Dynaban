@@ -30,13 +30,10 @@
   => NB_TICK_BEFORE_UPDATING_SPEED = 526 * NB_TICKS_PER_SECOND / 4096
                                    = 128.418 ~= 128
  */
-#define NB_TICKS_BEFORE_UPDATING_SPEED 50
 #define NB_TICKS_BEFORE_UPDATING_ACCELERATION 8
 #define C_NB_RAW_MEASURES 60
 #define NB_POSITIONS_SAVED 1024 // 2048 over flows by 392 bytes
 
-//static const uint16 SPEED_COEF = 1000/NB_TICKS_BEFORE_UPDATING_SPEED;
-//static const uint16 MAX_SPEED = 8096/SPEED_COEF + 5;
 static const int32 PRESCALE = 1 << 10;
 extern int32 currentRawMeasures[C_NB_RAW_MEASURES];
 extern int32 currentTimming[C_NB_RAW_MEASURES];
@@ -68,7 +65,6 @@ struct motor {
     int32 previousAngle;
     buffer angleBuffer;
     buffer speedBuffer;
-//    buffer commandBuffer;
     int32 targetAngle;
     int32 speed;
     int32 averageSpeed;

@@ -28,7 +28,7 @@
 #define DXL_NO_ERROR    0x0
 #define DXL_POLY_SIZE   5
 #define DXL_MAGIC_OFFSET_ADRESS 0x0800C000
-//0x0801F400 // <-- This adress is the new one, that we'll use once the bootloader gets fixed.
+//0x0801F400 // <-- This address is the new one, that we'll use once the bootloader gets fixed.
 
 #define DXL_START_OF_RAM 0x18
 

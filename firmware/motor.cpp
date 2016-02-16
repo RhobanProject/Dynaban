@@ -73,12 +73,9 @@ void motor_init(encoder * pEnc) {
     mot.previousCommand = pEnc->angle;
     mot.angle = pEnc->angle;
     mot.previousAngle = pEnc->angle;
-    //mot.angleBuffer = previousAngleBuffer;
-    mot.angleBuffer = *buffer_creation(NB_TICKS_BEFORE_UPDATING_SPEED, mot.angle); // (int)(1000/(dxl_regs.ram.speedCalculationDelay))
+    // /!\ Solve this : value of dxl_regs.ram.speedCalculationDelay is inited after this point !
+    mot.angleBuffer = *buffer_creation(500, mot.angle); // dxl_regs.ram.speedCalculationDelay// NB_TICKS_BEFORE_UPDATING_SPEED // Works because a tick is 1 ms.
     mot.speedBuffer = *buffer_creation(NB_TICKS_BEFORE_UPDATING_ACCELERATION, 0);
-//    mot.commandBuffer = *buffer_creation(NB_TICKS_BEFORE_UPDATING_SPEED, 0);
-//    buffer_init(&(mot.angleBuffer), NB_TICKS_BEFORE_UPDATING_SPEED, mot.angle);
-//    buffer_init(&(mot.speedBuffer), NB_TICKS_BEFORE_UPDATING_ACCELERATION, 0);
     mot.targetAngle = pEnc->angle;
     mot.speed = 0;
     mot.averageSpeed = 0;
@@ -235,7 +232,8 @@ void motor_update(encoder * pEnc) {
     int32 previousSpeed = mot.speed;
 
     mot.speed = mot.angle - oldPosition;
-    // max speed is 2 revolutions per second. Which is 8096 steps per second. Which is 80 960/speedCalculationDelay steps per speedCalculationDelay (in ms)
+    fix this formula, it should be 8096*speedCalculationDelay/1000 imo
+    // max speed is 2 revolutions per second. Which is 8096 steps per second. Which is 8096*speedCalculationDelay/speedCalculationDelay steps per speedCalculationDelay (in ms)
     uint16 maxSpeed = 80960/dxl_regs.ram.speedCalculationDelay + 5;
     if (abs(mot.speed) > maxSpeed) {
         //Position went from near max to near 0 or vice-versa
@@ -245,7 +243,7 @@ void motor_update(encoder * pEnc) {
             mot.speed = mot.speed + MAX_ANGLE + 1;
         }
     }
-    // This speed will be in steps/ms :
+    // This speed will be in steps/s :
     mot.speed = (mot.speed * 1000) / dxl_regs.ram.speedCalculationDelay;
 
         //Averaging with previous value :
@@ -285,7 +283,7 @@ void motor_read_current() {
 
 void motor_update_sign_of_speed() {
     if (abs(mot.speed) < (1*dxl_regs.ram.speedCalculationDelay)) {
-            // Sign will remain what it was before
+            // Sign will remain what it was before to avoid oscillations when the speed is low (important when trying to compensate static friction)
         return;
     }
     int8 tempSign = sign(mot.speed);

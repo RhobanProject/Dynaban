@@ -79,6 +79,11 @@ float next_inertia(float pPreviousI, float pCurrentI, int32 pPreviousScore, int3
 
 float auto_calibrate_inertia(float pPreviousI, float pCurrentI, int32 pPreviousScore, int32 pCurrentScore);
 
+/**
+ * Internal use. Dumps information used for model calibration
+ */
+void model_calibration();
+
 /*
  * Saves the current value of the benchmark timer in a array
  **/
@@ -214,6 +219,9 @@ void setup() {
     digitalWrite(BOARD_LED_PIN, HIGH);
     controlMode = OFF;
 
+    //Temp code :
+    delay(3000);
+    model_calibration();
 }
 
 void loop() {
@@ -662,6 +670,59 @@ void print_flash_start_adress() {
 	Serial1.println(flashStartAdress(), 16);
 	Serial1.waitDataToBeSent();
 	digitalWrite(BOARD_TX_ENABLE, LOW);
+}
+
+
+void model_calibration() {
+	controlMode = OFF;
+	hardwareStruct.mot->state = MOVING;
+	int16_t command = 0;
+	int16_t step = 10;
+	int16_t maxCommand = 300;
+	uint16_t delayMs = 2500;
+	uint16_t nbTicks = 0;
+
+	digitalWrite(BOARD_TX_ENABLE, HIGH);
+	Serial1.println();
+	Serial1.print("Command ");
+	Serial1.print("Speed ");
+	Serial1.print("AverageSpeed ");
+	Serial1.print("Temperature ");
+	Serial1.print("Voltage ");
+	Serial1.waitDataToBeSent();
+	digitalWrite(BOARD_TX_ENABLE, LOW);
+	for (command = 0; abs(command) <= abs(maxCommand); command = command + step) {
+		motor_set_command(command);
+
+		while (nbTicks < delayMs) {
+		 // Ticking hardware at 1 khz
+		 delay(1);
+		 hardware_tick();
+		 nbTicks++;
+		}
+		nbTicks = 0;
+		// Sending results
+		digitalWrite(BOARD_TX_ENABLE, HIGH);
+		Serial1.println();
+		Serial1.print(command);
+		Serial1.print(" ");
+		Serial1.print(hardwareStruct.mot->speed);
+		Serial1.print(" ");
+		Serial1.print(hardwareStruct.mot->averageSpeed);
+		Serial1.print(" ");
+		Serial1.print(hardwareStruct.temperature);
+		Serial1.print(" ");
+		Serial1.print(hardwareStruct.voltage);
+		Serial1.waitDataToBeSent();
+		digitalWrite(BOARD_TX_ENABLE, LOW);
+	}
+	motor_set_command(0);
+	digitalWrite(BOARD_TX_ENABLE, HIGH);
+	Serial1.println();
+	Serial1.print("Done.");
+	Serial1.waitDataToBeSent();
+	digitalWrite(BOARD_TX_ENABLE, LOW);
+
 }
 
 void dump_flash() {

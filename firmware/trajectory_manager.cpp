@@ -22,7 +22,7 @@ void predictive_control_init() {
 	pControl.vAlim = 12;
 	pControl.r = 6; // Datasheet says 5.86 ohm
 	pControl.ke = 1.6; // V*s/rad (voltage/rotational speed). Datasheet says 694/200 rpm/V (the 200 come from the gear box ratio) = 0.3634 rad/(s*V) => ke = 2.75 V*s/rad
-	//Btw the ke (in rad/s) == kt (in N.m/A) is valid in the datasheet since they give torqueConstant = 13.8*200 mN.m/A (the 200 come from the gear box ratio) = 2.76 N.m/A
+	//Btw the ke (in V*s/rad) == kt (in N.m/A) is valid in the datasheet since they give torqueConstant = 13.8*200 mN.m/A (the 200 come from the gear box ratio) = 2.76 N.m/A
 	pControl.kvis = 0.05;
 	pControl.statToCoulTrans = 1300; // To be checked
 	pControl.coulombCommandDivider = 4.567;
@@ -31,7 +31,7 @@ void predictive_control_init() {
 	pControl.unitFactor = (3000*2*PI) / ((float)(pControl.vAlim*4096)); // == 0.3834 at 12V
 	pControl.torqueToCommand   = pControl.r / pControl.ke; // r/ke (ke ~ 1.6) = 3.75. To be used with torques expressed in [N.m * 4096 / 2*PI]
 	pControl.kv                = pControl.ke + pControl.kvis;
-	pControl.kstat             = pControl.staticFriction / (pControl.torqueToCommand * pControl.unitFactor); // kstat * 1 * torqueToVolt * unitFactor should be equal to staticFriction (min command to get the motor moving).
+	pControl.kstat             = pControl.staticFriction / (pControl.torqueToCommand * pControl.unitFactor); // kstat * 1 * torqueToCommand * unitFactor should be equal to staticFriction (min command to get the motor moving).
 	pControl.coulombMaxCommand = pControl.staticFriction/pControl.coulombCommandDivider;
 	pControl.kcoul             = pControl.coulombMaxCommand / (pControl.torqueToCommand * pControl.unitFactor);
 
@@ -149,7 +149,7 @@ uint32 traj_magic_modulo(int32 a, uint32 b) {
  * The formula used here is u(t) = unitFactor*[kv * v + torqueToCommand*(outputTorque + accelTorque + frictionTorque)]
  *
  * Where :
- * -> unitFactor*kv*v(t) is the command needed to mantain the current speed (kv = ke + kvis, where kvis is the viscous constant)
+ * -> unitFactor*kv*v(t) is the command needed to maintain the current speed (kv = ke + kvis, where kvis is the viscous constant)
  * -> unitFactor*torqueToCommand*torque is the command that will make the motor create 'torque' (expressed in N.m*4096/2*PI) during dt
  * -> frictionTorque compensates the static and the coulomb friction
  * -> outputTorque is the actual torque that could be measured outside the motor
