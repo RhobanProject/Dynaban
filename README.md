@@ -105,6 +105,55 @@ Here is the list of what is and is not currently implemented when you write into
 # <a name="Advanced functionnalities"></a>Advanced functionalities
 One of the motivations behind this project was to have full control over our hardware. Once the basic stuff was working, we started playing with more advanced funtionalities.
 
+## <a name="RAM mapping extention"></a>RAM mapping extention
+The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 0x49. On the Dynaban firmware, the chart is increased with the following fields :
+
+    unsigned char trajPoly1Size;            // 0x4A
+    float         trajPoly1[DXL_POLY_SIZE]; //[0x4B
+                                            //[0x4F
+                                            //[0x53
+                                            //[0x57
+                                            //[0x5B
+    unsigned char torquePoly1Size;          // 0x5F
+    float         torquePoly1[DXL_POLY_SIZE];//[0x60
+                                            //[0x64
+                                            //[0x68
+                                            //[0x6C
+                                            //[0x70
+    uint16        duration1;                // 0x75
+
+    unsigned char trajPoly2Size;            // 0x76
+    float         trajPoly2[DXL_POLY_SIZE]; //[0x77
+                                            //[0x7B
+                                            //[0x7F
+                                            //[0x83
+                                            //[0x87
+    unsigned char torquePoly2Size;          // 0x8B
+    float         torquePoly2[DXL_POLY_SIZE];//[0x8C
+                                            //[0x90
+                                            //[0x94
+                                            //[0x98
+                                            //[0x9C
+    uint16        duration2;                // 0xA0
+    unsigned char mode;                     // 0xA2
+    unsigned char copyNextBuffer;           // 0xA3
+    bool          positionTrackerOn;        // 0xA4
+    bool          debugOn;                  // 0xA5
+    uint16 staticFriction;                  // 0xA6
+    float i0;				    // 0xA8
+    float r;				    // 0xAC
+    float ke;                               // 0xB0
+    float kvis;                             // 0xB4
+    uint16 statToCoulTrans;                 // 0xB8
+    float coulombCommandDivider;            // 0xBA
+    int16 speedCalculationDelay;	    // 0xBE
+    float ouputTorque;                      // 0xC0
+    float outputTorqueWithoutFriction;      // 0xC4
+    unsigned char frozenRamOn;              // 0xC8
+    unsigned char useValuesNow;             // 0xC9
+    uint16 torqueKp;                        // 0xCA
+    float goalTorque;			    // 0xCC
+
 ## <a name="Using the field mode"></a>Using the field 'mode' :
 A servo using the Dynaban has diferent mode it can be in. You can set the desired mode by writing a number in the "mode" field (adress 0xA2 in the RAM).
 * 0 : Default mode. Uses the PID to follow the goal position. The behaviour should be almost identical to the default firmware
@@ -165,39 +214,31 @@ etc.
 
 The transitions between the trajectories should be made in a way that ensures the continuity of both torque and position trajectories and their derivates. Don't do this :>)
 ![Don't do this :>)](docs/piece_wise_continuity.png)
+    
+## <a name="Model parameters"></a>Model parameters :
+Dynaban uses a model of the electrical motor and a model of friction. These models have parameters that can be adjusted by the user with the following fields :
+(TO DO : explain a bit the model)
+- staticFriction
+- i0
+- r
+- ke
+- kvis
+- statToCoulTrans
+- coulombCommandDivider
+    
+## <a name="Miscellaneous"></a>Miscellaneous :
+When the debugOn field is set to 1, debug information will be printed through the serial interface every time something is written by the user on the serial interface.
 
-## <a name="RAM mapping extention"></a>RAM mapping extention
-The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 0x49. On the Dynaban firmware, the chart is increased with the following fields :
+Don't mind the positionTrackerOn field, it's used by us when testing and benchmarking but it's not meant to be user-friendly. The idea here is to store information (typically the present position) on the RAM as fast as possible and, only when the experience is over, send the data through the serial port. The position sensor is currently read at 1KHz (could be read up to 10KHz) which is way more than what's achievable through the dxl protocol.
 
-    unsigned char trajPoly1Size;            // 0x4A
-    float         trajPoly1[DXL_POLY_SIZE]; //[0x4B
-                                            //[0x4F
-                                            //[0x53
-                                            //[0x57
-                                            //[0x5B
-    unsigned char torquePoly1Size;          // 0x5F
-    float         torquePoly1[DXL_POLY_SIZE];//[0x60
-                                            //[0x64
-                                            //[0x68
-                                            //[0x6C
-                                            //[0x70
-    uint16        duration1;                // 0x75
+## <a name="Is using floating point values a good idea ?"></a> Is using floating point values a good idea ?:
+Dynaban started on a MX-64 which is powered by a Cortex M3 with a 72MHz clock. The embedded micro controller doesn't have a FPU, which means that both floating point multiplications and floating point divisions take a lot of time to process. 
+We did some benchmarks. Measures were done with a hardware timer with a precision of 0.1 ms :
+1 000 000 floating point multiplications done in 1.1431 seconds, which implies ~82 clock cycles per multiplication.
+1 000 000 floating point divisions done in 1.0995 seconds, which implies ~79 clock cycles per division.
 
-    unsigned char trajPoly2Size;            // 0x76
-    float         trajPoly2[DXL_POLY_SIZE]; //[0x77
-                                            //[0x7B
-                                            //[0x7F
-                                            //[0x83
-                                            //[0x87
-    unsigned char torquePoly2Size;          // 0x8B
-    float         torquePoly2[DXL_POLY_SIZE];//[0x8C
-                                            //[0x90
-                                            //[0x94
-                                            //[0x98
-                                            //[0x9C
-    uint16        duration2;                // 0xA0
-    unsigned char mode;                     // 0xA2
-    unsigned char copyNextBuffer;           // 0xA3
+~80 cycles for an operation is a lot, but Dynaban works well even though the hardware is ticked at 1 kHz. Using floats when talking torques and following timed trajectories is handy but when Dynaban will be implemented on devices with lesser uC performances, we'll use fixed point arithmetics instead.
+
 
 
 ## To do  :
@@ -212,10 +253,11 @@ The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 
      - Make it possible to set a speed in joint mode (connect control
      loops to each other)
      - Write documentation for this new portion of RAM :
-    
-    bool          positionTrackerOn;        // 0xA4
-    bool          debugOn;                  // 0xA5
-    uint16 staticFriction;                  // 0xA6
+
+	
+	bool          positionTrackerOn;        // 0xA4
+    	bool          debugOn;                  // 0xA5
+    	uint16 staticFriction;                  // 0xA6
 	float i0;								// 0xA8
 	float r;								// 0xAC
 	float ke;                               // 0xB0
@@ -226,6 +268,9 @@ The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 
 	float ouputTorque;                      // 0xC0
 	float outputTorqueWithoutFriction;      // 0xC4
 	unsigned char frozenRamOn;              // 0xC8
+	unsigned char useValuesNow;             // 0xC9
+	uint16 torqueKp;                        // 0xCA
+	float goalTorque;						// 0xCC
 
 ## License
 
