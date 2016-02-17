@@ -226,12 +226,29 @@ Dynaban uses a model of the electrical motor and a model of friction. These mode
 - statToCoulTrans
 - coulombCommandDivider
     
+
+## <a name="Speed calculation"></a>Speed calculation :
+The speedCalculationDelay field is expressed in ms and affects how the speed is calculated. The greater speedCalculationDelay is, the greater the granularity on the speed calculation and vice-versa. The current speed calculation implementation is approximately equivalent to :
+speed(t) = position (t) - position (t - speedCalculationDelay)
+
+The granularity (or LSB) of the speed is as follows :  
+LSB = 1000/speedCalculationDelay  
+Where LSB is in steps/s and speedCalcultaionDelay is in ms.  
+=> With a speedCalculationDelay of 50 ms, the speed value will be a multiple of 20 steps/s (1.76 deg/s).  
+
+There is a pitfall though, if you set the speedCalculationDelay so high that the servo is fast enough to do more than half a rotation during speedCalculationDelay, then bad things will happen. This could be solved by the firmware but the cons seem to outweight the pros since this only happens with extreme values.  
+Respect the following formula and it will be fine:  
+**speedCalculationDelay < 2048 * 1000 / maxServoSpeed**   
+Where speedCalculationDelay is in ms and maxServoSpeed is in steps/s.  
+8096 steps/s (2 rotations/s) is a comfortable max speed for a MX64 => maximum value of speedCalculationDelay = 252 ms
+
 ## <a name="Miscellaneous"></a>Miscellaneous :
 When the debugOn field is set to 1, debug information will be printed through the serial interface every time something is written by the user on the serial interface.
 
 Don't mind the positionTrackerOn field, it's used by us when testing and benchmarking but it's not meant to be user-friendly. The idea here is to store information (typically the present position) on the RAM as fast as possible and, only when the experience is over, send the data through the serial port. The position sensor is currently read at 1KHz (could be read up to 10KHz) which is way more than what's achievable through the dxl protocol.
 
-## <a name="Is using floating point values a good idea ?"></a> Is using floating point values a good idea ?:
+
+## <a name="Is using floating point values a good idea ?"></a> Is using floating point values a good idea ?
 Dynaban started on a MX-64 which is powered by a Cortex M3 with a 72MHz clock. The embedded micro controller doesn't have a FPU, which means that both floating point multiplications and floating point divisions take a lot of time to process. 
 We did some benchmarks. Measures were done with a hardware timer with a precision of 0.1 ms :
 1 000 000 floating point multiplications done in 1.1431 seconds, which implies ~82 clock cycles per multiplication.
