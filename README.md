@@ -238,7 +238,7 @@ Where LSB is in steps/s and speedCalcultaionDelay is in ms.
 
 There is a pitfall though, if you set the speedCalculationDelay so high that the servo is fast enough to do more than half a rotation during speedCalculationDelay, then bad things will happen. This could be solved by the firmware but the cons seem to outweight the pros since this only happens with extreme values.  
 Respect the following formula and it will be fine:  
-**speedCalculationDelay < 2048 * 1000 / maxServoSpeed ** 
+**speedCalculationDelay < 2048 * 1000 / maxServoSpeed**   
 Where speedCalculationDelay is in ms and maxServoSpeed is in steps/s.  
 8096 steps/s (2 rotations/s) is a comfortable max speed for a MX64 => maximum value of speedCalculationDelay = 252 ms
 
