@@ -59,12 +59,13 @@ void dxl_init_regs()
     struct dxl_eeprom *dxl_flash = (struct dxl_eeprom *)dxl_zone;
 
     if (dxl_flash->modelNumber == DXL_MODEL) {
+    	//Copying from the flash memory to struct in RAM memory representing the eeprom/flash.
         memcpy((void*)&dxl_regs.eeprom, (void*)dxl_flash, sizeof(struct dxl_eeprom));
     } else {
         dxl_regs.eeprom.modelNumber = DXL_MODEL;
         dxl_regs.eeprom.firmwareVersion = 36;
         dxl_regs.eeprom.id = 1;
-        dxl_regs.eeprom.baudrate = 1;// 1000000 //34; //<-- 57600
+        dxl_regs.eeprom.baudrate = 1;// 1000000 //34 == 57600
         dxl_regs.eeprom.returnDelay = 50;//249;
         dxl_regs.eeprom.cwLimit = 4095;
         dxl_regs.eeprom.ccwLimit = 0;
@@ -109,6 +110,7 @@ void dxl_init_regs()
         dxl_regs.ram.torquePoly2[i] = 0.0;
     }
 
+    dxl_regs.ram.speedCalculationDelay = 50;
     dxl_regs.ram.mode = 0;
     dxl_regs.ram.copyNextBuffer = 0;
     dxl_regs.ram.positionTrackerOn = false;

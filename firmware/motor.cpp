@@ -73,8 +73,7 @@ void motor_init(encoder * pEnc) {
     mot.previousCommand = pEnc->angle;
     mot.angle = pEnc->angle;
     mot.previousAngle = pEnc->angle;
-    // /!\ Solve this : value of dxl_regs.ram.speedCalculationDelay is inited after this point !
-    mot.angleBuffer = *buffer_creation(500, mot.angle); // dxl_regs.ram.speedCalculationDelay// NB_TICKS_BEFORE_UPDATING_SPEED // Works because a tick is 1 ms.
+    mot.angleBuffer = *buffer_creation(dxl_regs.ram.speedCalculationDelay + 1, mot.angle); // Works because a tick is 1 ms.
     mot.speedBuffer = *buffer_creation(NB_TICKS_BEFORE_UPDATING_ACCELERATION, 0);
     mot.targetAngle = pEnc->angle;
     mot.speed = 0;
@@ -232,10 +231,8 @@ void motor_update(encoder * pEnc) {
     int32 previousSpeed = mot.speed;
 
     mot.speed = mot.angle - oldPosition;
-    fix this formula, it should be 8096*speedCalculationDelay/1000 imo
-    // max speed is 2 revolutions per second. Which is 8096 steps per second. Which is 8096*speedCalculationDelay/speedCalculationDelay steps per speedCalculationDelay (in ms)
-    uint16 maxSpeed = 80960/dxl_regs.ram.speedCalculationDelay + 5;
-    if (abs(mot.speed) > maxSpeed) {
+
+    if (abs(mot.speed) > MAX_ANGLE/2) {
         //Position went from near max to near 0 or vice-versa
         if (mot.angle >= oldPosition) {
             mot.speed = mot.speed - MAX_ANGLE - 1;
@@ -243,11 +240,13 @@ void motor_update(encoder * pEnc) {
             mot.speed = mot.speed + MAX_ANGLE + 1;
         }
     }
-    // This speed will be in steps/s :
+
+    // The speed will be in steps/s :
+    issue here
     mot.speed = (mot.speed * 1000) / dxl_regs.ram.speedCalculationDelay;
 
-        //Averaging with previous value :
-    mot.averageSpeed = ((previousSpeed*99) + (mot.speed))/100.0; // Dangerous approach :/
+    //Averaging with previous value (dangerous approach):
+    mot.averageSpeed = ((previousSpeed*99) + (mot.speed))/100.0;
     buffer_add(&(mot.speedBuffer), mot.speed);
 
     //Updating the motor acceleration

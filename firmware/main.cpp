@@ -27,7 +27,12 @@ void set_ready_to_update_current();
 /**
  * Returns the temperature in degrees celcius.
  */
-unsigned char read_temperature();
+uint8_t read_temperature();
+
+/**
+ * Returns 10 times the voltage
+ */
+uint8_t read_voltage();
 
 
 /**
@@ -104,7 +109,6 @@ static bool     DXL_COM_ON = true; // /!\
 long           counter               = 0;
 int            posCounter            = 0;
 unsigned int   hardwareCounter       = 0;
-unsigned int   slowHardwareCounter   = 0;
 bool           readyToUpdateHardware = false;
 bool           readyToUpdateCurrent  = false;
 bool           firstTime             = true;
@@ -163,6 +167,9 @@ void setup() {
     encoder_add_encoder_sharing_pins_mode(6);
     encoder_read_angles_sharing_pins_mode();
 
+    //Dxl
+    dxl_init();
+
     //Motor init
     motor_init(encoder_get_encoder(0));
 
@@ -172,15 +179,13 @@ void setup() {
     //Traj
     predictive_control_init();
 
-    //Dxl
-    dxl_init();
-
     hardwareStruct.enc = encoder_get_encoder(0);
     hardwareStruct.mot = motor_get_motor();
+    hardwareStruct.temperature = read_temperature();
+    hardwareStruct.voltage = read_voltage();
 
     // This function will block the rest of the program and print detailed current debug
     //printDetailedCurrentDebug();
-
 
     timer2.pause();
     // The hardware will be read at 1Khz
@@ -206,7 +211,7 @@ void setup() {
     timer4.refresh();
     timer4.resume();
 
-    //Dxl struct init
+    //Dxl struct init. Values that depend on previous inits (motor struct mainly)
     init_dxl_ram();
     init_dxl_eeprom();
 
@@ -259,7 +264,7 @@ void loop() {
 }
 
 void hardware_tick() {
-        //These actions are performed at a rate of 1kh and cost ~98-102 us
+    //These actions are performed at a rate of 1kHz and cost ~98-102 us
 
     // add_benchmark_time();
         //Updating the encoder (~90-92 us)
@@ -267,8 +272,6 @@ void hardware_tick() {
     // add_benchmark_time();
         //Updating the motor (~5-6 us with predictive control on)
     motor_update(hardwareStruct.enc);
-
-    slowHardwareCounter++;
 
     // add_benchmark_time();
         //Updating control (3-4 us)
@@ -307,15 +310,23 @@ void hardware_tick() {
             // No control
     }
     // add_benchmark_time();
-    hardwareCounter++;
-    if (hardwareCounter > 999) {
-            //These actions are performed at 1 Hz
-        hardwareCounter = 0;
+    if (hardwareCounter & (1 << 7)) {
+        /*
+         * These actions are performed at ~10 Hz (7.8 Hz).
+         * Why the & (1 << 7) weirdness? We try to avoid % operator when possible, takes too long.
+         */
 
         //Updating power supply value (the value is 10 times bigger than the real value)
-        hardwareStruct.voltage = (unsigned char)((analogRead(POWER_SUPPLY_ADC_PIN) * 33 * 766)/409600);
+    	uint8_t voltageMeasure = read_voltage();
+    	//Mobile averaging to avoid using transient values of voltages
+        hardwareStruct.voltage = (hardwareStruct.voltage * 3 + voltageMeasure) / 4;
+    }
+    hardwareCounter++;
+    if (hardwareCounter & (1 << 10)) {
+        //These actions are performed at ~1 Hz (0.98Hz)
+        hardwareCounter = 0;
 
-            //Updating the temperature
+		//Updating the temperature
         hardwareStruct.temperature = read_temperature();
         if (hardwareStruct.temperature > MAX_TEMPERATURE) {
             motor_temperature_is_critic();
@@ -338,8 +349,8 @@ void set_ready_to_update_current() {
    The voltage arrives at the adc pin through a bridge with a 4.7kOhm resistor : vThermistor = 3.3V * (R)/(4700 + R)
    => R = 4700*vThermistor / (vThermistor - 3.3)
 */
-unsigned char read_temperature() {
-    unsigned int input = analogRead(TEMPERATURE_ADC_PIN);
+uint8_t read_temperature() {
+    uint16_t input = analogRead(TEMPERATURE_ADC_PIN);
 
     float vThermistor = (input*33) / (40960.0);
     float thermistor = 47000*(vThermistor) / (33 - 10*vThermistor);
@@ -347,6 +358,12 @@ unsigned char read_temperature() {
 
     return temperature;
 }
+
+
+uint8_t read_voltage()
+ {
+	return (uint8_t)((analogRead(POWER_SUPPLY_ADC_PIN) * 33 * 766)/409600);
+ }
 
 void print_debug() {
     digitalWrite(BOARD_TX_ENABLE, HIGH);
@@ -677,9 +694,9 @@ void model_calibration() {
 	controlMode = OFF;
 	hardwareStruct.mot->state = MOVING;
 	int16_t command = 0;
-	int16_t step = 10;
-	int16_t maxCommand = 300;
-	uint16_t delayMs = 2500;
+	int16_t step = 50;
+	int16_t maxCommand = 2950;
+	uint16_t delayMs = 1000;
 	uint16_t nbTicks = 0;
 
 	digitalWrite(BOARD_TX_ENABLE, HIGH);

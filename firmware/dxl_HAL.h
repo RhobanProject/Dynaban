@@ -9,8 +9,8 @@
 struct hardware {
     encoder * enc;
     motor * mot;
-    unsigned char voltage;
-    unsigned char temperature;
+    uint16_t voltage;
+    uint8_t temperature;
 };
 
 enum controlModeEnum {
