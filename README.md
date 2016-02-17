@@ -248,7 +248,7 @@ When the debugOn field is set to 1, debug information will be printed through th
 Don't mind the positionTrackerOn field, it's used by us when testing and benchmarking but it's not meant to be user-friendly. The idea here is to store information (typically the present position) on the RAM as fast as possible and, only when the experience is over, send the data through the serial port. The position sensor is currently read at 1KHz (could be read up to 10KHz) which is way more than what's achievable through the dxl protocol.
 
 
-## <a name="Is using floating point values a good idea ?"></a> Is using floating point values a good idea ?:
+## <a name="Is using floating point values a good idea ?"></a> Is using floating point values a good idea ?
 Dynaban started on a MX-64 which is powered by a Cortex M3 with a 72MHz clock. The embedded micro controller doesn't have a FPU, which means that both floating point multiplications and floating point divisions take a lot of time to process. 
 We did some benchmarks. Measures were done with a hardware timer with a precision of 0.1 ms :
 1 000 000 floating point multiplications done in 1.1431 seconds, which implies ~82 clock cycles per multiplication.
