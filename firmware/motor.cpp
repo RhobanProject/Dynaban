@@ -207,6 +207,7 @@ void motor_update(encoder * pEnc) {
                     if (positionIndex == NB_POSITIONS_SAVED) {
                     	notPrintedYet = false;
                         positionIndex = 0;
+                        counterUpdate = 0;
                         dxl_regs.ram.positionTrackerOn = false;
                         print_detailed_trajectory();
                     } else {
@@ -227,6 +228,7 @@ void motor_update(encoder * pEnc) {
 
                 if (positionIndex == NB_POSITIONS_SAVED) {
                     positionIndex = 0;
+                    counterUpdate = 0;
                     dxl_regs.ram.positionTrackerOn = false;
                     print_detailed_trajectory();
                 } else {
@@ -477,6 +479,7 @@ void print_detailed_trajectory() {
 	digitalWrite(BOARD_LED_PIN, LOW);
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.println("");
+    Serial1.println("Time Data");
     for (int i = 0; i < NB_POSITIONS_SAVED; i++) {
         if (i > 100 && timeArray[i] == 0) {
             break;

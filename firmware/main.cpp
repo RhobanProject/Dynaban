@@ -627,8 +627,8 @@ void print_detailed_trajectory_halt() {
     timer3.pause();
 
 
-	controlMode = OFF;
-	hardwareStruct.mot->state = MOVING;
+    controlMode = OFF;
+    hardwareStruct.mot->state = MOVING;
 
     dxl_regs.ram.positionTrackerOn = true;
 
@@ -667,6 +667,105 @@ void print_flash_start_adress() {
 	digitalWrite(BOARD_TX_ENABLE, LOW);
 }
 
+void extensive_model_calibration() {
+    controlMode = OFF;
+    hardwareStruct.mot->state = MOVING;
+    int16_t command = 0;
+    int16_t step = 50;
+    int16_t maxCommand = 2950;
+    dxl_regs.ram.positionTrackerOn = true;
+
+    // The first calibration test is be a step by step increase in the command. Each step is ~1 s, so this test is ~1 minute long
+    for (command = 0; abs(command) <= abs(maxCommand); command = command + step) {
+        timer3.pause();
+        timer3.refresh();
+        command = command + step;
+        motor_set_command(command);
+        timer3.resume();
+        //Waiting for the measures to be made
+        while(dxl_regs.ram.positionTrackerOn == true) {
+            if (readyToUpdateHardware) {
+                readyToUpdateHardware = false;
+                hardware_tick();
+            }
+            delayMicroseconds(10);
+        }
+
+    }
+    motor_compliant();
+    delayMicroseconds(20000);
+
+    // The second test is a series of saw tooth command patterns
+    command = 0;
+    step = 1;
+    uint16_t counter = 0;
+    for (int i = 0; i < 9; i++) {
+        step = i + 1;
+        timer3.pause();
+        timer3.refresh();
+        command = command + step;
+        motor_set_command(command);
+        timer3.resume();
+        //Waiting for the measures to be made
+        while(dxl_regs.ram.positionTrackerOn == true) {
+            if (readyToUpdateHardware) {
+                if (counter % 333 == 0) {
+                    //Changing the direction of the command increase
+                    step = step * -1;
+                }
+                command = command + step;
+                readyToUpdateHardware = false;
+                hardware_tick();
+                counter++;
+            }
+            delayMicroseconds(10);
+        }
+    }
+
+    motor_compliant();
+    delayMicroseconds(20000);
+
+    step = 60;
+    command = 0;
+    // The third calibration is 0 to step jump from 0 speed.
+    for (command = 0; abs(command) <= abs(maxCommand); command = command + step) {
+        timer3.pause();
+        timer3.refresh();
+        command = abs(command) + step;
+        motor_set_command(command);
+        timer3.resume();
+        //Waiting for the measures to be made
+        while(dxl_regs.ram.positionTrackerOn == true) {
+            if (readyToUpdateHardware) {
+                readyToUpdateHardware = false;
+                hardware_tick();
+            }
+            delayMicroseconds(10);
+        }
+        motor_set_command(0);
+        delayMicroseconds(10000);
+        
+        //Same but with the opposite sign
+        timer3.pause();
+        timer3.refresh();
+        command = -command;
+        motor_set_command(command);
+        timer3.resume();
+        //Waiting for the measures to be made
+        while(dxl_regs.ram.positionTrackerOn == true) {
+            if (readyToUpdateHardware) {
+                readyToUpdateHardware = false;
+                hardware_tick();
+            }
+            delayMicroseconds(10);
+        }
+        motor_set_command(0);
+        delayMicroseconds(10000);
+
+    }
+    motor_compliant();
+    delayMicroseconds(20000);
+}
 
 void model_calibration() {
 	controlMode = OFF;
