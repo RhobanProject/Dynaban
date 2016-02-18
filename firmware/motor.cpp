@@ -30,7 +30,7 @@ bool predictiveCommandOn = false;
 uint16 counterUpdate = 0;
 uint16 previousTime = 0;
 float addedInertia = 3*0.00370;
-uint16 trackingDivider = 3;
+uint16 trackingDivider = 1;
                          /* Moment of inertia added to the motor. Total moment of inertia = I0 + addedInertia.
                          * I0 is a constant defined in trajectory_manager */
 
@@ -219,15 +219,24 @@ void motor_update(encoder * pEnc) {
 
         counterUpdate++;
     } else {
-    	if (dxl_regs.ram.positionTrackerOn == true && notPrintedYet) {
-    		notPrintedYet = false;
-    		positionIndex = 0;
-    		dxl_regs.ram.positionTrackerOn = false;
-			print_detailed_trajectory();
-    	}
-    }
+        if (dxl_regs.ram.positionTrackerOn == true) {
+        	// For arbitrary measures
+            if (counterUpdate%trackingDivider == 0) {
+                positionArray[positionIndex] = mot.angle;
+                timeArray[positionIndex] = time;
 
-        //Updating the motor speed
+                if (positionIndex == NB_POSITIONS_SAVED) {
+                    positionIndex = 0;
+                    dxl_regs.ram.positionTrackerOn = false;
+                    print_detailed_trajectory();
+                } else {
+                    positionIndex++;
+                }
+            }
+        }
+        counterUpdate++;
+    }
+       //Updating the motor speed
     int32 previousSpeed = mot.speed;
 
     mot.speed = mot.angle - oldPosition;
@@ -242,7 +251,6 @@ void motor_update(encoder * pEnc) {
     }
 
     // The speed will be in steps/s :
-    issue here
     mot.speed = (mot.speed * 1000) / dxl_regs.ram.speedCalculationDelay;
 
     //Averaging with previous value (dangerous approach):
@@ -256,6 +264,26 @@ void motor_update(encoder * pEnc) {
     predictive_update_output_torques(mot.command, mot.speed);
     mot.outputTorqueWithoutFriction = dxl_regs.ram.outputTorqueWithoutFriction;
     mot.outputTorque = dxl_regs.ram.ouputTorque;
+
+//    if (tempCounter > 20*dxl_regs.ram.speedCalculationDelay) {
+//    	digitalWrite(BOARD_TX_ENABLE, HIGH);
+//		Serial1.println();
+//		Serial1.print("-----------------------:");
+//		Serial1.println();
+//		Serial1.print("Mode = ");
+//		Serial1.println();
+//		Serial1.println(controlMode);
+//		Serial1.print("speedCalculationDelay = ");
+//		Serial1.print(dxl_regs.ram.speedCalculationDelay);
+//		Serial1.print("rawSpeed = ");
+//		Serial1.print(mot.speed * dxl_regs.ram.speedCalculationDelay / 1000);
+//		motor_print_motor();
+//		control_print();
+//		Serial1.waitDataToBeSent();
+//		digitalWrite(BOARD_TX_ENABLE, LOW);
+//		while (true);
+//    }
+//    tempCounter++;
 }
 
 void motor_read_current() {

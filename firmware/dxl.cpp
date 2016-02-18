@@ -110,7 +110,7 @@ void dxl_init_regs()
         dxl_regs.ram.torquePoly2[i] = 0.0;
     }
 
-    dxl_regs.ram.speedCalculationDelay = 50;
+    dxl_regs.ram.speedCalculationDelay = 300;
     dxl_regs.ram.mode = 0;
     dxl_regs.ram.copyNextBuffer = 0;
     dxl_regs.ram.positionTrackerOn = false;

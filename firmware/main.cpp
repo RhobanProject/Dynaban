@@ -225,8 +225,9 @@ void setup() {
     controlMode = OFF;
 
     //Temp code :
-    delay(3000);
-    model_calibration();
+    delay(2000);
+    print_detailed_trajectory_halt();
+//    model_calibration();
 }
 
 void loop() {
@@ -623,19 +624,12 @@ void add_benchmark_time() {
 }
 
 void print_detailed_trajectory_halt() {
-    delay(3000);
-        //Updating the encoder
-    encoder_read_angles_sharing_pins_mode();
-        //Updating the motor
-    motor_update(hardwareStruct.enc);
-
-    long counter = 0;
     timer3.pause();
-    timer3.refresh();
-    timer3.resume();
 
-    hardwareStruct.mot->targetAngle = 0;//(hardwareStruct.mot->angle + 2048)%4096;
-    controlMode = POSITION_CONTROL;
+
+	controlMode = OFF;
+	hardwareStruct.mot->state = MOVING;
+
     dxl_regs.ram.positionTrackerOn = true;
 
     digitalWrite(BOARD_TX_ENABLE, HIGH);
@@ -643,40 +637,24 @@ void print_detailed_trajectory_halt() {
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
 
+    timer3.refresh();
+    motor_set_command(2950);
+    timer3.resume();
         //Waiting for the measures to be made
     while(dxl_regs.ram.positionTrackerOn == true) {
         if (readyToUpdateHardware) {
-            counter++;
             readyToUpdateHardware = false;
             hardware_tick();
         }
         delayMicroseconds(10);
-
-        // if (counter%50 == 0) {
-        //     digitalWrite(BOARD_TX_ENABLE, HIGH);
-        //     Serial1.println(counter);
-        //     Serial1.waitDataToBeSent();
-        //     digitalWrite(BOARD_TX_ENABLE, LOW);
-        // }
     }
-
+    motor_compliant();
     toggleLED();
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.println("Finished");
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
 
-    timer3.pause();
-    digitalWrite(BOARD_TX_ENABLE, HIGH);
-    Serial1.println("");
-    for (int i = 0; i < NB_POSITIONS_SAVED; i++) {
-        Serial1.print(timeArray[i]);
-        Serial1.print(" ");
-        Serial1.println(positionArray[i]);
-    }
-
-    Serial1.waitDataToBeSent();
-    digitalWrite(BOARD_TX_ENABLE, LOW);
     while (true);
 
 }
@@ -694,9 +672,9 @@ void model_calibration() {
 	controlMode = OFF;
 	hardwareStruct.mot->state = MOVING;
 	int16_t command = 0;
-	int16_t step = 50;
-	int16_t maxCommand = 2950;
-	uint16_t delayMs = 1000;
+	int16_t step = 10;
+	int16_t maxCommand = 300;
+	uint16_t delayMs = 600;
 	uint16_t nbTicks = 0;
 
 	digitalWrite(BOARD_TX_ENABLE, HIGH);
@@ -710,7 +688,6 @@ void model_calibration() {
 	digitalWrite(BOARD_TX_ENABLE, LOW);
 	for (command = 0; abs(command) <= abs(maxCommand); command = command + step) {
 		motor_set_command(command);
-
 		while (nbTicks < delayMs) {
 		 // Ticking hardware at 1 khz
 		 delay(1);
@@ -733,7 +710,7 @@ void model_calibration() {
 		Serial1.waitDataToBeSent();
 		digitalWrite(BOARD_TX_ENABLE, LOW);
 	}
-	motor_set_command(0);
+	motor_compliant();
 	digitalWrite(BOARD_TX_ENABLE, HIGH);
 	Serial1.println();
 	Serial1.print("Done.");

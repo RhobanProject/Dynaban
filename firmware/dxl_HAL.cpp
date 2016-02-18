@@ -57,7 +57,6 @@ void init_dxl_ram() {
 
 	dxl_regs.ram.ouputTorque = 0.0;
 	dxl_regs.ram.outputTorqueWithoutFriction = 0.0;
-    dxl_regs.ram.speedCalculationDelay = 500;
 
 	dxl_regs.ram.frozenRamOn = false;
 	dxl_regs.ram.useValuesNow = false;
@@ -70,7 +69,8 @@ void init_dxl_ram() {
 void update_dxl_ram() {
     dxl_regs.ram.presentPosition = hardwareStruct.mot->angle;
 
-    dxl_regs.ram.presentSpeed = terrible_sign_convention(hardwareStruct.mot->speed, 1024);
+    //dxl unit : 1023 == 117.07rpm. Our speed x is in steps/s => x(in dxl unit) = x*(60/4096)*1023/117.07 = x * 0.12800. Awful unit.
+    dxl_regs.ram.presentSpeed = terrible_sign_convention((int32_t)(hardwareStruct.mot->speed * 0.12800), 1024);
 
     dxl_regs.ram.presentLoad = terrible_sign_convention(hardwareStruct.mot->averageCurrent, 1024);
 
