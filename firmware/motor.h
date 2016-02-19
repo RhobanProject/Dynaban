@@ -32,7 +32,7 @@
  */
 #define NB_TICKS_BEFORE_UPDATING_ACCELERATION 8
 #define C_NB_RAW_MEASURES 0
-#define NB_POSITIONS_SAVED 512 // 2048 over flows by 392 bytes
+#define NB_POSITIONS_SAVED 1024 // 2048 over flows by 392 bytes
 
 static const int32 PRESCALE = 1 << 10;
 extern int32 currentRawMeasures[C_NB_RAW_MEASURES];

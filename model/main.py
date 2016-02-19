@@ -113,6 +113,8 @@ class ModelTester(object):
             spamreader = csv.DictReader(csvfile, delimiter=' ')
             for row in spamreader:
                 print row["Time"], ", ", row["Command"], ", ", row["Position"]
+                to do : differentiate different tests in order to assign diferent weight to them. Create a class measures for it
+                then use cma-es with function sumOfErrors (sum of squared errors actually)
 
                 
 print("A new day dawns")
