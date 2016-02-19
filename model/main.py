@@ -6,7 +6,7 @@ import math
 import sys
 import time
 import numpy
-
+import csv
 
 def sign(value):
     if value >= 0 :
@@ -108,7 +108,15 @@ class ModelTester(object):
         friction = viscousFriction + signOfStaticFriction * (beta * self.staticFriction + (1 - beta) * self.coulombFriction)
         return friction
 
+    def readMeasures(self, fileName) :
+        with open(fileName, 'rb') as csvfile :
+            spamreader = csv.DictReader(csvfile, delimiter=' ')
+            for row in spamreader:
+                print row["Time"], ", ", row["Command"], ", ", row["Position"]
+
+                
 print("A new day dawns")
 modelTest = ModelTester()
-modelTest.main()
+#modelTest.main()
+modelTest.readMeasures("measures/test1")
 print("Done !")
