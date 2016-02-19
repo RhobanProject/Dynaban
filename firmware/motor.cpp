@@ -24,6 +24,7 @@ bool notPrintedYet = true;
 uint16 timeArray[NB_POSITIONS_SAVED];
 int16 commandArray[NB_POSITIONS_SAVED];
 int16 positionArray[NB_POSITIONS_SAVED];
+int16 speedArray[NB_POSITIONS_SAVED];
 uint16 positionIndex = 0;
 // bool positionTrackerOn = false;
 bool predictiveCommandOn = false;
@@ -227,6 +228,7 @@ void motor_update(encoder * pEnc) {
             	timeArray[positionIndex] = time;
                 commandArray[positionIndex] = mot.command;
                 positionArray[positionIndex] = mot.angle;
+                speedArray[positionIndex] = mot.speed;
 
                 if (positionIndex == NB_POSITIONS_SAVED) {
                     positionIndex = 0;
@@ -489,7 +491,7 @@ void print_detailed_trajectory() {
 	digitalWrite(BOARD_LED_PIN, LOW);
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.println("");
-    Serial1.println("Time Command Position");
+    Serial1.println("Time Command Position Speed");
     for (int i = 0; i < (NB_POSITIONS_SAVED - speedShift); i++) {
         if (i > 100 && timeArray[i] == 0) {
             break;
@@ -500,7 +502,10 @@ void print_detailed_trajectory() {
         Serial1.print(commandArray[i]);
         Serial1.print(" ");
 		Serial1.print(positionArray[i]);
+		Serial1.print(" ");
+		Serial1.print(speedArray[i]);
 		Serial1.println("");
+
 
     }
 
