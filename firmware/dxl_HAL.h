@@ -9,7 +9,7 @@
 struct hardware {
     encoder * enc;
     motor * mot;
-    uint16_t voltage;
+    uint8_t voltage;
     uint8_t temperature;
 };
 

@@ -31,8 +31,8 @@
                                    = 128.418 ~= 128
  */
 #define NB_TICKS_BEFORE_UPDATING_ACCELERATION 8
-#define C_NB_RAW_MEASURES 60
-#define NB_POSITIONS_SAVED 1024 // 2048 over flows by 392 bytes
+#define C_NB_RAW_MEASURES 0
+#define NB_POSITIONS_SAVED 512 // 2048 over flows by 392 bytes
 
 static const int32 PRESCALE = 1 << 10;
 extern int32 currentRawMeasures[C_NB_RAW_MEASURES];
@@ -58,14 +58,14 @@ enum motorState {
 };
 
 struct motor {
-    int32 command;
-    int32 predictiveCommand;
-    int32 previousCommand;
-    int32 angle;
-    int32 previousAngle;
+    int16 command;
+    int16 predictiveCommand;
+    int16 previousCommand;
+    int16 angle;
+    int16 previousAngle;
     buffer angleBuffer;
     buffer speedBuffer;
-    int32 targetAngle;
+    int16 targetAngle;
     int32 speed;
     int32 averageSpeed;
     int32 previousSpeed;
@@ -79,15 +79,16 @@ struct motor {
     int32 current;
     int32 averageCurrent;
     int32 targetCurrent;
-    int32 posAngleLimit;
-    int32 negAngleLimit;
+    int16 posAngleLimit;
+    int16 negAngleLimit;
     unsigned char testChar;
-    int32 offset;
+    int16 offset;
     boolean multiTurnOn;
-    int32 multiTurnAngle;
+    int16 multiTurnAngle;
     float outputTorqueWithoutFriction;
     float outputTorque;
     float targetTorque;
+    bool temperatureIsCritic;
 };
 
 void motor_init(encoder * pEnc);
@@ -100,23 +101,23 @@ void motor_read_current();
 
 void motor_update_sign_of_speed();
 
-void motor_set_command(int32 pCommand);
+void motor_set_command(int16 pCommand);
 
-void motor_set_target_angle(int32 pAngle);
+void motor_set_target_angle(int16 pAngle);
 
-void motor_set_target_angle_multi_turn_mode(int32 pAngle);
+void motor_set_target_angle_multi_turn_mode(int16 pAngle);
 
 void motor_set_target_current(int pCurrent);
 
 /**
  * Returns pAngle if it's a valid target angle, otherwise it will return the closest valid angle
  */
-int32 motor_check_limit_angles(int32 pAngle);
+int16 motor_check_limit_angles(int16 pAngle);
 
 /**
  * Returns true is pAngle is valid, false otherwise
  */
-bool motor_is_valid_angle(int32 pAngle);
+bool motor_is_valid_angle(int16 pAngle);
 
 void motor_secure_pwm_write(uint8 pPin, uint16 pCommand);
 /**
@@ -136,9 +137,14 @@ motor * motor_get_motor();
 void motor_print_motor();
 
 /**
- * Puts the motor in compliant mode. You'll need to shut the motor down to get out of this mode.
+ * Puts the motor in compliant mode.
  */
 void motor_temperature_is_critic();
+
+/**
+ * Restarts the motor.
+ */
+void motor_temperature_is_okay();
 
 void print_detailed_trajectory();
 

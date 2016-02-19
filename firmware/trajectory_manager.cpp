@@ -167,7 +167,7 @@ void predictive_control_tick(motor * pMot, int32 pVGoal, uint32 pDt, float pOutp
     float accelTorque = ((float)(pVGoal - v) * (pControl.i0 + pIAdded) * 10000)/((float)pDt); // dt is in 1/10 of a ms
     float frictionTorque = signV * (beta * pControl.kstat + (1 - beta) * pControl.kcoul);
 
-    int32 u = pControl.unitFactor *
+    int16 u = pControl.unitFactor *
         (pControl.kv * v + pControl.torqueToCommand * (accelTorque + frictionTorque + pOutputTorque));
 
     if (u > MAX_COMMAND) {

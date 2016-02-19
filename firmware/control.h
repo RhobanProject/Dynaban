@@ -57,10 +57,10 @@ void control_tick_P_on_speed(motor * pMot);
 void control_tick_P_on_acceleration(motor * pMot);
 
 // Returns the signed difference between 2 angles
-int32 control_angle_diff(int32 a, int32 b);
+int16 control_angle_diff(int16 a, int16 b);
 
 // Returns the other angle between 2 angles (the bigger one, aka the on that is bigger than MAX_ANGLE/2)
-int32 control_other_angle_diff(int32 a, int32 b);
+int16 control_other_angle_diff(int16 a, int16 b);
 
 // P-only torque control
 void control_tick_P_on_torque(motor * pMot);

@@ -12,7 +12,6 @@ int32 currentRawMeasures[C_NB_RAW_MEASURES];
 int32 currentTimming[C_NB_RAW_MEASURES];
 int currentMeasureIndex = 0;
 bool currentDetailedDebugOn = false;
-bool temperatureIsCritic = false;
 
 // Benchmarking
 bool activateBenchmark = false;
@@ -22,8 +21,9 @@ uint16 timeIndexMotor = 0;
 int changeId = 0;
 bool notPrintedYet = true;
 
-int16 positionArray[NB_POSITIONS_SAVED];
 uint16 timeArray[NB_POSITIONS_SAVED];
+int16 commandArray[NB_POSITIONS_SAVED];
+int16 positionArray[NB_POSITIONS_SAVED];
 uint16 positionIndex = 0;
 // bool positionTrackerOn = false;
 bool predictiveCommandOn = false;
@@ -96,6 +96,7 @@ void motor_init(encoder * pEnc) {
     mot.outputTorqueWithoutFriction = 0.0;
     mot.outputTorque = 0.0;
     mot.targetTorque = 0.0;
+    mot.temperatureIsCritic = false;
 
     timer3.setPrescaleFactor(7200); // 1 for current debug, 7200 => 10 tick per ms
     timer3.setOverflow(65535);
@@ -147,7 +148,7 @@ void motor_update(encoder * pEnc) {
 	}
 
 
-    int32 oldPosition = buffer_get(&(mot.angleBuffer));
+    int16 oldPosition = buffer_get(&(mot.angleBuffer));
 
     motor_update_sign_of_speed();
 
@@ -223,8 +224,9 @@ void motor_update(encoder * pEnc) {
         if (dxl_regs.ram.positionTrackerOn == true) {
         	// For arbitrary measures
             if (counterUpdate%trackingDivider == 0) {
+            	timeArray[positionIndex] = time;
+                commandArray[positionIndex] = mot.command;
                 positionArray[positionIndex] = mot.angle;
-                timeArray[positionIndex] = time;
 
                 if (positionIndex == NB_POSITIONS_SAVED) {
                     positionIndex = 0;
@@ -329,8 +331,8 @@ void motor_update_sign_of_speed() {
         // mot.signOfSpeed = sign(mot.averageCurrent);
 }
 
-void motor_set_command(int32 pCommand) {
-    if (temperatureIsCritic == true) {
+void motor_set_command(int16 pCommand) {
+    if (mot.temperatureIsCritic == true) {
         // Nope, go cool down yourself before you consider spinning again, motor bro.
         return;
     }
@@ -343,8 +345,8 @@ void motor_set_command(int32 pCommand) {
         mot.command = pCommand;
     }
 
-    int32 command = mot.command;
-    int32 previousCommand = mot.previousCommand;
+    int16 command = mot.command;
+    int16 previousCommand = mot.previousCommand;
     if (mot.state != COMPLIANT) {
     	if (command >= 0 && previousCommand >= 0) {
     		//No need to change the spin direction
@@ -375,7 +377,7 @@ void motor_secure_pwm_write(uint8 pPin, uint16 pCommand){
     }
 }
 
-void motor_set_target_angle(int32 pAngle) {
+void motor_set_target_angle(int16 pAngle) {
     //Reseting the control to avoid inertia with the integral part
     control_reset();
     if (pAngle > MAX_ANGLE) {
@@ -389,21 +391,21 @@ void motor_set_target_angle(int32 pAngle) {
     mot.targetAngle = motor_check_limit_angles(pAngle);
 }
 
-void motor_set_target_angle_multi_turn_mode(int32 pAngle) {
+void motor_set_target_angle_multi_turn_mode(int16 pAngle) {
     //Reseting the control to avoid inertia with the integral part
     control_reset();
 
     mot.targetAngle = pAngle;
 }
 
-int32 motor_check_limit_angles(int32 pAngle) {
+int16 motor_check_limit_angles(int16 pAngle) {
     if (motor_is_valid_angle(pAngle)) {
         return pAngle;
     }
 
         // pAngle is not a valid angle, the function will return the closest valid angle
-    int32 posDiff = control_angle_diff(pAngle, mot.posAngleLimit);
-    int32 negDiff = control_angle_diff(pAngle, mot.negAngleLimit);
+    int16 posDiff = control_angle_diff(pAngle, mot.posAngleLimit);
+    int16 negDiff = control_angle_diff(pAngle, mot.negAngleLimit);
 
     if (abs(posDiff) < abs(negDiff)) {
         return mot.posAngleLimit;
@@ -412,7 +414,7 @@ int32 motor_check_limit_angles(int32 pAngle) {
     }
 }
 
-bool motor_is_valid_angle(int32 pAngle) {
+bool motor_is_valid_angle(int16 pAngle) {
     if (mot.posAngleLimit == mot.negAngleLimit) {
             // Free wheel mode
         return true;
@@ -470,24 +472,36 @@ void motor_restart() {
 }
 
 void motor_temperature_is_critic() {
-    temperatureIsCritic = true;
+    mot.temperatureIsCritic = true;
     motor_compliant();
-    // digitalWrite(BOARD_LED_PIN, HIGH);
+     digitalWrite(BOARD_LED_PIN, LOW);
+}
+
+void motor_temperature_is_okay() {
+    mot.temperatureIsCritic = false;
+    motor_restart();
+     digitalWrite(BOARD_LED_PIN, HIGH);
 }
 
 void print_detailed_trajectory() {
+	//The speed has a delay of ~speedCalculationDelay/2 ms. The delay between 2 recorded speed points is 1ms * trackingDivider
+	uint16_t speedShift = (dxl_regs.ram.speedCalculationDelay/2) * trackingDivider;
 	digitalWrite(BOARD_LED_PIN, LOW);
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.println("");
-    Serial1.println("Time Data");
-    for (int i = 0; i < NB_POSITIONS_SAVED; i++) {
+    Serial1.println("Time Command Position");
+    for (int i = 0; i < (NB_POSITIONS_SAVED - speedShift); i++) {
         if (i > 100 && timeArray[i] == 0) {
             break;
         }
         Serial1.print(timeArray[i]); // No delay when printing a position
         // Serial1.print(timeArray[i] - NB_TICKS_BEFORE_UPDATING_SPEED*10); // Taking into account the speed update delay
         Serial1.print(" ");
-        Serial1.println(positionArray[i]);
+        Serial1.print(commandArray[i]);
+        Serial1.print(" ");
+		Serial1.print(positionArray[i]);
+		Serial1.println("");
+
     }
 
     Serial1.waitDataToBeSent();
