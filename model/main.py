@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
 #Author : Rémi Fabre
 
-import matplotlib.pyplot as plt
+import csv
+import itertools
 import math
+import numpy
+from numpy import asarray
 import sys
 import time
-import numpy
-import csv
-import measure
-import itertools
+
+import cma
+import matplotlib.pyplot as plt
 from measure import Measure
+import measure
+
 
 def sign(x) :
     if (x > 0) :
@@ -124,7 +128,7 @@ class  ModelTester(object):
         plt.plot(T, electricalTorque, "+", 
                  T, frictionTorque, "x", 
                  T, outputTorque, "--")
-        plt.legend(['electricalTorque', 'frictionTorque', 'outputTorque'])
+        plt.legend(['eleprint "io = ", self.i0ctricalTorque', 'frictionTorque', 'outputTorque'])
         plt.grid(True)
         
         plt.show()
@@ -162,6 +166,7 @@ class  ModelTester(object):
         position = position[:-1]
         speed = speed[:-1]
         if (printIt) :
+            print "Size of T = ", len(T)
             plt.subplot(231)
             plt.plot(T, position, "-")
             plt.legend(['Position (rad)']) 
@@ -259,7 +264,7 @@ class  ModelTester(object):
             plt.grid(True)
             plt.show()
             
-        print "sumOfErrors = ", sumOfSquaredErrors
+#         print "sumOfErrors = ", sumOfSquaredErrors
         return sumOfSquaredErrors
 
 
@@ -340,25 +345,139 @@ class  ModelTester(object):
             for t, command, position, speed in measure.values :
                 timedCommands.append([t, command])
             #Doing the simulation
-            simulationResults = self.simulation(timedCommands, initialPosition, initialSpeed, printIt=False)
+            simulationResults = self.simulation(timedCommands, initialPosition, initialSpeed, printIt=True)
             #Comparing the simulation and the measure
-            sumOfErrors = sumOfErrors + self.compareSimulationAndMeasure(simulationResults, measure, printIt=True)
+            sumOfErrors = sumOfErrors + self.compareSimulationAndMeasure(simulationResults, measure, printIt=False)
+        print "\n***Score = ", sumOfErrors
         return sumOfErrors
+        
+    #Same function but all the args are in x
+    def evaluateModelForMeasures1D(self, x, *args):
+        x = asarray(x)
+        listOfMeasures = args[0]
+
+        #Unzippid the parameters
+        voltage = 12
+        i0 = x[0]
+        ke = x[1]
+        r = x[2]
+        klin = x[3]
+        linearTransition = x[4]
+        staticFriction = x[5]
+        coulombFriction = x[6]
+
+        return self.evaluateModelForMeasures(listOfMeasures, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction )
         
     def main(self):
 #         T = numpy.arange(0, 1, 0.0001)
 #         timedCommands = zip(T, itertools.repeat(4))
 #         self.updateModelConstants(12, self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction)
 #         self.simulation(timedCommands, 0, 0, printIt=True)
-        
+
+        print "Initial model values :"
+        print "voltage = ", self.voltage
+        print "io = ", self.i0
+        print "ke = ", self.ke
+        print "r = ", self.r
+        print "klin = ", self.klin
+        print "linearTransition = ", self.linearTransition
+        print "staticFriction = ", self.staticFriction
+        print "coulombFriction = ", self.coulombFriction
         listOfMeasures = self.readMeasures("measures/completeTest")
-        value = self.evaluateModelForMeasures(listOfMeasures, 12, self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction)
-#         print "listOfMeasures = \n", listOfMeasures
-        #Takes a measure and the values of the parameters and returns a score.
-#         qualityFunction = lambda x : amplitude*numpy.sin(x)
+#         value = self.evaluateModelForMeasures(listOfMeasures, 12, self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction)
+        value = self.evaluateModelForMeasures(listOfMeasures, 12, 0.0065221353696600171, 3.0504612860082383, 5.9683964688312443, 
+                                              -1.6271709257312927, 0.29088312000191979, 0.15369921416505786, -0.077379333746289997)
+#         voltage =  12.0
+#         io =  0.00353
+#         ke =  2.75
+#         r =  5.86
+#         klin =  -1.60368670825
+#         linearTransition =  0.306796157577
+#         staticFriction =  0.150170648464
+#         coulombFriction =  0.0750853242321
+
+
+        return
+        cma.fcts.rosen
+        params = [self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction]
+        options = cma.CMAOptions()
+        #Rescaling the sigmas for each variable
+        options['scaling_of_variables'] = [params[0], params[1]/10.0, params[2]/10.0, params[3]/5.0, params[4], params[5]/10.0, params[6]*2]
+        options['tolfun'] = 500
+        res = cma.fmin(self.evaluateModelForMeasures1D, params, 0.5, options, args=[listOfMeasures])
+
+        print "Best solution = ", res[0]
+        print "Best score = ", res[1]
+        print "Function evals = ", res[3]
+        print "Nb iterations = ", res[4]
+        print "mean of final sample distribution", res[5]
+        cma.plot()
+        cma.show()
+        
         
          
 print("A new day dawns")
 modelTest = ModelTester()
 modelTest.main()
 print("Done !")
+
+
+#cma option :
+# {'AdaptSigma': 'CMAAdaptSigmaCSA  # or any other CMAAdaptSigmaBase class e.g. CMAAdaptSigmaTPA',
+#  'CMA_active': 'True  # negative update, conducted after the original update',
+#  'CMA_cmean': '1  # learning rate for the mean value',
+#  'CMA_const_trace': 'False  # normalize trace, value CMA_const_trace=2 normalizes sum log eigenvalues to zero',
+#  'CMA_dampsvec_fac': 'np.Inf  # tentative and subject to changes, 0.5 would be a "default" damping for sigma vector update',
+#  'CMA_dampsvec_fade': '0.1  # tentative fading out parameter for sigma vector update',
+#  'CMA_diagonal': '0*100*N/sqrt(popsize)  # nb of iterations with diagonal covariance matrix, True for always',
+#  'CMA_eigenmethod': 'np.linalg.eigh  # 0=numpy-s eigh, -1=pygsl, otherwise cma.Misc.eig (slower)',
+#  'CMA_elitist': 'False  #v or "initial" or True, elitism likely impairs global search performance',
+#  'CMA_mirrormethod': '1  # 0=unconditional, 1=selective, 2==experimental',
+#  'CMA_mirrors': 'popsize < 6  # values <0.5 are interpreted as fraction, values >1 as numbers (rounded), otherwise about 0.16 is used',
+#  'CMA_mu': 'None  # parents selection parameter, default is popsize // 2',
+#  'CMA_on': 'True  # False or 0 for no adaptation of the covariance matrix',
+#  'CMA_rankmu': 'True  # False or 0 for omitting rank-mu update of covariance matrix',
+#  'CMA_rankmualpha': '0.3  # factor of rank-mu update if mu=1, subject to removal, default might change to 0.0',
+#  'CMA_sample_on_sphere_surface': 'False  #v all mutation vectors have the same length',
+#  'CMA_stds': 'None  # multipliers for sigma0 in each coordinate, not represented in C, makes scaling_of_variables obsolete',
+#  'CMA_teststds': 'None  # factors for non-isotropic initial distr. of C, mainly for test purpose, see CMA_stds for production',
+#  'CSA_clip_length_value': 'None  #v untested, [0, 0] means disregarding length completely',
+#  'CSA_damp_mueff_exponent': '0.5  # zero would mean no dependency of damping on mueff, useful with CSA_disregard_length option',
+#  'CSA_dampfac': '1  #v positive multiplier for step-size damping, 0.3 is close to optimal on the sphere',
+#  'CSA_disregard_length': 'False  #v True is untested',
+#  'CSA_squared': 'False  #v use squared length for sigma-adaptation ',
+#  'boundary_handling': 'BoundTransform  # or BoundPenalty, unused when ``bounds in (None, [None, None])``',
+#  'bounds': '[None, None]  # lower (=bounds[0]) and upper domain boundaries, each a scalar or a list/vector',
+#  'fixed_variables': 'None  # dictionary with index-value pairs like {0:1.1, 2:0.1} that are not optimized',
+#  'ftarget': '-inf  #v target function value, minimization',
+#  'is_feasible': 'is_feasible  #v a function that computes feasibility, by default lambda x, f: f not in (None, np.NaN)',
+#  'maxfevals': 'inf  #v maximum number of function evaluations',
+#  'maxiter': '100 + 50 * (N+3)**2 // popsize**0.5  #v maximum number of iterations',
+#  'maxstd': 'inf  #v maximal std in any coordinate direction',
+#  'mean_shift_line_samples': 'False #v sample two new solutions colinear to previous mean shift',
+#  'mindx': '0  #v minimal std in any direction, cave interference with tol*',
+#  'minstd': '0  #v minimal std in any coordinate direction, cave interference with tol*',
+#  'pc_line_samples': 'False #v two line samples along the evolution path pc',
+#  'popsize': '4+int(3*log(N))  # population size, AKA lambda, number of new solution per iteration',
+#  'randn': 'np.random.standard_normal  #v randn((lam, N)) must return an np.array of shape (lam, N)',
+#  'scaling_of_variables': 'None  # (rather use CMA_stds) scale for each variable, sigma0 is interpreted w.r.t. this scale, in that effective_sigma0 = sigma0*scaling. Internally the variables are divided by scaling_of_variables and sigma is unchanged, default is np.ones(N)',
+#  'seed': 'None  # random number seed',
+#  'signals_filename': 'cmaes_signals.par  # read from this file, e.g. "stop now"',
+#  'termination_callback': 'None  #v a function returning True for termination, called after each iteration step and could be abused for side effects',
+#  'tolfacupx': '1e3  #v termination when step-size increases by tolfacupx (diverges). That is, the initial step-size was chosen far too small and better solutions were found far away from the initial solution x0',
+#  'tolfun': '1e-11  #v termination criterion: tolerance in function value, quite useful',
+#  'tolfunhist': '1e-12  #v termination criterion: tolerance in function value history',
+#  'tolstagnation': 'int(100 + 100 * N**1.5 / popsize)  #v termination if no improvement over tolstagnation iterations',
+#  'tolupsigma': '1e20  #v sigma/sigma0 > tolupsigma * max(sqrt(eivenvals(C))) indicates "creeping behavior" with usually minor improvements',
+#  'tolx': '1e-11  #v termination criterion: tolerance in x-changes',
+#  'transformation': 'None  # [t0, t1] are two mappings, t0 transforms solutions from CMA-representation to f-representation (tf_pheno), t1 is the (optional) back transformation, see class GenoPheno',
+#  'typical_x': 'None  # used with scaling_of_variables',
+#  'updatecovwait': 'None  #v number of iterations without distribution update, name is subject to future changes',
+#  'verb_append': '0  # initial evaluation counter, if append, do not overwrite output files',
+#  'verb_disp': '100  #v verbosity: display console output every verb_disp iteration',
+#  'verb_filenameprefix': 'outcmaes  # output filenames prefix',
+#  'verb_log': '1  #v verbosity: write data to files every verb_log iteration, writing can be time critical on fast to evaluate functions',
+#  'verb_plot': '0  #v in fmin(): plot() is called every verb_plot iteration',
+#  'verb_time': 'True  #v output timings on console',
+#  'verbose': '1  #v verbosity e.v. of initial/final message, -1 is very quiet, -9 maximally quiet, not yet fully implemented',
+#  'vv': '0  #? versatile variable for hacking purposes, value found in self.opts["vv"]'}
