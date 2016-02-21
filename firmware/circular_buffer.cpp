@@ -48,11 +48,12 @@ void buffer_add(buffer * pBuf, long pValue) {
 }
 
 long buffer_get(buffer * pBuf) {
-    if (pBuf->nbElements < (pBuf->size)) {
-        return 0;
-    } else {
-        return pBuf->buf[pBuf->start];
-    }
+    return pBuf->buf[pBuf->start];
+//    if (pBuf->nbElements < (pBuf->size)) {
+//        return 0;
+//    } else {
+//        return pBuf->buf[pBuf->start];
+//    }
 
 }
 

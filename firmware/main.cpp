@@ -166,7 +166,7 @@ void setup() {
     pinMode(POWER_SUPPLY_ADC_PIN, INPUT_ANALOG);
     pinMode(TEMPERATURE_ADC_PIN, INPUT_ANALOG);
 
-    //Encoder init
+    //Encoder init and firt read of position
     encoder_init_sharing_pins_mode(7, 8);
     encoder_add_encoder_sharing_pins_mode(6);
     encoder_read_angles_sharing_pins_mode();
@@ -687,33 +687,44 @@ void extensive_model_calibration() {
     int16_t command = 0;
     int16_t step = 50;
     int16_t maxCommand = 2950;
-    dxl_regs.ram.positionTrackerOn = true;
+    uint16_t nbTicks = 0;
 
     // The first calibration test is a step by step increase in the command. Each step is ~1 s, so this test is ~1 minute long
-//	digitalWrite(BOARD_TX_ENABLE, HIGH);
-//	Serial1.println("StartOfNewTest 0");
-//	Serial1.waitDataToBeSent();
-//	digitalWrite(BOARD_TX_ENABLE, LOW);
-//    for (command = 0; abs(command) <= abs(maxCommand); command = command + step) {
-//        timer3.pause();
-//        timer3.refresh();
-//        command = command + step;
-//        motor_restart();
-//        motor_set_command(command);
-//        timer3.resume();
-//        //Waiting for the measures to be made
-//        while(dxl_regs.ram.positionTrackerOn == true) {
-//            if (readyToUpdateHardware) {
-//                readyToUpdateHardware = false;
-//                hardware_tick();
-//            }
-//            delayMicroseconds(10);
-//        }
-//        // Reactivating the tracking
-//        dxl_regs.ram.positionTrackerOn = true;
-//    }
-//    motor_compliant();
-//    delayMicroseconds(100*1000);
+	digitalWrite(BOARD_TX_ENABLE, HIGH);
+	Serial1.println("StartOfNewTest 0");
+	Serial1.waitDataToBeSent();
+	digitalWrite(BOARD_TX_ENABLE, LOW);
+    for (command = 0; abs(command) <= abs(maxCommand); command = command + step) {
+        timer3.pause();
+        timer3.refresh();
+        command = command + step;
+
+        // Making at least speedCalculationDelay hardware_ticks to make sure the position buffer is fully charged (since we're manually ticking hardware_ticks, between tests we wait to much before ticking it)
+        while(nbTicks < (dxl_regs.ram.speedCalculationDelay + 5)) {
+			if (readyToUpdateHardware) {
+				readyToUpdateHardware = false;
+				hardware_tick();
+				nbTicks++;
+			}
+			delayMicroseconds(10);
+		}
+        nbTicks = 0;
+        motor_restart();
+        motor_set_command(command);
+        timer3.resume();
+        //Activating the tracking
+        dxl_regs.ram.positionTrackerOn = true;
+        //Waiting for the measures to be made
+        while(dxl_regs.ram.positionTrackerOn == true) {
+            if (readyToUpdateHardware) {
+                readyToUpdateHardware = false;
+                hardware_tick();
+            }
+            delayMicroseconds(10);
+        }
+    }
+    motor_compliant();
+    delayMicroseconds(100*1000);
 
     // The second test is a series of saw tooth command patterns
 	digitalWrite(BOARD_TX_ENABLE, HIGH);
@@ -727,8 +738,22 @@ void extensive_model_calibration() {
         step = 3*i + 1;
         timer3.pause();
         timer3.refresh();
+
+        // Making at least speedCalculationDelay hardware_ticks to make sure the position buffer is fully charged (since we're manually ticking hardware_ticks, between tests we wait to much before ticking it)
+        while(nbTicks < (dxl_regs.ram.speedCalculationDelay + 5)) {
+			if (readyToUpdateHardware) {
+				readyToUpdateHardware = false;
+				hardware_tick();
+				nbTicks++;
+			}
+			delayMicroseconds(10);
+		}
+        nbTicks = 0;
+
         motor_restart();
         timer3.resume();
+        //Activating the tracking
+        dxl_regs.ram.positionTrackerOn = true;
         //Waiting for the measures to be made
         while(dxl_regs.ram.positionTrackerOn == true) {
             if (readyToUpdateHardware) {
@@ -744,8 +769,7 @@ void extensive_model_calibration() {
             }
             delayMicroseconds(10);
         }
-        // Reactivating the tracking
-        dxl_regs.ram.positionTrackerOn = true;
+
         command = 0;
         motor_set_command(0);
         delayMicroseconds(500*1000);
@@ -756,52 +780,81 @@ void extensive_model_calibration() {
 
 
     // The third calibration is 0 to step jump from 0 speed.
-//	digitalWrite(BOARD_TX_ENABLE, HIGH);
-//	Serial1.println("StartOfNewTest 0");
-//	Serial1.waitDataToBeSent();
-//	digitalWrite(BOARD_TX_ENABLE, LOW);
-//    step = 60;
-//    command = 0;
-//    for (command = 0; abs(command) <= abs(maxCommand); command = abs(command) + step) {
-//        timer3.pause();
-//        timer3.refresh();
-//        motor_restart();
-//        motor_set_command(command);
-//        timer3.resume();
-//        //Waiting for the measures to be made
-//        while(dxl_regs.ram.positionTrackerOn == true) {
-//            if (readyToUpdateHardware) {
-//                readyToUpdateHardware = false;
-//                hardware_tick();
-//            }
-//            delayMicroseconds(10);
-//        }
-//        // Reactivating the tracking
-//        dxl_regs.ram.positionTrackerOn = true;
-//        motor_set_command(0);
-//        delayMicroseconds(500*1000);
-//
-//        //Same but with the opposite sign
-//        timer3.pause();
-//        timer3.refresh();
-//        command = -command;
-//        motor_restart();
-//        motor_set_command(command);
-//        timer3.resume();
-//        //Waiting for the measures to be made
-//        while(dxl_regs.ram.positionTrackerOn == true) {
-//            if (readyToUpdateHardware) {
-//                readyToUpdateHardware = false;
-//                hardware_tick();
-//            }
-//            delayMicroseconds(10);
-//        }
-//        // Reactivating the tracking
-//        dxl_regs.ram.positionTrackerOn = true;
-//        motor_set_command(0);
-//        delayMicroseconds(500*1000);
-//
-//    }
+	digitalWrite(BOARD_TX_ENABLE, HIGH);
+	Serial1.println("StartOfNewTest 2");
+	Serial1.waitDataToBeSent();
+	digitalWrite(BOARD_TX_ENABLE, LOW);
+    step = 80;
+    command = 0;
+    for (command = 0; abs(command) <= abs(maxCommand); command = abs(command) + step) {
+        timer3.pause();
+        timer3.refresh();
+
+        // Making at least speedCalculationDelay hardware_ticks to make sure the position buffer is fully charged (since we're manually ticking hardware_ticks, between tests we wait to much before ticking it)
+        while(nbTicks < (dxl_regs.ram.speedCalculationDelay + 5)) {
+			if (readyToUpdateHardware) {
+				readyToUpdateHardware = false;
+				hardware_tick();
+				nbTicks++;
+			}
+			delayMicroseconds(10);
+		}
+        nbTicks = 0;
+
+        motor_restart();
+        motor_set_command(command);
+        timer3.resume();
+        //Activating the tracking
+        dxl_regs.ram.positionTrackerOn = true;
+
+        //Waiting for the measures to be made
+        while(dxl_regs.ram.positionTrackerOn == true) {
+            if (readyToUpdateHardware) {
+                readyToUpdateHardware = false;
+                hardware_tick();
+            }
+            delayMicroseconds(10);
+        }
+
+        motor_set_command(0);
+        delayMicroseconds(500*1000);
+
+        //Same but with the opposite sign
+        timer3.pause();
+        timer3.refresh();
+        command = -command;
+
+        // Making at least speedCalculationDelay hardware_ticks to make sure the position buffer is fully charged (since we're manually ticking hardware_ticks, between tests we wait to much before ticking it)
+        while(nbTicks < (dxl_regs.ram.speedCalculationDelay + 5)) {
+			if (readyToUpdateHardware) {
+				readyToUpdateHardware = false;
+				hardware_tick();
+				nbTicks++;
+			}
+			delayMicroseconds(10);
+		}
+        nbTicks = 0;
+
+        motor_restart();
+        motor_set_command(command);
+        timer3.resume();
+        //Activating the tracking
+        dxl_regs.ram.positionTrackerOn = true;
+
+        //Waiting for the measures to be made
+        while(dxl_regs.ram.positionTrackerOn == true) {
+            if (readyToUpdateHardware) {
+                readyToUpdateHardware = false;
+                hardware_tick();
+            }
+            delayMicroseconds(10);
+        }
+        // Reactivating the tracking
+        dxl_regs.ram.positionTrackerOn = true;
+        motor_set_command(0);
+        delayMicroseconds(500*1000);
+
+    }
     motor_compliant();
     while(true);
 }

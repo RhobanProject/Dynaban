@@ -7,18 +7,28 @@ import sys
 import time
 import numpy
 import csv
+import measure
+from measure import Measure
 
-def sign(value):
-    if value >= 0 :
+def sign(x) :
+    if (x > 0) :
         return 1
-    else :
+    if (x < 0) :
         return -1
+    return 1
+
+def isNumber(value):
+    try:
+        float(value)
+        return True
+    except:
+        return False
     
-class ModelTester(object):
+class  ModelTester(object):
     def __init__(self) :
         self.voltage = 12.0
         self.i0 = 0.00353 #(actual value 0.00353) in kg.m**2 is the measured moment of inertia when empty (only gear box attached). Can't value the measure too much though. (datasheet from maxon gives 2.17g.cm^2 which, with the 200 gear ratio is 4.35*10⁻5, which is 10 times less than the measured value !)
-        self.ke = 0.75 #V*s/rad
+        self.ke = 2.75 #V*s/rad
         self.kt = self.ke #N.m/A
         self.r = 5.86 #ohm
         self.rawKlin = 1/2.38 #command*s/step . Command in [0, 3000]. If command = 1000 => speed = 1000*(1/klinMeasured) + offset in steps/s
@@ -41,9 +51,26 @@ class ModelTester(object):
         self.staticFriction = self.rawStaticFriction * self.rawCommandToSiTorque #In N.m
         self.coulombFriction = self.staticFriction / 4.56 #In N.m. pifometric value.
         
+    def updateModelConstants(self, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction):
+        self.voltage = voltage
+        self.io = i0
+        self.ke = ke
+        self.kt = self.ke
+        self.r = r
+        self.klin = klin
+        self.linearTransition = linearTransition
+        self.staticFriction = staticFriction
+        self.coulombFriction = coulombFriction
+        
+        #Pure update
+        self.kvis = (self.klin - self.ke)*self.kt/self.r
+
+        #Conversion helpers :
+        self.rawCommandToVoltage = self.voltage/3000.0 #V/command
+        self.rawCommandToSiTorque = self.rawCommandToVoltage*self.kt/self.r #If speed is 0, then electricalTorque = command * rawCommandToSiTorque N.m. If command = 3000, electricalTorque = 5.6 N.m = stallTorque
 
 
-    def main(self):
+    def simulationTest(self):
         dt = 0.001
         T = numpy.arange(0, 0.2, dt)
         u = 0.3333*12
@@ -91,6 +118,103 @@ class ModelTester(object):
         plt.grid(True)
         plt.show()
     
+
+    #Takes an initial speed, and a list of [time, command]. Outputs [T, position, speed, acceleration, outputTorque, electricalTorque, frictionTorque]
+    #where T, position, speed, etc are each an array whom size is the same than timedCommands
+    def simulation(self, timedCommands, initialPosition,initialSpeed, printIt=False):
+        position = [initialPosition]
+        speed = [initialSpeed]
+        electricalTorque = []
+        frictionTorque = []
+        outputTorque = []
+        acceleration = []
+        #Getting a list with all the time values
+        T, commands = zip(*timedCommands)
+        
+        oldT = T[0]
+        for i, [t, command] in enumerate(timedCommands) :
+            dt = t - oldT
+            #Getting the electrical torque
+            eTorque = self.computeElectricalTorque(command, speed[i])
+            electricalTorque.append(eTorque)
+            #Getting the friction torque
+            fTorque = self.computeFrictionTorque(speed[i], 1)
+            frictionTorque.append(fTorque)
+            #Actual output torque
+            outputTorque.append(eTorque - fTorque)
+            
+            acceleration.append(outputTorque[i]/self.i0)
+            speed.append(speed[i] + dt*acceleration[i])
+            position.append(position[i] + speed[i]*dt)
+            oldT = t
+           
+        position = position[:-1]
+        speed = speed[:-1]
+        if (printIt) :
+            plt.subplot(231)
+            plt.plot(T, position, "-")
+            plt.legend(['Position (rad)']) 
+            plt.subplot(232)
+            plt.plot(T, speed, "--")
+            plt.legend(['Speed (rad/s)'])
+            plt.subplot(233)
+            plt.plot(T, acceleration, "--")
+            plt.legend(['acceleration (rad/s^2)'])
+            plt.subplot(234)
+            plt.plot(T, electricalTorque, "--", 
+                     T, frictionTorque, "--", 
+                     T, outputTorque, "--")
+            plt.legend(['electricalTorque (N.m)', 'frictionTorque (N.m)', 'outputTorque (N.m)'])
+            plt.subplot(235)
+            plt.plot(T, commands, "-")
+            plt.legend(['Command (V)'])
+    
+            plt.grid(True)
+            plt.show()
+        
+        return [T, position, speed, acceleration, outputTorque, electricalTorque, frictionTorque]
+    
+    #Each measured point is compared to each simulated point. The delta between the 2 is squared and summed for every point.
+    #This function returns that sum, the lesser that value is, the better the simulation fits the measure
+    def compareSimulationAndMeasure(self, simulationResults, measure, printIt=False) :
+        sumOfSquaredErrors = 0
+        
+        [simuT, simuPosition, simuSpeed, simuAcceleration, simuOutputTorque, simuElectricalTorque, simuFrictionTorque] = simulationResults
+        measureT, measureCommand, measurePosition, measureSpeed = zip(*measure.values)
+        deltaArray = []
+        
+        for i, t in enumerate(measureT) :
+            if (simuT[i] != t) :
+                print "Times don't match !"
+                raise RuntimeError("Times don't match !")
+            delta = simuPosition[i] - measurePosition[i]
+            deltaArray.append(delta)
+            sumOfSquaredErrors = sumOfSquaredErrors + pow(delta, 2)
+#             print "i = ", i, ", t = ", t, ", delta = ", delta
+
+            
+        if (printIt) :
+            plt.subplot(221)
+            plt.plot(simuT, simuPosition, "--",
+                     simuT, measurePosition, "-.")
+            plt.legend(['simuPosition', 'measurePosition']) 
+            
+            plt.subplot(223)
+            plt.plot(simuT, deltaArray, "--")
+            plt.legend(['DeltaPosition'])
+            
+            plt.subplot(222)
+            plt.plot(simuT, simuSpeed, "--",
+            simuT, measureSpeed, "-.")
+            plt.legend(['simuSpeed', 'measureSpeed']) 
+
+            plt.grid(True)
+            plt.show()
+            
+        print "sumOfErrors = ", sumOfSquaredErrors
+        return sumOfSquaredErrors
+    
+    
     # Computes the torque in N.m that the motor would output if there was no friction
     # u is the command voltage in V. speed is the current speed in rad/s
     def computeElectricalTorque(self, u, speed):
@@ -98,7 +222,14 @@ class ModelTester(object):
     
     # Computes the torque in N.m created by friction.
     # speed is the current speed in rad/s. signOfStaticFriction is always equal to sign(speed) unless speed is 0. 
-    # Then signOfStaticFriction should be equal to the sign of the output torque applied to the motor.
+    # Then signOfStaticFriction should be equal to the sign of the sum of all the torques applied on the rotor.
+    #Thoughts about the static friction management :
+    #The current model as an obvious problem related to the static friction. Let's say the speed of the motor is very low, 
+    #and the electrical torque (ie created by the motor) is 0. This function would output a non zero torque because of the static friction.
+    #When adding the friction torque and the elec torque, we have a non zero torque creating a non zero acceleration, which is absurd. 
+    #If you push a heavy furniture, it won't push you back stronger than what you pushed it.
+    #Actually, the static torque should be min(staticFriction, abs(outputTorque)) when the speed is 0. But I don't like this "when 0" discontinuity in the model.
+    #Then chosen friction model handles this issue with the coulomb friction transition. The sharpest the transition, the closest we get to that "when 0" discontinuity.
     def computeFrictionTorque(self, speed, signOfStaticFriction):
         viscousFriction = self.kvis * speed
         if (speed != 0) :
@@ -110,15 +241,94 @@ class ModelTester(object):
 
     def readMeasures(self, fileName) :
         with open(fileName, 'rb') as csvfile :
-            spamreader = csv.DictReader(csvfile, delimiter=' ')
-            for row in spamreader:
-                print row["Time"], ", ", row["Command"], ", ", row["Position"]
-                to do : differentiate different tests in order to assign diferent weight to them. Create a class measures for it
-                then use cma-es with function sumOfErrors (sum of squared errors actually)
+            reader = csv.reader(csvfile, delimiter=' ')
+            typeOfTest = 0
+            measure = None
+            listOfMeasures = []
+            nbRows = 0;
+            for row in reader:
+                if (len(row) < 2) :
+                    continue
+                if (row[0].startswith("StartOfNewTest") ) :
+                    #Getting the type of test
+                    typeOfTest = int(row[1].strip())
+                    print "New test"
+                elif (row[0].strip() == "Time") :
+                    #New measure adding the previous one and creating a new one
+                    if (measure != None) :
+                        listOfMeasures.append(measure)
+                        
+                    measure = Measure(typeOfTest)
+                elif (isNumber(row[0].strip())) :
+                    #Adding a row of measures : [time, command, position, speed]
+                    measure.addValues([float(row[0])/10000.0, float(row[1])*self.rawCommandToVoltage, 
+                                       float(row[2])*self.rawPositionToRad, float(row[3])*self.rawPositionToRad])
+                    nbRows = nbRows + 1
+                else :
+                    print "Weird line : ", row
+            print "Added ", nbRows, " rows and ", len(listOfMeasures), " measures"
+            return listOfMeasures
 
+    #The angle goes from 0 to 2*PI, so when the motor goes over the limit a gap appears in the measures.
+    #This functions fixes thats, the outputed angles will have to limit though. A gap is detected if the local speed > maxSpeed (units in rad/s)
+    def fixGaps(self, listOfMeasures, maxSpeed):
+        nbGaps = 0
+        for measure in listOfMeasures :
+            oldT = measure.values[0][0]
+            oldPos = measure.values[0][1]
+            offset = 0
+            for i, row in enumerate(measure.values) :
+                t = row[0]
+                pos = row[2]
+                if (t == oldT) :
+                    speed = 0
+                else :
+                    speed = (pos - oldPos) / (t - oldT)
+                oldT = t
+                oldPos = pos
                 
+                if (abs(speed) > maxSpeed) :
+                    #Gap detected
+                    nbGaps = nbGaps + 1
+                    tail = pos%(2*math.pi)
+                    if (tail < math.pi) :
+                        #Went from near 2PI to near 0, adding 2PI to offset
+                        offset = offset + 2*math.pi
+                    else :
+                        #Went from near 0 to near 2PI, substracting 2PI to offset
+                        offset = offset - 2*math.pi
+                #Adding offset to the position
+                measure.values[i][2] = measure.values[i][2] + offset
+        print "Fixed ", nbGaps, " gaps."
+            
+    def evaluateModelForMeasures(self, listOfMeasures, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction):
+        #Max speed is 4PI/s = 120 rpm
+        self.fixGaps(listOfMeasures, 4*math.pi)
+        #Updating the model
+        self.updateModelConstants(voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction)
+        sumOfErrors = 0
+        #Simulate what the motor should have done with the given time commands of each measure
+        for measure in listOfMeasures :
+            #Getting list of timmed commands [t, command] and initial speed
+            initialSpeed = measure.values[1][3] #/!\ Attention ! Should be measure.values[0][3] but the first speed value is wrong. TODO
+            initialPosition = measure.values[0][2]
+            timedCommands = []
+            for t, command, position, speed in measure.values :
+                timedCommands.append([t, command])
+            #Doing the simulation
+            simulationResults = self.simulation(timedCommands, initialPosition, initialSpeed, printIt=True)
+            #Comparing the simulation and the measure
+            sumOfErrors = sumOfErrors + self.compareSimulationAndMeasure(simulationResults, measure, printIt=True)
+        
+    def main(self):
+        listOfMeasures = self.readMeasures("measures/completeTest")
+        value = self.evaluateModelForMeasures(listOfMeasures, 12, self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction)
+#         print "listOfMeasures = \n", listOfMeasures
+        #Takes a measure and the values of the parameters and returns a score.
+#         qualityFunction = lambda x : amplitude*numpy.sin(x)
+        
+         
 print("A new day dawns")
 modelTest = ModelTester()
-#modelTest.main()
-modelTest.readMeasures("measures/test1")
+modelTest.main()
 print("Done !")

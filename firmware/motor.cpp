@@ -70,10 +70,12 @@ void motor_init(encoder * pEnc) {
     //Releasing the shutdown
     digitalWrite(SHUT_DOWN_PIN, HIGH);
 
+    // Reading the magic offset in the flash
+    mot.offset = dxl_read_magic_offset();
     mot.command = 0;
-    mot.previousCommand = pEnc->angle;
-    mot.angle = pEnc->angle;
-    mot.previousAngle = pEnc->angle;
+    mot.previousCommand = 0;
+    mot.angle = pEnc->angle + mot.offset;
+    mot.previousAngle = pEnc->angle + mot.offset;
     mot.angleBuffer = *buffer_creation(dxl_regs.ram.speedCalculationDelay + 1, mot.angle); // Works because a tick is 1 ms.
     mot.speedBuffer = *buffer_creation(NB_TICKS_BEFORE_UPDATING_ACCELERATION, 0);
     mot.targetAngle = pEnc->angle;
@@ -90,8 +92,6 @@ void motor_init(encoder * pEnc) {
     mot.targetCurrent = 0;
     mot.posAngleLimit = 0;
     mot.negAngleLimit = 0;
-    // Reading the magic offset in the flash
-    mot.offset = dxl_read_magic_offset();
     mot.multiTurnOn = false;
     mot.multiTurnAngle = mot.angle;
     mot.outputTorqueWithoutFriction = 0.0;
@@ -152,6 +152,31 @@ void motor_update(encoder * pEnc) {
     int16 oldPosition = buffer_get(&(mot.angleBuffer));
 
     motor_update_sign_of_speed();
+
+    //Updating the motor speed
+	 int32 previousSpeed = mot.speed;
+
+	 mot.speed = mot.angle - oldPosition;
+
+	 if (abs(mot.speed) > MAX_ANGLE/2) {
+		 //Position went from near max to near 0 or vice-versa
+		 if (mot.angle >= oldPosition) {
+			 mot.speed = mot.speed - MAX_ANGLE - 1;
+		 } else if (mot.angle < oldPosition) {
+			 mot.speed = mot.speed + MAX_ANGLE + 1;
+		 }
+	 }
+
+	 // The speed will be in steps/s :
+	 mot.speed = (mot.speed * 1000) / dxl_regs.ram.speedCalculationDelay;
+
+	 //Averaging with previous value (dangerous approach):
+	 mot.averageSpeed = ((previousSpeed*99) + (mot.speed))/100.0;
+	 buffer_add(&(mot.speedBuffer), mot.speed);
+
+	 //Updating the motor acceleration
+	 int32 oldSpeed = buffer_get(&(mot.speedBuffer));
+	 mot.acceleration = mot.speed - oldSpeed;
 
     if (predictiveCommandOn) {
     	if (changeId == 0) {
@@ -242,54 +267,11 @@ void motor_update(encoder * pEnc) {
         }
         counterUpdate++;
     }
-       //Updating the motor speed
-    int32 previousSpeed = mot.speed;
 
-    mot.speed = mot.angle - oldPosition;
-
-    if (abs(mot.speed) > MAX_ANGLE/2) {
-        //Position went from near max to near 0 or vice-versa
-        if (mot.angle >= oldPosition) {
-            mot.speed = mot.speed - MAX_ANGLE - 1;
-        } else if (mot.angle < oldPosition) {
-            mot.speed = mot.speed + MAX_ANGLE + 1;
-        }
-    }
-
-    // The speed will be in steps/s :
-    mot.speed = (mot.speed * 1000) / dxl_regs.ram.speedCalculationDelay;
-
-    //Averaging with previous value (dangerous approach):
-    mot.averageSpeed = ((previousSpeed*99) + (mot.speed))/100.0;
-    buffer_add(&(mot.speedBuffer), mot.speed);
-
-    //Updating the motor acceleration
-    int32 oldSpeed = buffer_get(&(mot.speedBuffer));
-    mot.acceleration = mot.speed - oldSpeed;
 
     predictive_update_output_torques(mot.command, mot.speed);
     mot.outputTorqueWithoutFriction = dxl_regs.ram.outputTorqueWithoutFriction;
     mot.outputTorque = dxl_regs.ram.ouputTorque;
-
-//    if (tempCounter > 20*dxl_regs.ram.speedCalculationDelay) {
-//    	digitalWrite(BOARD_TX_ENABLE, HIGH);
-//		Serial1.println();
-//		Serial1.print("-----------------------:");
-//		Serial1.println();
-//		Serial1.print("Mode = ");
-//		Serial1.println();
-//		Serial1.println(controlMode);
-//		Serial1.print("speedCalculationDelay = ");
-//		Serial1.print(dxl_regs.ram.speedCalculationDelay);
-//		Serial1.print("rawSpeed = ");
-//		Serial1.print(mot.speed * dxl_regs.ram.speedCalculationDelay / 1000);
-//		motor_print_motor();
-//		control_print();
-//		Serial1.waitDataToBeSent();
-//		digitalWrite(BOARD_TX_ENABLE, LOW);
-//		while (true);
-//    }
-//    tempCounter++;
 }
 
 void motor_read_current() {
@@ -488,7 +470,6 @@ void motor_temperature_is_okay() {
 void print_detailed_trajectory() {
 	//The speed has a delay of ~speedCalculationDelay/2 ms. The delay between 2 recorded speed points is 1ms * trackingDivider
 	uint16_t speedShift = (dxl_regs.ram.speedCalculationDelay/2) * trackingDivider;
-	digitalWrite(BOARD_LED_PIN, LOW);
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.println("");
     Serial1.println("Time Command Position Speed");
@@ -511,7 +492,6 @@ void print_detailed_trajectory() {
 
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
-    digitalWrite(BOARD_LED_PIN, HIGH);
 }
 
 void motor_add_benchmark_time() {
