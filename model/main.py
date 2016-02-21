@@ -8,6 +8,7 @@ import time
 import numpy
 import csv
 import measure
+import itertools
 from measure import Measure
 
 def sign(x) :
@@ -31,7 +32,7 @@ class  ModelTester(object):
         self.ke = 2.75 #V*s/rad
         self.kt = self.ke #N.m/A
         self.r = 5.86 #ohm
-        self.rawKlin = 1/2.38 #command*s/step . Command in [0, 3000]. If command = 1000 => speed = 1000*(1/klinMeasured) + offset in steps/s
+        self.rawKlin = -1/1.626 #command*s/step . Command in [0, 3000]. If command = 1000 => speed = 1000*(1/klinMeasured) + offset in steps/s
         self.rawKlinOffset = -120 # step/s
         self.rawStaticFriction = 80 #In command units
         self.rawLinearTransition = 200 #in step/s. Above this speed, the relationship between voltage and speed (in static) is considered to be almost linear
@@ -44,12 +45,14 @@ class  ModelTester(object):
         #Converted values :
         self.klin = self.rawKlin * self.rawCommandToVoltage / self.rawPositionToRad  #in V.s/rad
         self.klinOffset = self.rawKlinOffset * self.rawPositionToRad
-        #In static (when you wait long enough) the relationship between the input voltage and the rotational speed is very linear once the slow speeds are behind.
+        #In static (when you wait long enough) the relationship between the input voltage and the rotational speed is very linear once the speed is high enough.
         # i.e if abs(speed) > self.linearTransition then speed = costant + klin*voltage.
-        self.kvis = (self.klin - self.ke)*self.kt/self.r #In V*s/rad. The formula is : klin = ke + r*kvis/kt => kvis = -ke + klin*kt/r
+        self.kvis = (self.klin + self.ke)*self.kt/self.r #In V*s/rad. The formula is : klin = -ke + r*kvis/kt => kvis = (ke + klin)*kt/r
         self.linearTransition = self.rawLinearTransition * self.rawPositionToRad # In rad/s
         self.staticFriction = self.rawStaticFriction * self.rawCommandToSiTorque #In N.m
-        self.coulombFriction = self.staticFriction / 4.56 #In N.m. pifometric value.
+        self.coulombFriction = self.staticFriction/2.0 #In N.m. pifometric value. When speed == linearTransition, abs(totalFriction) = coulombFriction
+        #We want that when speed == linearTransition, total friction = -coulombFriction
+        self.coulombContribution = (1/(1 - math.exp(-1)))*(self.kvis * self.linearTransition - math.exp(-1)*self.staticFriction + self.coulombFriction)
         
     def updateModelConstants(self, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction):
         self.voltage = voltage
@@ -61,9 +64,14 @@ class  ModelTester(object):
         self.linearTransition = linearTransition
         self.staticFriction = staticFriction
         self.coulombFriction = coulombFriction
-        
+        print "klin = ", klin
         #Pure update
-        self.kvis = (self.klin - self.ke)*self.kt/self.r
+        self.kvis = (self.klin + self.ke)*self.kt/self.r #In V*s/rad. The formula is : klin = -ke + r*kvis/kt => kvis = (ke + klin)*kt/r
+        self.coulombContribution = (1/(1 - math.exp(-1)))*(self.kvis * self.linearTransition - math.exp(-1)*self.staticFriction + self.coulombFriction)
+
+        print "ke = ", self.ke
+        print "kvis = ", self.kvis
+        print "coulombContribution = ", self.coulombContribution
 
         #Conversion helpers :
         self.rawCommandToVoltage = self.voltage/3000.0 #V/command
@@ -103,19 +111,22 @@ class  ModelTester(object):
         plt.subplot(221)
         plt.plot(T, position[:-1], "*")
         plt.legend(['Position']) 
+        plt.grid(True)
         plt.subplot(222)
         plt.plot(T, speed[:-1], "*")
         plt.legend(['Speed'])
+        plt.grid(True)
         plt.subplot(223)
         plt.plot(T, acceleration, "*")
         plt.legend(['acceleration'])
+        plt.grid(True)
         plt.subplot(224)
         plt.plot(T, electricalTorque, "+", 
                  T, frictionTorque, "x", 
                  T, outputTorque, "--")
         plt.legend(['electricalTorque', 'frictionTorque', 'outputTorque'])
-
         plt.grid(True)
+        
         plt.show()
     
 
@@ -141,7 +152,7 @@ class  ModelTester(object):
             fTorque = self.computeFrictionTorque(speed[i], 1)
             frictionTorque.append(fTorque)
             #Actual output torque
-            outputTorque.append(eTorque - fTorque)
+            outputTorque.append(eTorque + fTorque)
             
             acceleration.append(outputTorque[i]/self.i0)
             speed.append(speed[i] + dt*acceleration[i])
@@ -154,25 +165,62 @@ class  ModelTester(object):
             plt.subplot(231)
             plt.plot(T, position, "-")
             plt.legend(['Position (rad)']) 
+            plt.grid(True)
             plt.subplot(232)
             plt.plot(T, speed, "--")
             plt.legend(['Speed (rad/s)'])
+            plt.grid(True)
             plt.subplot(233)
             plt.plot(T, acceleration, "--")
             plt.legend(['acceleration (rad/s^2)'])
+            plt.grid(True)
             plt.subplot(234)
             plt.plot(T, electricalTorque, "--", 
                      T, frictionTorque, "--", 
                      T, outputTorque, "--")
             plt.legend(['electricalTorque (N.m)', 'frictionTorque (N.m)', 'outputTorque (N.m)'])
+            plt.grid(True)
             plt.subplot(235)
             plt.plot(T, commands, "-")
             plt.legend(['Command (V)'])
+            plt.grid(True)
     
             plt.grid(True)
             plt.show()
         
         return [T, position, speed, acceleration, outputTorque, electricalTorque, frictionTorque]
+    
+        
+    
+    # Computes the torque in N.m that the motor would output if there was no friction
+    # u is the command voltage in V. speed is the current speed in rad/s
+    def computeElectricalTorque(self, u, speed):
+        torque = (u - self.ke*speed)*self.kt/self.r
+#         print "u = ", u, ", speed = ", speed, ", eTorque = ", torque
+        return torque
+    
+    # Computes the torque in N.m created by friction.
+    # speed is the current speed in rad/s. signOfStaticFriction is always equal to sign(speed) unless speed is 0. 
+    # Then signOfStaticFriction should be equal to the sign of the sum of all the torques applied on the rotor.
+    #Thoughts about the static friction management :
+    #The current model as an obvious problem related to the static friction. Let's say the speed of the motor is very low, 
+    #and the electrical torque (ie created by the motor) is 0. This function would output a non zero torque because of the static friction.
+    #When adding the friction torque and the elec torque, we have a non zero torque creating a non zero acceleration, which is absurd. 
+    #If you push a heavy furniture, it won't push you back stronger than what you pushed it.
+    #Actually, the static torque should be min(staticFriction, abs(outputTorque)) when the speed is 0. But I don't like this "when 0" discontinuity in the model.
+    #Then chosen friction model handles this issue with the coulomb friction transition. The sharpest the transition, the closest we get to that "when 0" discontinuity.
+    def computeFrictionTorque(self, speed, signOfStaticFriction):
+        viscousFriction = self.kvis * speed
+        if (speed != 0) :
+            signOfStaticFriction = sign(speed)
+#         print "speed = ", speed
+#         print "viscoutFriction = ", viscousFriction
+        
+        beta = math.exp(-abs(speed/self.linearTransition))
+        friction = viscousFriction - signOfStaticFriction * (beta * self.staticFriction + (1 - beta) * self.coulombContribution)
+#         print "staticFriction = ", - signOfStaticFriction * (beta * self.staticFriction + (1 - beta) * self.coulombContribution)
+        
+        return friction
     
     #Each measured point is compared to each simulated point. The delta between the 2 is squared and summed for every point.
     #This function returns that sum, the lesser that value is, the better the simulation fits the measure
@@ -213,31 +261,7 @@ class  ModelTester(object):
             
         print "sumOfErrors = ", sumOfSquaredErrors
         return sumOfSquaredErrors
-    
-    
-    # Computes the torque in N.m that the motor would output if there was no friction
-    # u is the command voltage in V. speed is the current speed in rad/s
-    def computeElectricalTorque(self, u, speed):
-        return (u - self.ke*speed)*self.kt/self.r
-    
-    # Computes the torque in N.m created by friction.
-    # speed is the current speed in rad/s. signOfStaticFriction is always equal to sign(speed) unless speed is 0. 
-    # Then signOfStaticFriction should be equal to the sign of the sum of all the torques applied on the rotor.
-    #Thoughts about the static friction management :
-    #The current model as an obvious problem related to the static friction. Let's say the speed of the motor is very low, 
-    #and the electrical torque (ie created by the motor) is 0. This function would output a non zero torque because of the static friction.
-    #When adding the friction torque and the elec torque, we have a non zero torque creating a non zero acceleration, which is absurd. 
-    #If you push a heavy furniture, it won't push you back stronger than what you pushed it.
-    #Actually, the static torque should be min(staticFriction, abs(outputTorque)) when the speed is 0. But I don't like this "when 0" discontinuity in the model.
-    #Then chosen friction model handles this issue with the coulomb friction transition. The sharpest the transition, the closest we get to that "when 0" discontinuity.
-    def computeFrictionTorque(self, speed, signOfStaticFriction):
-        viscousFriction = self.kvis * speed
-        if (speed != 0) :
-            signOfStaticFriction = sign(speed)
-        
-        beta = math.exp(-abs(speed/self.linearTransition))
-        friction = viscousFriction + signOfStaticFriction * (beta * self.staticFriction + (1 - beta) * self.coulombFriction)
-        return friction
+
 
     def readMeasures(self, fileName) :
         with open(fileName, 'rb') as csvfile :
@@ -316,11 +340,17 @@ class  ModelTester(object):
             for t, command, position, speed in measure.values :
                 timedCommands.append([t, command])
             #Doing the simulation
-            simulationResults = self.simulation(timedCommands, initialPosition, initialSpeed, printIt=True)
+            simulationResults = self.simulation(timedCommands, initialPosition, initialSpeed, printIt=False)
             #Comparing the simulation and the measure
             sumOfErrors = sumOfErrors + self.compareSimulationAndMeasure(simulationResults, measure, printIt=True)
+        return sumOfErrors
         
     def main(self):
+#         T = numpy.arange(0, 1, 0.0001)
+#         timedCommands = zip(T, itertools.repeat(4))
+#         self.updateModelConstants(12, self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction)
+#         self.simulation(timedCommands, 0, 0, printIt=True)
+        
         listOfMeasures = self.readMeasures("measures/completeTest")
         value = self.evaluateModelForMeasures(listOfMeasures, 12, self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction)
 #         print "listOfMeasures = \n", listOfMeasures

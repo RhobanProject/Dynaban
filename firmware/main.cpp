@@ -230,8 +230,8 @@ void setup() {
 
     //Temp code :
     delay(2000);
-    extensive_model_calibration();
-//    model_calibration();
+//    extensive_model_calibration();
+    model_calibration();
 }
 
 void loop() {
@@ -863,9 +863,9 @@ void model_calibration() {
 	controlMode = OFF;
 	hardwareStruct.mot->state = MOVING;
 	int16_t command = 0;
-	int16_t step = 10;
-	int16_t maxCommand = 300;
-	uint16_t delayMs = 600;
+	int16_t step = 100;
+	int16_t maxCommand = 2900;
+	uint16_t delayMs = 1000;
 	uint16_t nbTicks = 0;
 
 	digitalWrite(BOARD_TX_ENABLE, HIGH);
@@ -879,12 +879,14 @@ void model_calibration() {
 	digitalWrite(BOARD_TX_ENABLE, LOW);
 	for (command = 0; abs(command) <= abs(maxCommand); command = command + step) {
 		motor_set_command(command);
-		while (nbTicks < delayMs) {
-		 // Ticking hardware at 1 khz
-		 delay(1);
-		 hardware_tick();
-		 nbTicks++;
-		}
+        while(nbTicks < delayMs) {
+            if (readyToUpdateHardware) {
+                readyToUpdateHardware = false;
+                hardware_tick();
+                nbTicks++;
+            }
+            delayMicroseconds(10);
+        }
 		nbTicks = 0;
 		// Sending results
 		digitalWrite(BOARD_TX_ENABLE, HIGH);
