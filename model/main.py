@@ -28,15 +28,20 @@ def isNumber(value):
         return True
     except:
         return False
-    
+
+
+##TODO 
+# - include the 1.47 ratio observed in torque measures.
+# - Add pure torque tests and weight them more than pure speed tests
+
 class  ModelTester(object):
     def __init__(self) :
         self.voltage = 12.0
         self.i0 = 0.00353 #(actual value 0.00353) in kg.m**2 is the measured moment of inertia when empty (only gear box attached). Can't value the measure too much though. (datasheet from maxon gives 2.17g.cm^2 which, with the 200 gear ratio is 4.35*10⁻5, which is 10 times less than the measured value !)
-        self.ke = 2.75 #V*s/rad
+        self.ke = 1.6 #V*s/rad
         self.kt = self.ke #N.m/A
-        self.r = 5.86 #ohm
-        self.rawKlin = -1/1.626 #command*s/step . Command in [0, 3000]. If command = 1000 => speed = 1000*(1/klinMeasured) + offset in steps/s
+        self.r = 4.1 #ohm
+        self.rawKlin = 1/1.626 #command*s/step . Command in [0, 3000]. If command = 1000 => speed = 1000*(1/klinMeasured) + offset in steps/s
         self.rawKlinOffset = -120 # step/s
         self.rawStaticFriction = 80 #In command units
         self.rawLinearTransition = 200 #in step/s. Above this speed, the relationship between voltage and speed (in static) is considered to be almost linear
@@ -51,12 +56,24 @@ class  ModelTester(object):
         self.klinOffset = self.rawKlinOffset * self.rawPositionToRad
         #In static (when you wait long enough) the relationship between the input voltage and the rotational speed is very linear once the speed is high enough.
         # i.e if abs(speed) > self.linearTransition then speed = costant + klin*voltage.
-        self.kvis = (self.klin + self.ke)*self.kt/self.r #In V*s/rad. The formula is : klin = -ke + r*kvis/kt => kvis = (ke + klin)*kt/r
+        self.kvis = (self.ke - self.klin)*self.kt/self.r #In V*s/rad. The formula is : klin = ke - r*kvis/kt => kvis = (ke - klin)*kt/r
         self.linearTransition = self.rawLinearTransition * self.rawPositionToRad # In rad/s
         self.staticFriction = self.rawStaticFriction * self.rawCommandToSiTorque #In N.m
         self.coulombFriction = self.staticFriction/2.0 #In N.m. pifometric value. When speed == linearTransition, abs(totalFriction) = coulombFriction
         #We want that when speed == linearTransition, total friction = -coulombFriction
         self.coulombContribution = (1/(1 - math.exp(-1)))*(self.kvis * self.linearTransition - math.exp(-1)*self.staticFriction + self.coulombFriction)
+        
+        #internal use :
+        self.nbMeasures = 0
+        self.noDisplay = False
+    
+    def __repr__(self):
+        output = []
+        for key in self.__dict__:
+            output.append("{key}='{value}'\n".format(key=key, value=self.__dict__[key]))
+ 
+        return ', '.join(output)
+
         
     def updateModelConstants(self, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction):
         self.voltage = voltage
@@ -70,7 +87,7 @@ class  ModelTester(object):
         self.coulombFriction = coulombFriction
         print "klin = ", klin
         #Pure update
-        self.kvis = (self.klin + self.ke)*self.kt/self.r #In V*s/rad. The formula is : klin = -ke + r*kvis/kt => kvis = (ke + klin)*kt/r
+        self.kvis = (self.ke - self.klin)*self.kt/self.r #In V*s/rad. The formula is : klin = ke - r*kvis/kt => kvis = (ke - klin)*kt/r
         self.coulombContribution = (1/(1 - math.exp(-1)))*(self.kvis * self.linearTransition - math.exp(-1)*self.staticFriction + self.coulombFriction)
 
         print "ke = ", self.ke
@@ -131,7 +148,7 @@ class  ModelTester(object):
         plt.legend(['eleprint "io = ", self.i0ctricalTorque', 'frictionTorque', 'outputTorque'])
         plt.grid(True)
         
-        plt.show()
+        plt.show(block=True)
     
 
     #Takes an initial speed, and a list of [time, command]. Outputs [T, position, speed, acceleration, outputTorque, electricalTorque, frictionTorque]
@@ -153,10 +170,16 @@ class  ModelTester(object):
             eTorque = self.computeElectricalTorque(command, speed[i])
             electricalTorque.append(eTorque)
             #Getting the friction torque
-            fTorque = self.computeFrictionTorque(speed[i], 1)
+            fTorque = self.computeFrictionTorque(speed[i], sign(eTorque))
             frictionTorque.append(fTorque)
-            #Actual output torque
-            outputTorque.append(eTorque + fTorque)
+            
+            if (speed[i] == 0 and (abs(eTorque) < abs(fTorque))) :
+                #When still, trying to move the motor with an insuficient eTorque will create an oposed frictionTorque of eTorque and nothing more
+                #Without this, it would be like if the static friction pushed you back harder than what you pushed in, creating an acceleration where 
+                #nothing would have moved in the real world.
+                outputTorque.append(0)
+            else :
+                outputTorque.append(eTorque + fTorque)
             
             acceleration.append(outputTorque[i]/self.i0)
             speed.append(speed[i] + dt*acceleration[i])
@@ -191,7 +214,7 @@ class  ModelTester(object):
             plt.grid(True)
     
             plt.grid(True)
-            plt.show()
+            plt.show(block=True)
         
         return [T, position, speed, acceleration, outputTorque, electricalTorque, frictionTorque]
     
@@ -224,7 +247,8 @@ class  ModelTester(object):
         beta = math.exp(-abs(speed/self.linearTransition))
         friction = viscousFriction - signOfStaticFriction * (beta * self.staticFriction + (1 - beta) * self.coulombContribution)
 #         print "staticFriction = ", - signOfStaticFriction * (beta * self.staticFriction + (1 - beta) * self.coulombContribution)
-        
+#         print "friction = ", friction
+#         raw_input()
         return friction
     
     #Each measured point is compared to each simulated point. The delta between the 2 is squared and summed for every point.
@@ -262,13 +286,13 @@ class  ModelTester(object):
             plt.legend(['simuSpeed', 'measureSpeed']) 
 
             plt.grid(True)
-            plt.show()
+            plt.show(block=True)
             
 #         print "sumOfErrors = ", sumOfSquaredErrors
         return sumOfSquaredErrors
 
 
-    def readMeasures(self, fileName) :
+    def readMeasures(self, fileName, timeLimit=None) :
         with open(fileName, 'rb') as csvfile :
             reader = csv.reader(csvfile, delimiter=' ')
             typeOfTest = 0
@@ -289,6 +313,10 @@ class  ModelTester(object):
                         
                     measure = Measure(typeOfTest)
                 elif (isNumber(row[0].strip())) :
+                    if (timeLimit != None) :
+                        if float(row[0])/10000.0 > timeLimit :
+                            #We're done for this measure
+                            continue
                     #Adding a row of measures : [time, command, position, speed]
                     measure.addValues([float(row[0])/10000.0, float(row[1])*self.rawCommandToVoltage, 
                                        float(row[2])*self.rawPositionToRad, float(row[3])*self.rawPositionToRad])
@@ -331,8 +359,6 @@ class  ModelTester(object):
         print "Fixed ", nbGaps, " gaps."
             
     def evaluateModelForMeasures(self, listOfMeasures, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction):
-        #Max speed is 4PI/s = 120 rpm
-        self.fixGaps(listOfMeasures, 4*math.pi)
         #Updating the model
         self.updateModelConstants(voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction)
         sumOfErrors = 0
@@ -344,10 +370,16 @@ class  ModelTester(object):
             timedCommands = []
             for t, command, position, speed in measure.values :
                 timedCommands.append([t, command])
+            if self.nbMeasures < 30 or self.noDisplay :
+                printIt = False
+            else :
+                printIt = True
+                print self
             #Doing the simulation
-            simulationResults = self.simulation(timedCommands, initialPosition, initialSpeed, printIt=True)
+            simulationResults = self.simulation(timedCommands, initialPosition, initialSpeed, printIt=printIt)
             #Comparing the simulation and the measure
-            sumOfErrors = sumOfErrors + self.compareSimulationAndMeasure(simulationResults, measure, printIt=False)
+            sumOfErrors = sumOfErrors + self.compareSimulationAndMeasure(simulationResults, measure, printIt=printIt)
+            self.nbMeasures = self.nbMeasures + 1
         print "\n***Score = ", sumOfErrors
         return sumOfErrors
         
@@ -365,54 +397,100 @@ class  ModelTester(object):
         linearTransition = x[4]
         staticFriction = x[5]
         coulombFriction = x[6]
-
-        return self.evaluateModelForMeasures(listOfMeasures, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction )
+        
+        if (i0 < 0 or klin < ke or ke < 0 or r < 0 or linearTransition < 0 or coulombFriction < 0 or staticFriction < 0 
+            or ke > 5 or r > 20 or coulombFriction > staticFriction or staticFriction > 0.6) :
+            #Impossible values are discarded through a very bad score
+            return 100000
+        
+        #Torque measures say that the ratio kt/r should be ~0.394. We'll make sure this is respected.
+        tolerance = 0.05
+        idealValue = 0.394
+        value = ke/r
+        sanction = 0
+        if (abs(value - idealValue) < tolerance) :
+            sanction = 0
+        elif (abs(value - idealValue) < 4*tolerance) :
+            sanction = abs(value - idealValue)*150
+        else :
+            return 100000
+        
+        print "sanction = ", sanction
+        return self.evaluateModelForMeasures(listOfMeasures, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction ) + sanction
         
     def main(self):
+#         print self
 #         T = numpy.arange(0, 1, 0.0001)
-#         timedCommands = zip(T, itertools.repeat(4))
+#         timedCommands = zip(T, itertools.repeat(8))
 #         self.updateModelConstants(12, self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction)
 #         self.simulation(timedCommands, 0, 0, printIt=True)
+#         
+#         return
 
         print "Initial model values :"
-        print "voltage = ", self.voltage
-        print "io = ", self.i0
-        print "ke = ", self.ke
-        print "r = ", self.r
-        print "klin = ", self.klin
-        print "linearTransition = ", self.linearTransition
-        print "staticFriction = ", self.staticFriction
-        print "coulombFriction = ", self.coulombFriction
-        listOfMeasures = self.readMeasures("measures/completeTest")
-#         value = self.evaluateModelForMeasures(listOfMeasures, 12, self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction)
-        value = self.evaluateModelForMeasures(listOfMeasures, 12, 0.0065221353696600171, 3.0504612860082383, 5.9683964688312443, 
-                                              -1.6271709257312927, 0.29088312000191979, 0.15369921416505786, -0.077379333746289997)
-#         voltage =  12.0
-#         io =  0.00353
-#         ke =  2.75
-#         r =  5.86
-#         klin =  -1.60368670825
-#         linearTransition =  0.306796157577
-#         staticFriction =  0.150170648464
-#         coulombFriction =  0.0750853242321
+        print "voltage = ", self.voltage #12
+        print "io = ", self.i0 #0.00353
+        print "ke = ", self.ke #1.6
+        print "r = ", self.r #5.86
+        print "klin = ", self.klin #-1.60368670825
+        print "linearTransition = ", self.linearTransition #0.306796157577
+        print "staticFriction = ", self.staticFriction #0.150170648464
+        print "coulombFriction = ", self.coulombFriction #0.0750853242321
 
+        listOfMeasures = self.readMeasures("measures/completeTest", timeLimit=0.150)
+        #Max speed is 4PI/s = 120 rpm
+        self.fixGaps(listOfMeasures, 4*math.pi)
+        self.noDisplay = False
+        
+#         value = self.evaluateModelForMeasures(listOfMeasures, 12, self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction)    
+        #tolfun 100
+#         value = self.evaluateModelForMeasures(listOfMeasures, 12, -0.0017217180565952648, 3.9265053688586535, 4.4190475060541337, -1.642030980764918, -0.19456964024780998, 0.19221036872483038, 0.60201284035701119)
+        #tolfun 100 with limits on values
+#         value = self.evaluateModelForMeasures(listOfMeasures, 12, 0.00905955, 3.29605672, 1.63030819, -1.6484249, 0.04996982, 0.19198735, 0.21656958)
 
+        #tolfun 100 with limits on values
+#         value = self.evaluateModelForMeasures(listOfMeasures, 12, 0.00794687, 1.49117495, 0.85706012, 1.64383661, -0.04078583, 0.07417589, 0.30257492)
+#         value = self.evaluateModelForMeasures(listOfMeasures, 12, 0.0034689028202296171, 1.555666164824836, 1.1287356922053267, 1.6444843194436245, 0.41284770773063401, 0.1294117709539814, 0.29580470901307804)
+#tolfun 80 :
+# [0.0021731366250028568, 1.355067751766774, 0.94623234209939366, 1.6460100334124927, 0.027949448057014062, 0.12011789072794421, 0.27722890096104058]
+
+#Score of 5.27
+#         value = self.evaluateModelForMeasures(listOfMeasures, 12, 4.66664605e-04, 1.21498291e+00, 5.13895843e-01, 1.80236842e+00, 3.23283556e-01, 1.31244462e-01, 1.36619002e-01)
+       
+       #Score of 23
+#         value = self.evaluateModelForMeasures(listOfMeasures, 12, 0.32711334, 5.0, 11.26126126, 12.46876941, 37.99361901, 0.50304455, 0.50304455)
+
+        #Score of 5 (only on the first 150 ms though)
+#         value = self.evaluateModelForMeasures(listOfMeasures, 12, 0.00589097, 1.4666091, 4.10039631, 1.55765625, 0.25689851, 0.12147452, 0.08027712)
+        
+        #Score of 0.91 (only on the first 150 ms though)
+#         value = self.evaluateModelForMeasures(listOfMeasures, 12, 0.00459395, 1.39735606, 3.26399923, 1.7137901, 0.59109595, 0.14349084, 0.11449425)
+        
+        #Score of 0.127 (only on the first 150 ms though)
+        value = self.evaluateModelForMeasures(listOfMeasures, 12, 0.00250709722, 1.57426512, 4.57635209, 1.62426655, 0.149425682, 0.0985980367, 0.0915512434)
+        
+        print "value = ", value
         return
-        cma.fcts.rosen
+        self.noDisplay = True
         params = [self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction]
         options = cma.CMAOptions()
         #Rescaling the sigmas for each variable
-        options['scaling_of_variables'] = [params[0], params[1]/10.0, params[2]/10.0, params[3]/5.0, params[4], params[5]/10.0, params[6]*2]
-        options['tolfun'] = 500
-        res = cma.fmin(self.evaluateModelForMeasures1D, params, 0.5, options, args=[listOfMeasures])
+        options['scaling_of_variables'] = [params[0], params[1], params[2]/5.0, params[3]/5.0, params[4], params[5]/10.0, params[6]*2]
+        options['tolfun'] = 80
+        options['ftarget'] = 20
+        
+        res = cma.fmin(self.evaluateModelForMeasures1D, params, 0.5, options, args=[listOfMeasures], restarts=0, bipop=False)
 
         print "Best solution = ", res[0]
         print "Best score = ", res[1]
-        print "Function evals = ", res[3]
+        print "Function evals = ", res[2]
+        print "Function evals? = ", res[3]
         print "Nb iterations = ", res[4]
         print "mean of final sample distribution", res[5]
         cma.plot()
         cma.show()
+        while(True) :
+            temp = 22
         
         
          
@@ -481,3 +559,61 @@ print("Done !")
 #  'verb_time': 'True  #v output timings on console',
 #  'verbose': '1  #v verbosity e.v. of initial/final message, -1 is very quiet, -9 maximally quiet, not yet fully implemented',
 #  'vv': '0  #? versatile variable for hacking purposes, value found in self.opts["vv"]'}
+
+
+# ***Score =  82.6573334278
+# termination on tolfun=100 (Sun Feb 21 22:07:33 2016)
+# final/bestever f-value = 8.265733e+01 8.231888e+01
+# incumbent solution: [-0.0017217180565952648, 3.9265053688586535, 4.4190475060541337, -1.642030980764918, -0.19456964024780998, 0.19221036872483038, 0.60201284035701119]
+# std deviation: [0.00055379648103389171, 0.077314286714511474, 0.094724754479649939, -0.0086956368845549116, 0.017795164256924369, 0.0023336334505513344, 0.026667821922443047]
+# Best solution =  [ -2.38785070e-03   3.93444317e+00   4.41924366e+00  -1.64136228e+00
+#   -1.96736930e-01   1.92058401e-01   6.10832699e-01]
+# Best score =  82.3188751598
+# Function evals =  658
+# Nb iterations =  73
+# mean of final sample distribution [ -1.72171806e-03   3.92650537e+00   4.41904751e+00  -1.64203098e+00
+#   -1.94569640e-01   1.92210369e-01   6.02012840e-01]
+
+
+# ***Score =  39.9388355031
+# termination on tolfun=100 after 8 restarts (Mon Feb 22 01:04:47 2016)
+# final/bestever f-value = 3.993884e+01 3.944455e+01
+# incumbent solution: [-0.0047154929449730607, 2.3826533417305322, 1.2325217670464923, -1.6454207779372354, 0.14760157592189133, 0.37819736797757914, 0.24556223362528634]
+# std deviation: [0.01941350450540855, 0.16913843554953334, 0.20742926597232328, -0.0038810330929717344, 0.062033643623685374, 0.093771929263302703, 0.10799067022761322]
+# Best solution =  [-0.02219176  2.30620918  1.06682887 -1.64271848  0.07599858  0.41265634
+#   0.40887769]
+# Best score =  39.4445482804
+# Function evals =  12237
+# Nb iterations =  22
+# mean of final sample distribution [-0.00471549  2.38265334  1.23252177 -1.64542078  0.14760158  0.37819737
+#   0.24556223]
+
+#With value limits :
+# ***Score =  40.6193897137
+# termination on tolfun=100 after 8 restarts (Mon Feb 22 04:10:08 2016)
+# final/bestever f-value = 4.061939e+01 3.970903e+01
+# incumbent solution: [0.0106290346879357, 2.6684604518034858, 1.4422727293245914, -1.6467784852543292, 0.053670597954943153, 0.13920275617757583, 0.24140111239626097]
+# std deviation: [0.0036314483532348487, 0.16015661989299235, 0.21279614527693674, -0.0040019495177220209, 0.026229363476716127, 0.024343989274730714, 0.038494925128667083]
+# Best solution =  [ 0.00905955  3.29605672  1.63030819 -1.6484249   0.04996982  0.19198735
+#   0.21656958]
+# Best score =  39.7090283217
+# Function evals =  10643
+# Nb iterations =  18
+# mean of final sample distribution [ 0.01062903  2.66846045  1.44227273 -1.64677849  0.0536706   0.13920276
+#   0.24140111]
+
+# ***Score =  6.03397620719
+# termination on tolfun=80 (Mon Feb 22 16:34:54 2016)
+# final/bestever f-value = 6.033976e+00 5.276688e+00
+# incumbent solution: [0.0014297490178335976, 1.3457305710862624, 0.80927539256604819, 1.8189906576209687, 0.40241634456138559, 0.13190249091726952, 0.14333801164304466]
+# std deviation: [0.001364867260570068, 0.4334119765805502, 0.50251585356779727, 0.11493465062539569, 0.11576092129457048, 0.005343894871609199, 0.048279800325742209]
+# Best solution =  [  4.66664605e-04   1.21498291e+00   5.13895843e-01   1.80236842e+00
+#    3.23283556e-01   1.31244462e-01   1.36619002e-01]
+# Best score =  5.2766884464
+# Function evals =  158
+# Function evals? =  163
+# Nb iterations =  18
+# mean of final sample distribution [  1.42974902e-03   1.34573057e+00   8.09275393e-01   1.81899066e+00
+#    4.02416345e-01   1.31902491e-01   1.43338012e-01]
+
+

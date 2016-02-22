@@ -230,8 +230,8 @@ void setup() {
 
     //Temp code :
     delay(2000);
-//    extensive_model_calibration();
-    model_calibration();
+    extensive_model_calibration();
+//    model_calibration();
 }
 
 void loop() {
@@ -849,8 +849,6 @@ void extensive_model_calibration() {
             }
             delayMicroseconds(10);
         }
-        // Reactivating the tracking
-        dxl_regs.ram.positionTrackerOn = true;
         motor_set_command(0);
         delayMicroseconds(500*1000);
 

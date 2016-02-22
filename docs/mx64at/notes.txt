@@ -44,4 +44,12 @@ Températeur: thermistor soudé au plus près du moteur
 
 - Motor (to be checked) : maxon re max 21
 
-- Gear-box ratio = 200
+- Gear-box ratio :
+Datasheet says 200. But gear (hand counted) are as follows:
+Motor output : 14 teeth
+Gear 1 : 48/14 teeth
+Gear 2 : 50/13
+Gear 3 : 35/13
+Gear 4 : 25/14
+Output : 38
+Total ratio : 172.08

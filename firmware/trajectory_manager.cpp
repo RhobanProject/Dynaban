@@ -23,6 +23,7 @@ void predictive_control_init() {
 	pControl.r = 6; // Datasheet says 5.86 ohm
 	pControl.ke = 1.6; // V*s/rad (voltage/rotational speed). Datasheet says 694/200 rpm/V (the 200 come from the gear box ratio) = 0.3634 rad/(s*V) => ke = 2.75 V*s/rad
 	//Btw the ke (in V*s/rad) == kt (in N.m/A) is valid in the datasheet since they give torqueConstant = 13.8*200 mN.m/A (the 200 come from the gear box ratio) = 2.76 N.m/A
+	// After manually counting the teeth of the gears, the actual gear box ratio is 172.08...
 	pControl.kvis = 0.05;
 	pControl.statToCoulTrans = 1300; // To be checked
 	pControl.coulombCommandDivider = 4.567;
