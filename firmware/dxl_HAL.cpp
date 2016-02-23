@@ -47,16 +47,16 @@ void init_dxl_ram() {
     dxl_regs.ram.mode = POSITION_CONTROL;
 
     predictiveControl * predictiveControl = get_predictive_control();
-    dxl_regs.ram.staticFriction = predictiveControl->staticFriction;
+    dxl_regs.ram.kcoul = predictiveControl->kcoul;
 	dxl_regs.ram.i0 = predictiveControl->i0;
 	dxl_regs.ram.r = predictiveControl->r;
 	dxl_regs.ram.ke = predictiveControl->ke;
 	dxl_regs.ram.kvis = predictiveControl->kvis;
-	dxl_regs.ram.statToCoulTrans = predictiveControl->statToCoulTrans;
-	dxl_regs.ram.coulombCommandDivider = predictiveControl->coulombCommandDivider;
+	dxl_regs.ram.linearTransition = predictiveControl->linearTransition;
+	dxl_regs.ram.kstat = predictiveControl->kstat;
 
 	dxl_regs.ram.ouputTorque = 0.0;
-	dxl_regs.ram.outputTorqueWithoutFriction = 0.0;
+	dxl_regs.ram.electricalTorque = 0.0;
 
 	dxl_regs.ram.frozenRamOn = false;
 	dxl_regs.ram.useValuesNow = false;
@@ -104,7 +104,6 @@ void read_dxl_ram() {
     	 */
     	if (hardwareStruct.mot->multiTurnOn) {
     		buffer_reset_values(&(hardwareStruct.mot->angleBuffer), hardwareStruct.mot->angle);
-
     	}
     	hardwareStruct.mot->multiTurnOn = false;
     }
@@ -202,21 +201,21 @@ void read_dxl_ram() {
     }
 
     predictiveControl * pControl = get_predictive_control();
-    if (pControl->staticFriction != dxl_regs.ram.staticFriction
+    if (pControl->kstat != dxl_regs.ram.kstat
     		|| pControl->i0 != dxl_regs.ram.i0
 			|| pControl->r != dxl_regs.ram.r
 			|| pControl->ke != dxl_regs.ram.ke
 			|| pControl->kvis != dxl_regs.ram.kvis
-			|| pControl->statToCoulTrans != dxl_regs.ram.statToCoulTrans
-			|| pControl->coulombCommandDivider != dxl_regs.ram.coulombCommandDivider
+			|| pControl->linearTransition != dxl_regs.ram.linearTransition
+			|| pControl->kcoul != dxl_regs.ram.kcoul
 			|| pControl->vAlim != hardwareStruct.voltage/10.0) {
-        pControl->staticFriction = dxl_regs.ram.staticFriction;
+        pControl->kstat = dxl_regs.ram.kstat;
         pControl->i0 = dxl_regs.ram.i0;
         pControl->r = dxl_regs.ram.r;
         pControl->ke = dxl_regs.ram.ke;
         pControl->kvis = dxl_regs.ram.kvis;
-        pControl->statToCoulTrans = dxl_regs.ram.statToCoulTrans;
-        pControl->coulombCommandDivider = dxl_regs.ram.coulombCommandDivider;
+        pControl->linearTransition = dxl_regs.ram.linearTransition;
+        pControl->kcoul = dxl_regs.ram.kcoul;
         pControl->vAlim = hardwareStruct.voltage/10.0;
 
     	predictive_control_update();

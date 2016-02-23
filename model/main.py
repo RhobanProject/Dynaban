@@ -56,12 +56,14 @@ class  ModelTester(object):
         self.klinOffset = self.rawKlinOffset * self.rawPositionToRad
         #In static (when you wait long enough) the relationship between the input voltage and the rotational speed is very linear once the speed is high enough.
         # i.e if abs(speed) > self.linearTransition then speed = costant + klin*voltage.
-        self.kvis = (self.ke - self.klin)*self.kt/self.r #In V*s/rad. The formula is : klin = ke - r*kvis/kt => kvis = (ke - klin)*kt/r
+        self.kvis = (self.ke - self.klin)*self.kt/self.r #In N.m*s/rad. The formula is : klin = ke - r*kvis/kt => kvis = (ke - klin)*kt/r
         self.linearTransition = self.rawLinearTransition * self.rawPositionToRad # In rad/s
         self.staticFriction = self.rawStaticFriction * self.rawCommandToSiTorque #In N.m
         self.coulombFriction = self.staticFriction/2.0 #In N.m. pifometric value. When speed == linearTransition, abs(totalFriction) = coulombFriction
         #We want that when speed == linearTransition, total friction = -coulombFriction
         self.coulombContribution = (1/(1 - math.exp(-1)))*(self.kvis * self.linearTransition - math.exp(-1)*self.staticFriction + self.coulombFriction)
+        self.addedInertia = 0.004
+
         
         #internal use :
         self.nbMeasures = 0
@@ -75,7 +77,7 @@ class  ModelTester(object):
         return ', '.join(output)
 
         
-    def updateModelConstants(self, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction):
+    def updateModelConstants(self, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction, addedInertia):
         self.voltage = voltage
         self.io = i0
         self.ke = ke
@@ -85,6 +87,7 @@ class  ModelTester(object):
         self.linearTransition = linearTransition
         self.staticFriction = staticFriction
         self.coulombFriction = coulombFriction
+        self.addedInertia = addedInertia
         print "klin = ", klin
         #Pure update
         self.kvis = (self.ke - self.klin)*self.kt/self.r #In V*s/rad. The formula is : klin = ke - r*kvis/kt => kvis = (ke - klin)*kt/r
@@ -153,7 +156,7 @@ class  ModelTester(object):
 
     #Takes an initial speed, and a list of [time, command]. Outputs [T, position, speed, acceleration, outputTorque, electricalTorque, frictionTorque]
     #where T, position, speed, etc are each an array whom size is the same than timedCommands
-    def simulation(self, timedCommands, initialPosition,initialSpeed, printIt=False):
+    def simulation(self, timedCommands, initialPosition,initialSpeed, isAddedInertia=False, printIt=False):
         position = [initialPosition]
         speed = [initialSpeed]
         electricalTorque = []
@@ -181,7 +184,11 @@ class  ModelTester(object):
             else :
                 outputTorque.append(eTorque + fTorque)
             
-            acceleration.append(outputTorque[i]/self.i0)
+            if isAddedInertia :
+                acceleration.append(outputTorque[i]/(self.i0+self.addedInertia))
+            else :
+                acceleration.append(outputTorque[i]/self.i0)
+            
             speed.append(speed[i] + dt*acceleration[i])
             position.append(position[i] + speed[i]*dt)
             oldT = t
@@ -292,7 +299,7 @@ class  ModelTester(object):
         return sumOfSquaredErrors
 
 
-    def readMeasures(self, fileName, timeLimit=None) :
+    def readMeasures(self, fileName, timeLimit=None, typeOffset=0) :
         with open(fileName, 'rb') as csvfile :
             reader = csv.reader(csvfile, delimiter=' ')
             typeOfTest = 0
@@ -304,7 +311,7 @@ class  ModelTester(object):
                     continue
                 if (row[0].startswith("StartOfNewTest") ) :
                     #Getting the type of test
-                    typeOfTest = int(row[1].strip())
+                    typeOfTest = int(row[1].strip()) + typeOffset
                     print "New test"
                 elif (row[0].strip() == "Time") :
                     #New measure adding the previous one and creating a new one
@@ -358,9 +365,9 @@ class  ModelTester(object):
                 measure.values[i][2] = measure.values[i][2] + offset
         print "Fixed ", nbGaps, " gaps."
             
-    def evaluateModelForMeasures(self, listOfMeasures, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction):
+    def evaluateModelForMeasures(self, listOfMeasures, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction, addedInertia=0):
         #Updating the model
-        self.updateModelConstants(voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction)
+        self.updateModelConstants(voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction, addedInertia)
         sumOfErrors = 0
         #Simulate what the motor should have done with the given time commands of each measure
         for measure in listOfMeasures :
@@ -370,13 +377,18 @@ class  ModelTester(object):
             timedCommands = []
             for t, command, position, speed in measure.values :
                 timedCommands.append([t, command])
-            if self.nbMeasures < 30 or self.noDisplay :
+            if self.nbMeasures < (30+112) or self.noDisplay :
                 printIt = False
             else :
                 printIt = True
                 print self
+            #We use the type field to differentiate measures that were done with an empty motor from measures done with an added inertia
+            if measure.typeOfTest >= 10 :
+                addInertia = True
+            else :
+                addInertia = False
             #Doing the simulation
-            simulationResults = self.simulation(timedCommands, initialPosition, initialSpeed, printIt=printIt)
+            simulationResults = self.simulation(timedCommands, initialPosition, initialSpeed, isAddedInertia=addInertia, printIt=printIt)
             #Comparing the simulation and the measure
             sumOfErrors = sumOfErrors + self.compareSimulationAndMeasure(simulationResults, measure, printIt=printIt)
             self.nbMeasures = self.nbMeasures + 1
@@ -397,9 +409,10 @@ class  ModelTester(object):
         linearTransition = x[4]
         staticFriction = x[5]
         coulombFriction = x[6]
+        addedInertia = x[7]
         
-        if (i0 < 0 or klin < ke or ke < 0 or r < 0 or linearTransition < 0 or coulombFriction < 0 or staticFriction < 0 
-            or ke > 5 or r > 20 or coulombFriction > staticFriction or staticFriction > 0.6) :
+        if (i0 < 0 or klin < ke or ke < 0 or r < 0 or linearTransition < 0 or coulombFriction < 0 or staticFriction < 0 or addedInertia < 0 
+            or ke > 5 or r > 20 or coulombFriction > staticFriction or staticFriction > 0.6 or addedInertia > 0.009 or addedInertia < 0.002) :
             #Impossible values are discarded through a very bad score
             return 100000
         
@@ -416,7 +429,7 @@ class  ModelTester(object):
             return 100000
         
         print "sanction = ", sanction
-        return self.evaluateModelForMeasures(listOfMeasures, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction ) + sanction
+        return self.evaluateModelForMeasures(listOfMeasures, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction, addedInertia) + sanction
         
     def main(self):
 #         print self
@@ -436,8 +449,12 @@ class  ModelTester(object):
         print "linearTransition = ", self.linearTransition #0.306796157577
         print "staticFriction = ", self.staticFriction #0.150170648464
         print "coulombFriction = ", self.coulombFriction #0.0750853242321
+        print "addedInertia = ", self.addedInertia#0.004
 
-        listOfMeasures = self.readMeasures("measures/completeTest", timeLimit=0.150)
+        listOfMeasures = self.readMeasures("measures/completeTest", timeLimit=0.150, typeOffset=0)
+        listOfMeasuresheavyLoad = self.readMeasures("measures/completeTestHeavyLoad", timeLimit=0.150, typeOffset=10)
+        #Adding the heavy load measures
+        listOfMeasures.extend(listOfMeasuresheavyLoad)
         #Max speed is 4PI/s = 120 rpm
         self.fixGaps(listOfMeasures, 4*math.pi)
         self.noDisplay = False
@@ -467,19 +484,35 @@ class  ModelTester(object):
 #         value = self.evaluateModelForMeasures(listOfMeasures, 12, 0.00459395, 1.39735606, 3.26399923, 1.7137901, 0.59109595, 0.14349084, 0.11449425)
         
         #Score of 0.127 (only on the first 150 ms though)
-        value = self.evaluateModelForMeasures(listOfMeasures, 12, 0.00250709722, 1.57426512, 4.57635209, 1.62426655, 0.149425682, 0.0985980367, 0.0915512434)
+#         value = self.evaluateModelForMeasures(listOfMeasures, 12, 0.00250709722, 1.57426512, 4.57635209, 1.62426655, 0.149425682, 0.0985980367, 0.0915512434)
         
-        print "value = ", value
-        return
+        #Score of 10 (full length)
+#         3.83787890e-03   1.47894946e+00   4.25865142e+00   1.63136824e+00 9.17768154e-02   1.26099628e-01   9.98887909e-02
+
+        #Adding the "addedInertia" attribute from here
+#         value = self.evaluateModelForMeasures(listOfMeasures, 12, 0.00250709722, 1.57426512, 4.57635209, 1.62426655, 0.149425682, 0.0985980367, 0.0915512434, 0.004)
+    
+    #Score of 0.94 with addedInertia, on the first 150ms
+#     1.07728666e-03   1.36831818e+00   3.91813279e+00   1.65976880e+00 1.75653773e-01   1.26764092e-01   9.03878047e-02   3.11286186e-03
+    
+    #Score of 0.39 with addedInertia, on the first 150ms
+# 4.91495976e-04   1.62594599e+00   4.72658717e+00   1.63540545e+00 1.95274189e-01   1.21803765e-01   8.79444393e-02   4.07977291e-03
+    #Score of 0.39 with addedInertia, on the first 150ms
+# 0.00537005  1.39865656  4.06586179  1.63538543  0.19542816  0.12123053 0.1030164   0.00408195
+
+        #Score of 0.386 with addedInertia, on the first 150ms
+# 6.74933458e-03   1.50816125e+00   4.38408117e+00   1.63554751e+00 1.38872124e-01   1.45544129e-01   1.01677621e-01   4.09684545e-03
+#         print "value = ", value
+#         return
         self.noDisplay = True
-        params = [self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction]
+        params = [self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction, self.addedInertia]
         options = cma.CMAOptions()
         #Rescaling the sigmas for each variable
-        options['scaling_of_variables'] = [params[0], params[1], params[2]/5.0, params[3]/5.0, params[4], params[5]/10.0, params[6]*2]
-        options['tolfun'] = 80
-        options['ftarget'] = 20
+        options['scaling_of_variables'] = [params[0], params[1], params[2]/5.0, params[3]/5.0, params[4], params[5]/10.0, params[6]*2, params[7]/2.5]
+        options['tolfun'] = 0.5
+        options['ftarget'] = 0.2
         
-        res = cma.fmin(self.evaluateModelForMeasures1D, params, 0.5, options, args=[listOfMeasures], restarts=0, bipop=False)
+        res = cma.fmin(self.evaluateModelForMeasures1D, params, 0.5, options, args=[listOfMeasures], restarts=6, bipop=True)
 
         print "Best solution = ", res[0]
         print "Best score = ", res[1]

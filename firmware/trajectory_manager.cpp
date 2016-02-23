@@ -16,37 +16,38 @@ static predictiveControl pControl;
 
 
 void predictive_control_init() {
+	pControl.i0 					= 0.00353; 	//kg.m**2. Measured moment of inertia when empty (gear box)
+	pControl.vAlim 					= 12; 		// V
+	pControl.r 						= 4.07; 	// Ohm. Datasheet says 5.86 ohm but is not reliable
+	pControl.ke 					= 1.399; 	// V.s/rad (voltage/rotational speed).
+	/*
+	 * The datasheet of the supposed motor from maxon says 694/200 rpm/V (the 200 come from the gear box ratio) = 0.3634 rad/(s*V) => ke = 2.75 V*s/rad
+	 * Btw the ke (in V*s/rad) == kt (in N.m/A) is valid in the datasheet since they give torqueConstant = 13.8*200 mN.m/A (the 200 come from the gear box ratio) = 2.76 N.m/A
+	 * After manually counting the teeth of the gears, the actual gear box ratio is 172.08...
+	 */
+	pControl.kvis 					= -0.0811; 	// in N.m.s/rad
+	pControl.linearTransition 		= 0.195; 	// in rad/s.
+	pControl.kstat 					= 0.1212; 	//N.m. Minimum torque needed to start moving the motor
+	pControl.kcoul 					= 0.103; 	/* in N.m value of the friction torque when speed = linearTransition.
+												The coulombContribution value makes sure this is true.*/
+	pControl.coulombContribution 	= (pControl.kvis*pControl.linearTransition - exp(-1)*pControl.kstat + pControl.kcoul)/(1 - exp(-1)); //N.m
 
-	pControl.staticFriction = 80;
-	pControl.i0 = 0; //0.00353 kg.m**2 is the measured moment of inertia when empty (gear box)
-	pControl.vAlim = 12;
-	pControl.r = 6; // Datasheet says 5.86 ohm
-	pControl.ke = 1.6; // V*s/rad (voltage/rotational speed). Datasheet says 694/200 rpm/V (the 200 come from the gear box ratio) = 0.3634 rad/(s*V) => ke = 2.75 V*s/rad
-	//Btw the ke (in V*s/rad) == kt (in N.m/A) is valid in the datasheet since they give torqueConstant = 13.8*200 mN.m/A (the 200 come from the gear box ratio) = 2.76 N.m/A
-	// After manually counting the teeth of the gears, the actual gear box ratio is 172.08...
-	pControl.kvis = 0.05;
-	pControl.statToCoulTrans = 1300; // To be checked
-	pControl.coulombCommandDivider = 4.567;
+	pControl.voltsToCommand 		= 3000/pControl.vAlim; 		// Command/V
+	pControl.stepsToRads 			= 2*PI/4096.0; 				// rad/step
+	pControl.torqueToVoltage 		= pControl.r / pControl.ke; // in Ohm.rad/(V.s) = V/(N.m)
 
-
-	pControl.unitFactor = (3000*2*PI) / ((float)(pControl.vAlim*4096)); // == 0.3834 at 12V
-	pControl.torqueToCommand   = pControl.r / pControl.ke; // r/ke (ke ~ 1.6) = 3.75. To be used with torques expressed in [N.m * 4096 / 2*PI]
-	pControl.kv                = pControl.ke + pControl.kvis;
-	pControl.kstat             = pControl.staticFriction / (pControl.torqueToCommand * pControl.unitFactor); // kstat * 1 * torqueToCommand * unitFactor should be equal to staticFriction (min command to get the motor moving).
-	pControl.coulombMaxCommand = pControl.staticFriction/pControl.coulombCommandDivider;
-	pControl.kcoul             = pControl.coulombMaxCommand / (pControl.torqueToCommand * pControl.unitFactor);
-
-	pControl.estimatedSpeed = 1;
-	pControl.previousCommand = 0;
+	pControl.estimatedSpeed 		= 1;
+	pControl.previousCommand 		= 0;
 }
 
+/**
+ * This function must be called if the parameters of the model have been changed
+ */
 void predictive_control_update() {
-	pControl.unitFactor = (3000*2*PI) / ((float)(pControl.vAlim*4096));
-	pControl.torqueToCommand   = pControl.r / pControl.ke;
-	pControl.kv                = pControl.ke + pControl.kvis;
-	pControl.kstat             = pControl.staticFriction / (pControl.torqueToCommand * pControl.unitFactor);
-	pControl.coulombMaxCommand = pControl.staticFriction/pControl.coulombCommandDivider;
-	pControl.kcoul             = pControl.coulombMaxCommand / (pControl.torqueToCommand * pControl.unitFactor);
+	pControl.coulombContribution 	= (pControl.kvis*pControl.linearTransition - exp(-1)*pControl.kstat + pControl.kcoul)/(1 - exp(-1)); //N.m
+	pControl.voltsToCommand 		= 3000/pControl.vAlim; 		// Command/V
+	pControl.stepsToRads 			= 2*PI/4096.0; 				// rad/step
+	pControl.torqueToVoltage 		= pControl.r / pControl.ke; // in Ohm.rad/(V.s) = V/(N.m)
 }
 
 predictiveControl * get_predictive_control() {
@@ -147,12 +148,12 @@ uint32 traj_magic_modulo(int32 a, uint32 b) {
 
 
 /**
- * The formula used here is u(t) = unitFactor*[kv * v + torqueToCommand*(outputTorque + accelTorque + frictionTorque)]
+ * The formula used here is u(t) = voltsToCommand*[ke * speedInRads + torqueToVoltage*(outputTorque + accelTorque - frictionTorque)]
  *
  * Where :
- * -> unitFactor*kv*v(t) is the command needed to maintain the current speed (kv = ke + kvis, where kvis is the viscous constant)
- * -> unitFactor*torqueToCommand*torque is the command that will make the motor create 'torque' (expressed in N.m*4096/2*PI) during dt
- * -> frictionTorque compensates the static and the coulomb friction
+ * -> voltsToCommand*ke*speedInRads is the command needed to maintain the current speed if there was no friction
+ * -> voltsToCommand*torqueToVoltage*torque is the command that will make the motor create 'torque' (expressed in N.m)
+ * -> frictionTorque is the torque created by the static friction, the coulomb friction and the viscous friction
  * -> outputTorque is the actual torque that could be measured outside the motor
  * -> accelTorque  = I * a(t) is the torque needed to create an acceleration of a(t) during dt, provided that 'outputTorque' is
  * either null or absorbed by the environment (which is typically the case when it's used as a weight compensation)
@@ -160,16 +161,18 @@ uint32 traj_magic_modulo(int32 a, uint32 b) {
  * 		-> a(t) = (pVGoal - v)/dt
  */
 void predictive_control_tick(motor * pMot, int32 pVGoal, uint32 pDt, float pOutputTorque, float pIAdded) {
-    int32 v = pControl.estimatedSpeed;//pMot->speed;//pControl.estimatedSpeed;
-
+    int32 v = pControl.estimatedSpeed;//pMot->speed;
     int8 signV = sign(v);
+    float speedInRads = v*pControl.stepsToRads; // rad/s
+    float goalSpeedInRads = pVGoal*pControl.stepsToRads; // rad/s
 
-    float beta = exp(-abs( v / ((float)pControl.statToCoulTrans) ));
-    float accelTorque = ((float)(pVGoal - v) * (pControl.i0 + pIAdded) * 10000)/((float)pDt); // dt is in 1/10 of a ms
-    float frictionTorque = signV * (beta * pControl.kstat + (1 - beta) * pControl.kcoul);
 
-    int16 u = pControl.unitFactor *
-        (pControl.kv * v + pControl.torqueToCommand * (accelTorque + frictionTorque + pOutputTorque));
+    float beta = exp(-abs( speedInRads /pControl.linearTransition)); // range [0, 1]
+    float accelTorque = ((goalSpeedInRads - speedInRads) * (pControl.i0 + pIAdded) * 10000.0)/((float)pDt); // in N.m. dt is in 1/10 of a ms
+    float frictionTorque = signV * (beta * pControl.kstat + (1 - beta) * pControl.coulombContribution);
+
+    int16 u = pControl.voltsToCommand *
+        (pControl.ke * speedInRads + pControl.torqueToVoltage * (accelTorque - frictionTorque + pOutputTorque));
 
     if (u > MAX_COMMAND) {
         u = MAX_COMMAND;
@@ -182,41 +185,42 @@ void predictive_control_tick(motor * pMot, int32 pVGoal, uint32 pDt, float pOutp
                                        * This is no easy task since getting the speed from a derivate of the position comes with the
                                        * tradeoff delay VS accuracy.
                                        */
+    // Updating the output torque estimations
+    dxl_regs.ram.ouputTorque = accelTorque + pOutputTorque;
+    dxl_regs.ram.electricalTorque = accelTorque - frictionTorque + pOutputTorque;
 }
 
 /**
  * Estimates the torque that's outputed by the motor (with and without accounting for friction), when the command is pCommand and the rotationnal speed
  * is pSpeed.
- * Same formula as predictive_control_tick but this function is used only to update the output torques. Torque units in in [N.m * 4096 / 2*PI] (don't judge me)
+ * Same formula as predictive_control_tick but this function is used only to update the output torques. Torque units in in [N.m]
  *
  */
 void predictive_update_output_torques(int32 pCommand, int32 pSpeed) {
-    int32 v = pSpeed;
+	int8 signV = sign(pSpeed);
+	float speedInRads = pSpeed*pControl.stepsToRads; // rad/s
 
-    int8 signV = sign(v);
+	//	int16 u = pControl.voltsToCommand *(pControl.ke * speedInRads + pControl.torqueToVoltage * (accelTorque - frictionTorque + pOutputTorque));
+    float electricalTorque = ((pCommand/pControl.voltsToCommand) - pControl.ke*speedInRads)/pControl.torqueToVoltage; // == -frictionTorque + outputTorque
 
-    float beta = exp(-abs( v / ((float)pControl.statToCoulTrans) ));
-    float frictionTorque = signV * (beta * pControl.kstat + (1 - beta) * pControl.kcoul);
+    float beta = exp(-abs( speedInRads /pControl.linearTransition)); // range [0, 1]
+    float frictionTorque = signV * (beta * pControl.kstat + (1 - beta) * pControl.coulombContribution);
+    float outputTorque = electricalTorque + frictionTorque;
 
-    //int32 u = pControl.unitFactor * (pControl.kv * v + pControl.torqueToCommand * (accelTorque + frictionTorque + pOutputTorque));
-    float outputTorque = ((pCommand/pControl.unitFactor) - pControl.kv * v) / pControl.torqueToCommand; // == accelTorque + frictionTorque + pOutputTorque
+	// Updating the output torque estimations
+	dxl_regs.ram.ouputTorque = outputTorque;
+	dxl_regs.ram.electricalTorque = electricalTorque;
 
-    dxl_regs.ram.ouputTorque = outputTorque;
-    dxl_regs.ram.outputTorqueWithoutFriction = outputTorque - frictionTorque;
 }
 
 /**
- * The formula used here is u(t) = unitFactor*[kv * v + torqueToCommand*(outputTorque + accelTorque + frictionTorque)]
+ * The formula used here is u(t) = voltsToCommand*[ke * speedInRads + torqueToVoltage*(outputTorque - frictionTorque)]
  *
  * Where :
- * -> unitFactor*kv*v(t) is the command needed to mantain the current speed (kv = ke + kvis, where kvis is the viscous constant)
- * -> unitFactor*torqueToCommand*torque is the command that will make the motor create 'torque' (expressed in N.m*4096/2*PI) during dt
- * -> frictionTorque compensates the static and the coulomb friction
+ * -> voltsToCommand*ke*speedInRads is the command needed to maintain the current speed if there was no friction
+ * -> voltsToCommand*torqueToVoltage*torque is the command that will make the motor create 'torque' (expressed in N.m)
+ * -> frictionTorque is the torque created by the static friction, the coulomb friction and the viscous friction
  * -> outputTorque is the actual torque that could be measured outside the motor
- * -> accelTorque  = I * a(t) is the torque needed to create an acceleration of a(t) during dt, provided that 'outputTorque' is
- * either null or absorbed by the environment (which is typically the case when it's used as a weight compensation)
- * 		-> I = I0 + pIAdded (I0 is the moment of inertia of the gearbox)
- * 		-> a(t) = (pVGoal - v)/dt
  */
 void predictive_control_anti_gravity_tick(motor * pMot, int32 pVGoal, float pOutputTorque, float pIAdded) {
 	int32 v = pMot->speed;//(pMot->averageSpeed);//pControl.estimatedSpeed;
@@ -234,7 +238,7 @@ void predictive_control_anti_gravity_tick(motor * pMot, int32 pVGoal, float pOut
     } else {
         // digitalWrite(BOARD_LED_PIN, LOW);
     }
-        // Un-comment this to emulate an old windows PC loading a program (quite funny actually)
+        // Un-comment this to emulate an old windows PC loading a program (quite funny)
     // if (pMot->averageCurrent > 0) {
     //     signV = 1;
     //     digitalWrite(BOARD_LED_PIN, LOW);
@@ -246,51 +250,27 @@ void predictive_control_anti_gravity_tick(motor * pMot, int32 pVGoal, float pOut
     //     digitalWrite(BOARD_LED_PIN, HIGH);
     // }
 
-    float beta = exp(-abs( v / ((float)pControl.statToCoulTrans) ));
-    float accelTorque = 0;
-    float frictionTorque = signV * (beta * pControl.kstat + (1 - beta) * pControl.kcoul);
-
-    int32 u = pControl.unitFactor *
-        (pControl.kv * v + pControl.torqueToCommand * (accelTorque + frictionTorque + pOutputTorque));
-
-    if (u > MAX_COMMAND) {
-        u = MAX_COMMAND;
-    }
-    if (u < -MAX_COMMAND) {
-        u = -MAX_COMMAND;
-    }
-    pMot->predictiveCommand = u;
-    pControl.estimatedSpeed = v;
-}
-
-/**
- * Same thing that predictive_control_anti_gravity_tick but simplified (no added torque and no added I)
- */
-void predictive_control_compliant_kind_of(motor * pMot) {
-    int32 v = pMot->speed; // pMot->averageSpeed; //pMot->speed;//pControl.estimatedSpeed;
-
-    // Hack for anti-gravity/friction arm :
-        /* The issue here is that our initial model states that the static friction depends on the sign of the current speed
-         * which is true as long as the speed is not null.
-         * When the speed is null, the static friction will oppose itself to the torque applied on the motor.
-         **/
-    int8 signV = pMot->signOfSpeed;
-
-    float beta = exp(-abs( v / ((float)pControl.statToCoulTrans) ));
-    float frictionTorque = signV * (beta * pControl.kstat + (1 - beta) * pControl.kcoul);
-
-    int32 u = pControl.unitFactor *
-        (pControl.kv * v + pControl.torqueToCommand * (frictionTorque));
+    float speedInRads = v*pControl.stepsToRads; // rad/s
 
 
-    if (u > MAX_COMMAND) {
-        u = MAX_COMMAND;
-    }
-    if (u < -MAX_COMMAND) {
-        u = -MAX_COMMAND;
-    }
-    pMot->predictiveCommand = u;
-    pControl.estimatedSpeed = v;
+	float beta = exp(-abs( speedInRads /pControl.linearTransition)); // range [0, 1]
+	float frictionTorque = signV * (beta * pControl.kstat + (1 - beta) * pControl.coulombContribution);
+
+	int16 u = pControl.voltsToCommand *
+		(pControl.ke * speedInRads + pControl.torqueToVoltage * (- frictionTorque + pOutputTorque));
+
+	if (u > MAX_COMMAND) {
+		u = MAX_COMMAND;
+	}
+	if (u < -MAX_COMMAND) {
+		u = -MAX_COMMAND;
+	}
+	pMot->predictiveCommand = u;
+	pControl.estimatedSpeed = v;
+
+	// Updating the output torque estimations
+	dxl_regs.ram.ouputTorque = pOutputTorque;
+	dxl_regs.ram.electricalTorque = frictionTorque + pOutputTorque;
 }
 
 

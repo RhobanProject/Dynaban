@@ -15,22 +15,21 @@
 #define TRAJECTORY_MANAGER_H
 
 struct predictiveControl {
-	uint16 staticFriction;
 	float i0;
 	float vAlim;
 	float r;
 	float ke;
+
 	float kvis;
-	uint16 statToCoulTrans;
-	float coulombCommandDivider;
-
-	float unitFactor;
-
-	float torqueToCommand ;
-	float kv;
 	float kstat;
-	float coulombMaxCommand;
 	float kcoul;
+	float linearTransition;
+
+	float coulombContribution;
+	float voltsToCommand;
+	float stepsToRads;
+	float torqueToVoltage;
+
 
     int32 estimatedSpeed;
     int32 previousCommand;
@@ -52,7 +51,6 @@ predictiveControl * get_predictive_control();
 void predictive_control_tick(motor * pMot, int32 pVGoal, uint32 pDt, float pOutputTorque, float pIAdded);
 void predictive_update_output_torques(int32 pCommand, int32 pSpeed);
 void predictive_control_anti_gravity_tick(motor * pMot, int32 pVGoal, float pOutputTorque, float pIAdded);
-void predictive_control_compliant_kind_of(motor * pMot);
 int8 sign(int32 pInput);
 
 

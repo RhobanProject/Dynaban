@@ -94,7 +94,7 @@ void motor_init(encoder * pEnc) {
     mot.negAngleLimit = 0;
     mot.multiTurnOn = false;
     mot.multiTurnAngle = mot.angle;
-    mot.outputTorqueWithoutFriction = 0.0;
+    mot.electricalTorque = 0.0;
     mot.outputTorque = 0.0;
     mot.targetTorque = 0.0;
     mot.temperatureIsCritic = false;
@@ -210,7 +210,7 @@ void motor_update(encoder * pEnc) {
             eval_powers_of_t(timePowers, time, maxPower, 10000);
 
             if (controlMode == COMPLIANT_KIND_OF) {
-                predictive_control_compliant_kind_of(&mot);
+            	predictive_control_anti_gravity_tick(&mot, mot.speed, 0.0, 0.0);
             } else {
                 predictive_control_tick(&mot,
                                     traj_eval_poly_derivate(dxl_regs.ram.trajPoly1, timePowers),
@@ -266,12 +266,14 @@ void motor_update(encoder * pEnc) {
             }
         }
         counterUpdate++;
+
+        // Asking for an estimation of the outputed torque
+        predictive_update_output_torques(mot.command, mot.speed);
+        mot.electricalTorque = dxl_regs.ram.electricalTorque;
+        mot.outputTorque = dxl_regs.ram.ouputTorque;
     }
 
 
-    predictive_update_output_torques(mot.command, mot.speed);
-    mot.outputTorqueWithoutFriction = dxl_regs.ram.outputTorqueWithoutFriction;
-    mot.outputTorque = dxl_regs.ram.ouputTorque;
 }
 
 void motor_read_current() {
@@ -586,8 +588,8 @@ void motor_print_motor() {
     Serial1.println(mot.offset);
     Serial1.print("angle buffer : ");
     buffer_print_buffer(&mot.angleBuffer);
-    Serial1.print("outputTorqueWithoutFriction : ");
-    Serial1.println(mot.outputTorqueWithoutFriction);
+    Serial1.print("eletricalTorque : ");
+    Serial1.println(mot.electricalTorque);
     Serial1.print("outputTorque : ");
     Serial1.println(mot.outputTorque);
 

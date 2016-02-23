@@ -85,7 +85,7 @@ struct motor {
     int16 offset;
     boolean multiTurnOn;
     int16 multiTurnAngle;
-    float outputTorqueWithoutFriction;
+    float electricalTorque;
     float outputTorque;
     float targetTorque;
     bool temperatureIsCritic;

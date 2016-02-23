@@ -161,15 +161,17 @@ struct dxl_ram {
 	float r;								// 0xAC
 	float ke;                               // 0xB0
 	float kvis;                             // 0xB4
-	uint16 statToCoulTrans;                 // 0xB8
-	float coulombCommandDivider;            // 0xBA
-	int16 speedCalculationDelay;			// 0xBE
-	float ouputTorque;                      // 0xC0
-	float outputTorqueWithoutFriction;      // 0xC4
-	unsigned char frozenRamOn;              // 0xC8
-	unsigned char useValuesNow;             // 0xC9
-	uint16 torqueKp;                        // 0xCA
-	float goalTorque;						// 0xCC
+	float kstat;                 			// 0xB8
+	float kcoul;            				// 0xBC
+	float linearTransition;					// 0xC0
+	int16 speedCalculationDelay;			// 0xC4
+	float ouputTorque;                      // 0xC6
+	float electricalTorque;      			// 0xCA
+	unsigned char frozenRamOn;              // 0xCE
+	unsigned char useValuesNow;             // 0xCF
+	uint16 torqueKp;                        // 0xD0
+	float goalTorque;						// 0xD2
+
 
 } __attribute__((packed));
 

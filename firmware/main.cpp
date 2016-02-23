@@ -229,8 +229,8 @@ void setup() {
     controlMode = OFF;
 
     //Temp code :
-    delay(2000);
-    extensive_model_calibration();
+//    delay(2000);
+//    extensive_model_calibration();
 //    model_calibration();
 }
 
