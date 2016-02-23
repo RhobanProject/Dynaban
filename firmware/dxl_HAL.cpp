@@ -332,6 +332,7 @@ void dxl_print_debug() {
 	Serial1.print("goal position in frozen ram = ");
 	Serial1.println(dxl_regs.frozen_ram.goalPosition);
 
+
     Serial1.waitDataToBeSent();
     digitalWrite(BOARD_TX_ENABLE, LOW);
 }

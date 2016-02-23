@@ -108,7 +108,7 @@ void print_flash_start_adress();
 
 
 const uint32    TOO_BIG              = 1<<30;
-static bool     DXL_COM_ON = true; // /!\
+static bool     DXL_COM_ON = true;
 
 long           counter               = 0;
 int            posCounter            = 0;

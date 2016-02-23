@@ -243,6 +243,9 @@ void motor_update(encoder * pEnc) {
                 }
             }
 
+            // The estimation of the outputed torque has already been done and sent to the ram, updating the motor struct
+            mot.electricalTorque = dxl_regs.ram.electricalTorque;
+            mot.outputTorque = dxl_regs.ram.ouputTorque;
         }
 
         counterUpdate++;
@@ -592,6 +595,9 @@ void motor_print_motor() {
     Serial1.println(mot.electricalTorque);
     Serial1.print("outputTorque : ");
     Serial1.println(mot.outputTorque);
+    Serial1.print("targetTorque : ");
+    Serial1.println(mot.targetTorque);
+
 
 
 }

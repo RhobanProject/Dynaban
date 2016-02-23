@@ -156,7 +156,7 @@ struct dxl_ram {
     unsigned char copyNextBuffer;           // 0xA3
     bool          positionTrackerOn;        // 0xA4
     bool          debugOn;                  // 0xA5
-    uint16 staticFriction;                  // 0xA6
+    uint16 unused;			                // 0xA6
 	float i0;								// 0xA8
 	float r;								// 0xAC
 	float ke;                               // 0xB0
