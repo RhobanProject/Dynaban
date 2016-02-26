@@ -502,6 +502,9 @@ class  ModelTester(object):
 
         #Score of 0.386 with addedInertia, on the first 150ms
 # 6.74933458e-03   1.50816125e+00   4.38408117e+00   1.63554751e+00 1.38872124e-01   1.45544129e-01   1.01677621e-01   4.09684545e-03
+
+#Score of 0.382214837376 with addedInertia, on the first 150ms
+# [  1.55818308e-02   1.51294795e+00   4.39798614e+00   1.63553529e+00 8.09641650e-02   2.03719639e-01   1.20403543e-01   4.07587229e-03]
 #         print "value = ", value
 #         return
         self.noDisplay = True

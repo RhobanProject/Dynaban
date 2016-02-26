@@ -14,6 +14,9 @@
 #if !defined(TRAJECTORY_MANAGER_H)
 #define TRAJECTORY_MANAGER_H
 
+/**
+ * To do : test the kalman filter approach to get an approximation of the current speed (intermediate solution between full model and full sensor)
+ */
 struct predictiveControl {
 	float i0;
 	float vAlim;

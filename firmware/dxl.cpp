@@ -279,8 +279,9 @@ void dxl_packet_push_byte(volatile struct dxl_packet *packet, ui8 b)
 static void dxl_write_data(ui8 addr, ui8 *values, ui8 length)
 {
 	bool wasFrozenRam = false;
-	if (dxl_regs.ram.frozenRamOn) {
-		// Incoming value will go into the frozen ram and not into the ram that's actually used for control
+	if (dxl_regs.ram.frozenRamOn && addr > sizeof(dxl_regs.eeprom)) {
+		// Incoming values will go into the frozen ram and not into the ram that's actually used for control
+		// (this behaviour does not affect the flash memory section)
 		memcpy(((ui8 *)(&dxl_regs)) + addr + sizeof(dxl_regs.ram), values, length);
 		wasFrozenRam = true;
 	} else {
@@ -304,7 +305,7 @@ static void dxl_write_data(ui8 addr, ui8 *values, ui8 length)
 
 static void dxl_read_data(ui8 addr, ui8 *values, ui8 length, ui8 *error)
 {
-    if (dxl_regs.ram.frozenRamOn) {
+    if (dxl_regs.ram.frozenRamOn && addr > sizeof(dxl_regs.eeprom)) {
     	// Outgoing values will come from the frozen ram which is not updated by the sensors
     	memcpy(values, ((ui8*)&dxl_regs) + addr + sizeof(dxl_regs.ram), length);
     } else {

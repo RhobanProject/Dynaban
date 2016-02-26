@@ -137,8 +137,7 @@ struct dxl_ram {
                                             //[68
                                             //[6C
                                             //[70
-    uint16        duration1;                // 0x75
-
+    uint16        duration1;                // 0x74
     unsigned char trajPoly2Size;            // 0x76
     float         trajPoly2[DXL_POLY_SIZE]; //[77
                                             //[7B
