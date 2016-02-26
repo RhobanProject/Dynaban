@@ -221,6 +221,12 @@ void read_dxl_ram() {
     	predictive_control_update();
     }
 
+    if (dxl_regs.ram.led == 0) {
+        digitalWrite(BOARD_LED_PIN, HIGH);
+    } else {
+        digitalWrite(BOARD_LED_PIN, LOW);
+    }
+
     //  XXX The problem comes from here :
 //    int nbTicksForSpeed = (int)(1000/(dxl_regs.ram.speedCalculationDelay));
 //    if (hardwareStruct.mot->angleBuffer.size != nbTicksForSpeed) {

@@ -463,7 +463,7 @@ void motor_restart() {
 void motor_temperature_is_critic() {
     mot.temperatureIsCritic = true;
     motor_compliant();
-     digitalWrite(BOARD_LED_PIN, LOW);
+    digitalWrite(BOARD_LED_PIN, LOW);
 }
 
 void motor_temperature_is_okay() {
