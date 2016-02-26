@@ -30,6 +30,7 @@
 #define DXL_MAGIC_OFFSET_ADRESS 0x0800C000
 //0x0801F400 // <-- This address is the new one, that we'll use once the bootloader gets fixed.
 
+
 #define DXL_START_OF_RAM 0x18
 
 typedef unsigned char ui8;
