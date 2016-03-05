@@ -96,9 +96,16 @@ void control_tick_PID_and_predictive_command(motor * pMot) {
     controlStruct.deltaAngle = control_angle_diff(pMot->targetAngle, pMot->angle);
     if (abs(controlStruct.deltaAngle) > 56) {
     	//Turning the led on if the trajectory is not being followed close enough
-    	digitalWrite(BOARD_LED_PIN, LOW);
+//    	digitalWrite(BOARD_LED_PIN, LOW);
+
+//        digitalWrite(BOARD_TX_ENABLE, HIGH);
+//        Serial1.print("delta = ");
+//        Serial1.println(controlStruct.deltaAngle);
+//        motor_print_motor();
+//        Serial1.waitDataToBeSent();
+//        digitalWrite(BOARD_TX_ENABLE, LOW);
     } else {
-    	digitalWrite(BOARD_LED_PIN, HIGH);
+//    	digitalWrite(BOARD_LED_PIN, HIGH);
     }
     int8 direction = choose_direction(pMot);
     if ((direction != 0) && (controlStruct.deltaAngle * direction < 0)) {

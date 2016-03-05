@@ -185,12 +185,13 @@ void motor_update(encoder * pEnc) {
         if (counterUpdate%TRAJ_CALC_FREQ == 0) {
             if (time > dxl_regs.ram.duration1 && controlMode != COMPLIANT_KIND_OF) {
                 motor_restart_traj_timer();
+                time = 0;
                 if (dxl_regs.ram.copyNextBuffer != 0) {
                         // Copying the buffer into the actual trajs
                     dxl_regs.ram.copyNextBuffer = 0;
                     dxl_copy_buffer_trajs();
-                    time = 0;
                 } else {
+                    digitalWrite(BOARD_LED_PIN, LOW);
                         // Default action : forcing the motor to stay where it stands (through PID)
                 	controlMode = POSITION_CONTROL;
                 	dxl_regs.ram.mode = 0;
