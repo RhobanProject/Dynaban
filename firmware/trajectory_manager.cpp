@@ -117,7 +117,7 @@ void eval_powers_of_t(float * pTimePowers, uint16 pTime, uint8 pPolySize, uint16
 	}
 }
 
-int32 traj_eval_poly(volatile float * pPoly, float * pTimePowers) {
+float traj_eval_poly(volatile float * pPoly, float * pTimePowers) {
 
     return pPoly[0]
         + pTimePowers[0]*pPoly[1]
@@ -126,7 +126,7 @@ int32 traj_eval_poly(volatile float * pPoly, float * pTimePowers) {
         + pTimePowers[3]*pPoly[4];
 }
 
-int32 traj_eval_poly_derivate(volatile float * pPoly, float * pTimePowers) {
+float traj_eval_poly_derivate(volatile float * pPoly, float * pTimePowers) {
     return pPoly[1]
         + pTimePowers[0]*2*pPoly[2]
         + pTimePowers[1]*3*pPoly[3]

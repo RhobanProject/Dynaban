@@ -221,12 +221,12 @@ void read_dxl_ram() {
     	predictive_control_update();
     }
 
-    //Removed for now, the led is used elsewhere. TODO : this code should be called only when the user wrote something into .led
-//    if (dxl_regs.ram.led == 0) {
-//        digitalWrite(BOARD_LED_PIN, HIGH);
-//    } else {
-//        digitalWrite(BOARD_LED_PIN, LOW);
-//    }
+    //TODO : this code should be called only when the user wrote something into .led
+    if (dxl_regs.ram.led == 0) {
+        digitalWrite(BOARD_LED_PIN, HIGH);
+    } else {
+        digitalWrite(BOARD_LED_PIN, LOW);
+    }
 
     //  XXX The problem comes from here :
 //    int nbTicksForSpeed = (int)(1000/(dxl_regs.ram.speedCalculationDelay));

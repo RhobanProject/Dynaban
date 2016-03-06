@@ -118,6 +118,8 @@ void dxl_init_regs()
 
     dxl_regs.eeprom_dirty = false;
 
+	dxl_regs.ram.predictiveCommandPeriod = 10;
+
 
 }
 

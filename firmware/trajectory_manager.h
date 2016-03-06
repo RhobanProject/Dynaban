@@ -42,8 +42,8 @@ uint16 traj_constant_speed(uint16 pDistance, uint16 pTotalTime, uint16 pTime);
 uint16 traj_min_jerk(uint16 pTime);
 uint16 traj_min_jerk_on_speed(uint16 pTime);
 void eval_powers_of_t(float * pTimePowers, uint16 pTime, uint8 pPolySize, uint16 pPrescaler);
-int32 traj_eval_poly(volatile float * pPoly, float * pTimePowers);
-int32 traj_eval_poly_derivate(volatile float * pPoly, float * pTimePowers);
+float traj_eval_poly(volatile float * pPoly, float * pTimePowers);
+float traj_eval_poly_derivate(volatile float * pPoly, float * pTimePowers);
 /*
  * a modulo b with a handling of the negative values that matches our needs
  */

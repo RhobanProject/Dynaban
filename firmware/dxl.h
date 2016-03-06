@@ -171,6 +171,7 @@ struct dxl_ram {
 	unsigned char useValuesNow;             // 0xCF
 	uint16 torqueKp;                        // 0xD0
 	float goalTorque;						// 0xD2
+	unsigned char predictiveCommandPeriod;	// 0xD6
 
 
 } __attribute__((packed));

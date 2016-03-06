@@ -3,8 +3,6 @@
 #include "trajectory_manager.h"
 #include "dxl_HAL.h"
 
-#define TRAJ_CALC_FREQ 10
-
 static motor mot;
 static buffer previousAngleBuffer;
 
@@ -182,7 +180,7 @@ void motor_update(encoder * pEnc) {
     	if (changeId == 0) {
     		changeId = timeIndexMotor;
     	}
-        if (counterUpdate%TRAJ_CALC_FREQ == 0) {
+        if (counterUpdate%(dxl_regs.ram.predictiveCommandPeriod) == 0) {
             if (time > dxl_regs.ram.duration1 && controlMode != COMPLIANT_KIND_OF) {
                 motor_restart_traj_timer();
                 time = 0;
@@ -214,8 +212,8 @@ void motor_update(encoder * pEnc) {
             	predictive_control_anti_gravity_tick(&mot, mot.speed, 0.0, 0.0);
             } else {
                 predictive_control_tick(&mot,
-                                    traj_eval_poly_derivate(dxl_regs.ram.trajPoly1, timePowers),
-                                    dt*TRAJ_CALC_FREQ,
+                                    (int32)traj_eval_poly_derivate(dxl_regs.ram.trajPoly1, timePowers),
+                                    dt*(dxl_regs.ram.predictiveCommandPeriod),
                                     traj_eval_poly(dxl_regs.ram.torquePoly1, timePowers),
                                     0);
             }
@@ -223,7 +221,7 @@ void motor_update(encoder * pEnc) {
 
             if (controlMode == PID_AND_PREDICTIVE_COMMAND || controlMode == PID_ONLY) {
                 mot.targetAngle = traj_magic_modulo(
-                traj_eval_poly(dxl_regs.ram.trajPoly1, timePowers), MAX_ANGLE+1);
+                round(traj_eval_poly(dxl_regs.ram.trajPoly1, timePowers)), MAX_ANGLE+1);
             }
 
             if (dxl_regs.ram.positionTrackerOn == true) {
