@@ -60,6 +60,7 @@ enum motorState {
 struct motor {
     int16 command;
     int16 predictiveCommand;
+    int16 predictiveCommandTorque;
     int16 previousCommand;
     int16 angle;
     int16 previousAngle;

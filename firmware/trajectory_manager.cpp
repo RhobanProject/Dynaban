@@ -172,15 +172,23 @@ void predictive_control_tick(motor * pMot, int32 pVGoal, uint32 pDt, float pOutp
     float frictionTorque = signV * (beta * pControl.kstat + (1 - beta) * pControl.coulombContribution);
 
     int16 u = pControl.voltsToCommand *
-        (pControl.ke * speedInRads + pControl.torqueToVoltage * (accelTorque - frictionTorque + pOutputTorque));
+        (pControl.ke * speedInRads + pControl.torqueToVoltage * (accelTorque - frictionTorque));
+    int16 uTorque = pControl.voltsToCommand *
+            (pControl.torqueToVoltage * (pOutputTorque));
 
-    if (u > MAX_COMMAND) {
-        u = MAX_COMMAND;
+    int32 totalU = u + uTorque;
+    if (totalU > MAX_COMMAND) {
+    	int16 diff = totalU - MAX_COMMAND;
+        u = u - diff/2;
+        uTorque = uTorque - diff/2;
     }
-    if (u < -MAX_COMMAND) {
-        u = -MAX_COMMAND;
-    }
+    if (totalU < -MAX_COMMAND) {
+        	int16 diff = totalU + MAX_COMMAND;
+            u = u - diff/2;
+            uTorque = uTorque - diff/2;
+        }
     pMot->predictiveCommand = u;
+    pMot->predictiveCommandTorque = uTorque;
     pControl.estimatedSpeed = pVGoal; /* Would be better if we could get the real-life speed from time to time to update this value.
                                        * This is no easy task since getting the speed from a derivate of the position comes with the
                                        * tradeoff delay VS accuracy.

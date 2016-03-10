@@ -72,6 +72,8 @@ void motor_init(encoder * pEnc) {
     mot.offset = dxl_read_magic_offset();
     mot.command = 0;
     mot.previousCommand = 0;
+    mot.predictiveCommand = 0;
+    mot.predictiveCommandTorque = 0;
     mot.angle = pEnc->angle + mot.offset;
     mot.previousAngle = pEnc->angle + mot.offset;
     mot.angleBuffer = *buffer_creation(dxl_regs.ram.speedCalculationDelay + 1, mot.angle); // Works because a tick is 1 ms.

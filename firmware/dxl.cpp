@@ -119,6 +119,10 @@ void dxl_init_regs()
     dxl_regs.eeprom_dirty = false;
 
 	dxl_regs.ram.predictiveCommandPeriod = 10;
+	dxl_regs.ram.controlMariageMode = 1;
+
+	dxl_regs.ram.unused = 160;
+	dxl_regs.ram.hardestHysteresys = 80;
 
 
 }

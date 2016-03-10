@@ -2,7 +2,7 @@
 
 static control controlStruct;
 
-
+bool isPredictiveShutDown = false;
 // Returns the spin direction the motor needs to follow in order to respect its limit angles
 int8 choose_direction(motor * pMot);
 
@@ -90,7 +90,7 @@ void control_tick_P_on_position(motor * pMot) {
 }
 
 void control_tick_predictive_command_only(motor * pMot) {
-    motor_set_command(pMot->predictiveCommand);
+    motor_set_command(pMot->predictiveCommand + pMot->predictiveCommandTorque);
 }
 
 void control_tick_PID_and_predictive_command(motor * pMot) {
@@ -122,11 +122,75 @@ void control_tick_PID_and_predictive_command(motor * pMot) {
     	controlStruct.sumOfDeltas = -MAX_DELTA_SUM;
     }
     int16_t iContribution = controlStruct.sumOfDeltas / I_PRESCALE;
+    int32_t pidContribution = controlStruct.deltaAngle * controlStruct.pCoef + iContribution + pMot->speed * controlStruct.dCoef;
 
-    motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef
-                      + iContribution
-                      + pMot->speed * controlStruct.dCoef
-                      + pMot->predictiveCommand);
+    if (dxl_regs.ram.controlMariageMode == 0) {
+    	//Everything is always applied
+        motor_set_command(pidContribution
+                          + pMot->predictiveCommand
+    					  + pMot->predictiveCommandTorque);
+    } else if (dxl_regs.ram.controlMariageMode == 1) {
+    	if ((pidContribution > 0 && pMot->predictiveCommand < 0) || (pidContribution < 0 && pMot->predictiveCommand > 0)) {
+    		uint32_t delta = abs(pidContribution - pMot->predictiveCommand);
+    		if(!isPredictiveShutDown) {
+    			//We might have to shut it down
+    			if(delta > (uint32_t)dxl_regs.ram.unused) {
+    				//Too much difference
+    				isPredictiveShutDown = true;
+    			}
+    		} else {
+    			//We reactivate the predictiveCommand only if the hardestHysteresys is matched
+    			if (delta < (uint32_t)dxl_regs.ram.hardestHysteresys) {
+					//We can activate it again
+					isPredictiveShutDown = false;
+				}
+    		}
+    	} else {
+    		//Same sign, no problem
+    		isPredictiveShutDown = false;
+    	}
+
+    	if(!isPredictiveShutDown) {
+    		motor_set_command(pidContribution
+    		                          + pMot->predictiveCommand
+    		    					  + pMot->predictiveCommandTorque);
+    	} else {
+    		//Taking out the predictive command
+    		motor_set_command(pidContribution
+    		    					  + pMot->predictiveCommandTorque);
+    	}
+    } else if (dxl_regs.ram.controlMariageMode == 2) {
+    	int32_t sum = pMot->predictiveCommand + pMot->predictiveCommandTorque;
+    	if ((pidContribution > 0 && sum < 0) || (pidContribution < 0 && sum > 0)) {
+    		uint32_t delta = abs(pidContribution - sum);
+    		if(!isPredictiveShutDown) {
+    			//We might have to shut it down
+    			if(delta > (uint32_t)dxl_regs.ram.unused) {
+    				//Too much difference
+    				isPredictiveShutDown = true;
+    			}
+    		} else {
+    			//We reactivate the predictiveCommand only if the hardestHysteresys is matched
+    			if (delta < (uint32_t)dxl_regs.ram.hardestHysteresys) {
+					//We can activate it again
+					isPredictiveShutDown = false;
+				}
+    		}
+    	} else {
+    		//Same sign, no problem
+    		isPredictiveShutDown = false;
+    	}
+
+    	if(!isPredictiveShutDown) {
+    		motor_set_command(pidContribution
+    		                          + pMot->predictiveCommand
+    		    					  + pMot->predictiveCommandTorque);
+    	} else {
+    		//Taking out the predictive command
+    		motor_set_command(pidContribution);
+    	}
+    }
+
 
 }
 

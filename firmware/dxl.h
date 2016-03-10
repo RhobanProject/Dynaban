@@ -172,6 +172,8 @@ struct dxl_ram {
 	uint16 torqueKp;                        // 0xD0
 	float goalTorque;						// 0xD2
 	unsigned char predictiveCommandPeriod;	// 0xD6
+	unsigned char controlMariageMode;		// 0xD7
+	uint16 hardestHysteresys;				// 0xD8
 
 
 } __attribute__((packed));
