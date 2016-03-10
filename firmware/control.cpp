@@ -55,11 +55,6 @@ void control_tick_PID_on_position(motor * pMot) {
 
 
     controlStruct.sumOfDeltas = controlStruct.sumOfDeltas + controlStruct.deltaAngle;
-    if (controlStruct.sumOfDeltas > MAX_DELTA_SUM) {
-        controlStruct.sumOfDeltas = MAX_DELTA_SUM;
-    } else if (controlStruct.sumOfDeltas < -MAX_DELTA_SUM) {
-        controlStruct.sumOfDeltas = -MAX_DELTA_SUM;
-    }
 
 
     motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef
