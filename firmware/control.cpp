@@ -54,11 +54,17 @@ void control_tick_PID_on_position(motor * pMot) {
 	}
 
 
-    controlStruct.sumOfDeltas = controlStruct.sumOfDeltas + controlStruct.deltaAngle;
-
+    // The i coeff affects the speed at which the sum hits the max, but doesn't affect the maximum possible value.
+    controlStruct.sumOfDeltas = controlStruct.sumOfDeltas + controlStruct.deltaAngle*controlStruct.iCoef;
+    if (controlStruct.sumOfDeltas > MAX_DELTA_SUM) {
+    	controlStruct.sumOfDeltas = MAX_DELTA_SUM;
+    } else if(controlStruct.sumOfDeltas < -MAX_DELTA_SUM) {
+    	controlStruct.sumOfDeltas = -MAX_DELTA_SUM;
+    }
+    int16_t iContribution = controlStruct.sumOfDeltas / I_PRESCALE;
 
     motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef
-                      + (controlStruct.sumOfDeltas * controlStruct.iCoef) / I_PRESCALE
+                      + iContribution
                       + pMot->speed * controlStruct.dCoef);
     /*
      * Beware, the pMot->speed value is the difference between the current position and an old position.
@@ -108,15 +114,17 @@ void control_tick_PID_and_predictive_command(motor * pMot) {
         controlStruct.deltaAngle = control_other_angle_diff(pMot->targetAngle, pMot->angle);
     }
 
-    controlStruct.sumOfDeltas = controlStruct.sumOfDeltas + controlStruct.deltaAngle;
+        // The i coeff affects the speed at which the sum hits the max, but doesn't affect the maximum possible value.
+    controlStruct.sumOfDeltas = controlStruct.sumOfDeltas + controlStruct.deltaAngle*controlStruct.iCoef;
     if (controlStruct.sumOfDeltas > MAX_DELTA_SUM) {
-        controlStruct.sumOfDeltas = MAX_DELTA_SUM;
-    } else if (controlStruct.sumOfDeltas < -MAX_DELTA_SUM) {
-        controlStruct.sumOfDeltas = -MAX_DELTA_SUM;
+    	controlStruct.sumOfDeltas = MAX_DELTA_SUM;
+    } else if(controlStruct.sumOfDeltas < -MAX_DELTA_SUM) {
+    	controlStruct.sumOfDeltas = -MAX_DELTA_SUM;
     }
+    int16_t iContribution = controlStruct.sumOfDeltas / I_PRESCALE;
 
     motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef
-                      + (controlStruct.sumOfDeltas * controlStruct.iCoef) / I_PRESCALE
+                      + iContribution
                       + pMot->speed * controlStruct.dCoef
                       + pMot->predictiveCommand);
 
