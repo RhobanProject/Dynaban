@@ -458,8 +458,11 @@ class  ModelTester(object):
         #Max speed is 4PI/s = 120 rpm
         self.fixGaps(listOfMeasures, 4*math.pi)
         self.noDisplay = False
+
+        #self.noDisplay = True
+        #value = self.evaluateModelForMeasures(listOfMeasures, 12, self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction)
+        #print value
         
-#         value = self.evaluateModelForMeasures(listOfMeasures, 12, self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction)    
         #tolfun 100
 #         value = self.evaluateModelForMeasures(listOfMeasures, 12, -0.0017217180565952648, 3.9265053688586535, 4.4190475060541337, -1.642030980764918, -0.19456964024780998, 0.19221036872483038, 0.60201284035701119)
         #tolfun 100 with limits on values
