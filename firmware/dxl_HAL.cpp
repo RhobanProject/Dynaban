@@ -246,9 +246,15 @@ void dxl_copy_buffer_trajs() {
     dxl_regs.ram.trajPoly1Size = dxl_regs.ram.trajPoly2Size;
     dxl_regs.ram.torquePoly1Size = dxl_regs.ram.torquePoly2Size;
     dxl_regs.ram.duration1 = dxl_regs.ram.duration2;
+
+    dxl_regs.ram.trajPoly2Size = 0;
+    dxl_regs.ram.torquePoly2Size = 0;
+    dxl_regs.ram.duration2 = 0;
     for (int i = 0; i < DXL_POLY_SIZE; i++) {
         dxl_regs.ram.trajPoly1[i] = dxl_regs.ram.trajPoly2[i];
+        dxl_regs.ram.trajPoly2[i] = 0;
         dxl_regs.ram.torquePoly1[i] = dxl_regs.ram.torquePoly2[i];
+        dxl_regs.ram.torquePoly2[i] = 0;
     }
 }
 

@@ -175,7 +175,6 @@ struct dxl_ram {
 	unsigned char controlMariageMode;		// 0xD7
 	uint16 hardestHysteresys;				// 0xD8
 
-
 } __attribute__((packed));
 
 struct dxl_registers {

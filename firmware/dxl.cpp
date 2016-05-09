@@ -63,7 +63,7 @@ void dxl_init_regs()
         memcpy((void*)&dxl_regs.eeprom, (void*)dxl_flash, sizeof(struct dxl_eeprom));
     } else {
         dxl_regs.eeprom.modelNumber = DXL_MODEL;
-        dxl_regs.eeprom.firmwareVersion = 36;
+        dxl_regs.eeprom.firmwareVersion = 22; // MX64 value is 36. 22 is used to discriminate a Dynaban sevo.
         dxl_regs.eeprom.id = 1;
         dxl_regs.eeprom.baudrate = 1;// 1000000 //34 == 57600
         dxl_regs.eeprom.returnDelay = 50;//249;
