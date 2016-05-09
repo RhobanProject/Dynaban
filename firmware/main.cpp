@@ -11,7 +11,6 @@
 
 #define POWER_SUPPLY_ADC_PIN  PA2
 #define TEMPERATURE_ADC_PIN   PA1
-#define MAX_TEMPERATURE       70
 #define OVER_FLOW             3000
 
 
@@ -333,7 +332,7 @@ void hardware_tick() {
 
 		//Updating the temperature
         hardwareStruct.temperature = read_temperature();
-        if (hardwareStruct.temperature > MAX_TEMPERATURE) {
+        if (hardwareStruct.temperature > dxl_regs.eeprom.temperatureLimit) {
         	digitalWrite(BOARD_TX_ENABLE, HIGH);
         	Serial1.println();
         	Serial1.print("temperature = ");
@@ -342,7 +341,7 @@ void hardware_tick() {
         	digitalWrite(BOARD_TX_ENABLE, LOW);
             delayMicroseconds(50000);
             motor_temperature_is_critic();
-        } else if (hardwareStruct.mot->temperatureIsCritic && hardwareStruct.temperature < (MAX_TEMPERATURE-5)) {
+        } else if (hardwareStruct.mot->temperatureIsCritic && hardwareStruct.temperature < (dxl_regs.eeprom.temperatureLimit-5)) {
         	//We'll allow the motor to restart
         	motor_temperature_is_okay();
         }

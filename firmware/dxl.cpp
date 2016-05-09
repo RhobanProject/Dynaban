@@ -32,6 +32,7 @@ bool dxl_tick()
                 }
 
                 if (dxl_packet.answer) {
+                	check_global_errors();
                     int n = dxl_write(dxl_buffer);
                     dxl_send(dxl_buffer, n);
                 }
@@ -69,11 +70,11 @@ void dxl_init_regs()
         dxl_regs.eeprom.returnDelay = 50;//249;
         dxl_regs.eeprom.cwLimit = 4095;
         dxl_regs.eeprom.ccwLimit = 0;
-        dxl_regs.eeprom.temperatureLimit = 80;
+        dxl_regs.eeprom.temperatureLimit = 70;
         dxl_regs.eeprom.lowestVoltage = 60;
         dxl_regs.eeprom.highestVoltage = 160;
         dxl_regs.eeprom.maxTorque = 0x3ff;
-        dxl_regs.eeprom.returnStatus = 2;
+        dxl_regs.eeprom.returnStatus = 1;
         dxl_regs.eeprom.alarmLed = 36;
         dxl_regs.eeprom.alarmShutdown = 36;
         dxl_regs.eeprom.multiTurnOffset = 0;
@@ -189,6 +190,7 @@ void dxl_packet_init(volatile struct dxl_packet *packet)
     packet->dxl_state = 0;
     packet->process = false;
     packet->answer = false;
+    packet->currentError = DXL_NO_ERROR;
 }
 
 /**
@@ -270,9 +272,10 @@ void dxl_packet_push_byte(volatile struct dxl_packet *packet, ui8 b)
     return;
 
   pc_ended:
-    if (dxl_compute_checksum(packet) == b) {
-        packet->process = true;
-        packet->answer = false;
+  	  packet->process = true;
+  	  //packet->answer = false;
+    if (dxl_compute_checksum(packet) != b) {
+        packet->currentError += DXL_CHECKSUM_ERROR;
     }
 
     packet->dxl_state = 0;
@@ -307,9 +310,10 @@ static void dxl_write_data(ui8 addr, ui8 *values, ui8 length)
     	// The frozenRam mode has just been activated, we'll init the frozenRam with the values of the current ram
     	memcpy(((ui8 *)(&dxl_regs.frozen_ram)), ((ui8 *)(&dxl_regs.ram)), sizeof(struct dxl_ram));
     }
+    // ToDo implement range error
 }
 
-static void dxl_read_data(ui8 addr, ui8 *values, ui8 length, ui8 *error)
+static void dxl_read_data(ui8 addr, ui8 *values, ui8 length)
 {
     if (dxl_regs.ram.frozenRamOn && addr >= sizeof(dxl_regs.eeprom)) {
     	// Outgoing values will come from the frozen ram which is not updated by the sensors
@@ -318,6 +322,18 @@ static void dxl_read_data(ui8 addr, ui8 *values, ui8 length, ui8 *error)
     	memcpy(values, ((ui8*)&dxl_regs)+addr, length);
     }
 
+}
+
+/**
+ * Check global errors : overheat and overvoltage
+ */
+void check_global_errors() {
+	if (dxl_regs.ram.presentTemperature >= dxl_regs.eeprom.temperatureLimit) {
+		dxl_packet.error += DXL_OVERHEATING_ERROR;
+	}
+	if (dxl_regs.ram.presentVoltage >= dxl_regs.eeprom.highestVoltage || dxl_regs.ram.presentVoltage <= dxl_regs.eeprom.lowestVoltage) {
+		dxl_packet.error += DXL_INPUT_VOLTAGE_ERROR;
+	}
 }
 
 bool dxl_process()
@@ -331,7 +347,7 @@ bool dxl_process()
             case DXL_PING:
                     // Answers the ping
                 if (dxl_packet.id != DXL_BROADCAST) {
-                    dxl_packet.error = DXL_NO_ERROR;
+                    dxl_packet.error = dxl_packet.currentError;
                     dxl_packet.parameter_nb = 0;
                     dxl_packet.answer = true;
                 }
@@ -342,6 +358,12 @@ bool dxl_process()
                 dxl_write_data(dxl_packet.parameters[0],
                                (ui8 *)&dxl_packet.parameters[1],
                                dxl_packet.parameter_nb-1);
+                if (dxl_regs.eeprom.returnStatus == 2) {
+                	//We'll send back a status packet
+                    dxl_packet.error = dxl_packet.currentError;
+                    dxl_packet.parameter_nb = 0;
+                    dxl_packet.answer = true;
+                }
                 break;
 
             case DXL_SYNC_WRITE: {
@@ -358,6 +380,7 @@ bool dxl_process()
                                        (ui8)(length-1));
                     }
                 }
+                // BTW there can't be an answer in an actual sync write
             }
                 break;
 
@@ -366,15 +389,21 @@ bool dxl_process()
                 if (dxl_packet.id != DXL_BROADCAST) {
                     ui8 addr = dxl_packet.parameters[0];
                     unsigned int length = dxl_packet.parameters[1];
-                    dxl_packet.answer = true;
+                    if (dxl_regs.eeprom.returnStatus != 0) {
+                    	// Why would you ever use returnStatus = 0 though?
+                    	dxl_packet.answer = true;
+                    }
+
 
                     if (length < sizeof(dxl_packet.parameters)) {
-                            // Bad hack, no errors supported yet
-                        dxl_packet.error = DXL_NO_ERROR;
-                        dxl_read_data(addr, (ui8 *)dxl_packet.parameters,
-                                      length, (ui8 *)&dxl_packet.error);
-
+                        dxl_read_data(addr, (ui8 *)dxl_packet.parameters, length);
                         dxl_packet.parameter_nb = length;
+                        // The packet is now used as a status packet (was a instruction packet as long as the union.instruction was used instead of union.error)
+                        dxl_packet.error = dxl_packet.currentError;
+                    } else {
+                    	dxl_packet.currentError += DXL_INSTRUCTION_ERROR;
+                    	dxl_packet.error = dxl_packet.currentError;
+                    	dxl_packet.parameter_nb = 0;
                     }
                 }
                 break;

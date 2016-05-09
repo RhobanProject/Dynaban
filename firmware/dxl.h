@@ -25,7 +25,16 @@
 #define DXL_ACTION      0x05
 #define DXL_RESET       0x06
 #define DXL_SYNC_WRITE  0x83
-#define DXL_NO_ERROR    0x0
+
+#define DXL_NO_ERROR    0
+#define DXL_INSTRUCTION_ERROR   1
+#define DXL_OVERLOAD_ERROR 2
+#define DXL_CHECKSUM_ERROR 4
+#define DXL_RANGE_ERROR 8
+#define DXL_OVERHEATING_ERROR 16
+#define DXL_ANGLE_LIMIT_ERROR 32
+#define DXL_INPUT_VOLTAGE_ERROR 64
+
 #define DXL_POLY_SIZE   5
 #define DXL_MAGIC_OFFSET_ADRESS 0x0800C000
 //0x0801F400 // <-- This address is the new one, that we'll use once the bootloader gets fixed.
@@ -49,6 +58,7 @@ struct dxl_packet {
     bool process;
     bool answer;
     ui8 dxl_state;
+    ui8 currentError;
 };
 
 // HAL to implement
@@ -71,6 +81,7 @@ void dxl_packet_init(volatile struct dxl_packet *packet);
 void dxl_packet_push_byte(volatile struct dxl_packet *packet, ui8 b);
 int dxl_write_packet(volatile struct dxl_packet *packet, ui8 *buffer);
 ui8 dxl_compute_checksum(volatile struct dxl_packet *packet);
+void check_global_errors();
 int flashStartAdress();
 void dxl_persist_hack(int adress);
 void dxl_save_intrinsic_servo_data();
