@@ -20,7 +20,14 @@ you can get it with:
 
 ```
     sudo aptitude install build-essential git-core dfu-util openocd python \
-        python-serial binutils-arm-none-eabi gcc-arm-none-eabi
+        python-serial binutils-arm-none-eabi gcc-arm-none-eabi libstdc++-arm-none-eabi-newlib
+```
+If you're running an Ubuntu 14.04 or older, you might need to install the libstdc++-arm-none-eabi-newlib packet by hand. Download link :
+http://ftp.de.debian.org/debian/pool/main/libs/libstdc++-arm-none-eabi/libstdc++-arm-none-eabi-newlib_4.8.3-9+4_all.deb
+
+Command (if a conflict rises, you can add --force-overwrite to the following line):
+```
+	sudo dpkg -i libstdc++-arm-none-eabi-newlib_4.8.3-9+4_all.deb
 ```
 
 Then, go to the `firmware/` directory and edit the `Makefile` to set the appropriate
