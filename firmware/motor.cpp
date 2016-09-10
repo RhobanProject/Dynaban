@@ -30,8 +30,8 @@ uint16 counterUpdate = 0;
 uint16 previousTime = 0;
 float addedInertia = 3*0.00370;
 uint16 trackingDivider = 1;
-                         /* Moment of inertia added to the motor. Total moment of inertia = I0 + addedInertia.
-                         * I0 is a constant defined in trajectory_manager */
+/* Moment of inertia added to the motor. Total moment of inertia = I0 + addedInertia.
+ * I0 is a constant defined in trajectory_manager */
 
 
 void motor_add_benchmark_time();
@@ -116,37 +116,37 @@ void motor_update(encoder * pEnc) {
                     * This function should be called every 1 ms.
                     * The plan B would be to estimate dt = time - previousTime;
                     * */
-//    int16 dt = time - previousTime; // Need to check for the case where the timer overflows or resets.
-//    previousTime = time;
+    //    int16 dt = time - previousTime; // Need to check for the case where the timer overflows or resets.
+    //    previousTime = time;
 
     //Updating the motor position (ie angle)
     buffer_add(&(mot.angleBuffer), mot.angle);
     // This command is the one from the previous tick since the control is updated after the motor.
-//    buffer_add(&(mot.commandBuffer), mot.command);
+    //    buffer_add(&(mot.commandBuffer), mot.command);
     mot.previousAngle = mot.angle;
     // Taking into account the magic offset
     int tempAngle = pEnc->angle + mot.offset;
     if (tempAngle < 0) {
-    	tempAngle = MAX_ANGLE + tempAngle + 1;
+        tempAngle = MAX_ANGLE + tempAngle + 1;
     }
 
-	// Should not be useful, just being careful
-	tempAngle = tempAngle%(MAX_ANGLE+1);
+    // Should not be useful, just being careful
+    tempAngle = tempAngle%(MAX_ANGLE+1);
 
-	mot.angle = tempAngle;
-	if (mot.multiTurnOn == false) {
-		mot.multiTurnAngle = mot.angle;
-	} else {
-		if ((mot.angle - mot.previousAngle) > (MAX_ANGLE+1)/2) {
-			//Went from 3 to 4092 (4092 - 3 > 2048), the multiturn angle should be what it was minus 7
-			mot.multiTurnAngle = mot.multiTurnAngle + mot.angle - mot.previousAngle - (MAX_ANGLE+1);
-		} else if ((mot.angle - mot.previousAngle) < (-MAX_ANGLE-1)/2) {
-			//Went from 4095 to 1, the multiturn angle should be what it was plus 2
-			mot.multiTurnAngle = mot.multiTurnAngle + mot.angle - mot.previousAngle + (MAX_ANGLE+1);
-		} else {
-			mot.multiTurnAngle = mot.multiTurnAngle + mot.angle - mot.previousAngle;
-		}
-	}
+    mot.angle = tempAngle;
+    if (mot.multiTurnOn == false) {
+        mot.multiTurnAngle = mot.angle;
+    } else {
+        if ((mot.angle - mot.previousAngle) > (MAX_ANGLE+1)/2) {
+            //Went from 3 to 4092 (4092 - 3 > 2048), the multiturn angle should be what it was minus 7
+            mot.multiTurnAngle = mot.multiTurnAngle + mot.angle - mot.previousAngle - (MAX_ANGLE+1);
+        } else if ((mot.angle - mot.previousAngle) < (-MAX_ANGLE-1)/2) {
+            //Went from 4095 to 1, the multiturn angle should be what it was plus 2
+            mot.multiTurnAngle = mot.multiTurnAngle + mot.angle - mot.previousAngle + (MAX_ANGLE+1);
+        } else {
+            mot.multiTurnAngle = mot.multiTurnAngle + mot.angle - mot.previousAngle;
+        }
+    }
 
 
     int16 oldPosition = buffer_get(&(mot.angleBuffer));
@@ -154,56 +154,56 @@ void motor_update(encoder * pEnc) {
     motor_update_sign_of_speed();
 
     //Updating the motor speed
-	 int32 previousSpeed = mot.speed;
+    int32 previousSpeed = mot.speed;
 
-	 mot.speed = mot.angle - oldPosition;
+    mot.speed = mot.angle - oldPosition;
 
-	 if (abs(mot.speed) > MAX_ANGLE/2) {
-		 //Position went from near max to near 0 or vice-versa
-		 if (mot.angle >= oldPosition) {
-			 mot.speed = mot.speed - MAX_ANGLE - 1;
-		 } else if (mot.angle < oldPosition) {
-			 mot.speed = mot.speed + MAX_ANGLE + 1;
-		 }
-	 }
+    if (abs(mot.speed) > MAX_ANGLE/2) {
+        //Position went from near max to near 0 or vice-versa
+        if (mot.angle >= oldPosition) {
+            mot.speed = mot.speed - MAX_ANGLE - 1;
+        } else if (mot.angle < oldPosition) {
+            mot.speed = mot.speed + MAX_ANGLE + 1;
+        }
+    }
 
-	 // The speed will be in steps/s :
-	 mot.speed = (mot.speed * 1000) / dxl_regs.ram.speedCalculationDelay;
+    // The speed will be in steps/s :
+    mot.speed = (mot.speed * 1000) / dxl_regs.ram.speedCalculationDelay;
 
-	 //Averaging with previous value (dangerous approach):
-	 mot.averageSpeed = ((previousSpeed*99) + (mot.speed))/100.0;
-	 buffer_add(&(mot.speedBuffer), mot.speed);
+    //Averaging with previous value (dangerous approach):
+    mot.averageSpeed = ((previousSpeed*99) + (mot.speed))/100.0;
+    buffer_add(&(mot.speedBuffer), mot.speed);
 
-	 //Updating the motor acceleration
-	 int32 oldSpeed = buffer_get(&(mot.speedBuffer));
-	 mot.acceleration = mot.speed - oldSpeed;
+    //Updating the motor acceleration
+    int32 oldSpeed = buffer_get(&(mot.speedBuffer));
+    mot.acceleration = mot.speed - oldSpeed;
 
     if (predictiveCommandOn) {
-    	if (changeId == 0) {
-    		changeId = timeIndexMotor;
-    	}
+        if (changeId == 0) {
+            changeId = timeIndexMotor;
+        }
         if (counterUpdate%(dxl_regs.ram.predictiveCommandPeriod) == 0) {
             if (time > dxl_regs.ram.duration1 && controlMode != COMPLIANT_KIND_OF) {
                 motor_restart_traj_timer();
                 time = 0;
                 if (dxl_regs.ram.copyNextBuffer != 0) {
-                        // Copying the buffer into the actual trajs
+                    // Copying the buffer into the actual trajs
                     dxl_regs.ram.copyNextBuffer = 0;
                     dxl_copy_buffer_trajs();
                 } else {
                     digitalWrite(BOARD_LED_PIN, LOW);
-                        // Default action : forcing the motor to stay where it stands (through PID)
-                	controlMode = POSITION_CONTROL;
-                	dxl_regs.ram.mode = 0;
+                    // Default action : forcing the motor to stay where it stands (through PID)
+                    controlMode = POSITION_CONTROL;
+                    dxl_regs.ram.mode = 0;
                     hardwareStruct.mot->targetAngle = hardwareStruct.mot->angle;
                     dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
                 }
 
             }
             // These 3 lines make it impossible for the bootloader to load the binary file, mainly because of the cos import. -> Known bug and known solution but quite time consuming.
-//             float angleRad = (mot.angle * (float)PI) / 2048.0;
-//             float weightCompensation = cos(angleRad) * 71;
-//             predictive_control_anti_gravity_tick(&mot, mot.speed, weightCompensation, addedInertia);
+            //             float angleRad = (mot.angle * (float)PI) / 2048.0;
+            //             float weightCompensation = cos(angleRad) * 71;
+            //             predictive_control_anti_gravity_tick(&mot, mot.speed, weightCompensation, addedInertia);
 
             // We're going to evaluate at least one polynom (and more often than not, 3 polynoms). We'll calculate the powers of t only once :
             int maxPower = max(dxl_regs.ram.trajPoly1Size, dxl_regs.ram.torquePoly1Size);
@@ -211,29 +211,29 @@ void motor_update(encoder * pEnc) {
             eval_powers_of_t(timePowers, time, maxPower, 10000);
 
             if (controlMode == COMPLIANT_KIND_OF) {
-            	predictive_control_anti_gravity_tick(&mot, mot.speed, 0.0, 0.0);
+                predictive_control_anti_gravity_tick(&mot, mot.speed, 0.0, 0.0);
             } else {
                 predictive_control_tick(&mot,
-                                    (int32)traj_eval_poly_derivate(dxl_regs.ram.trajPoly1, timePowers),
-                                    dt*(dxl_regs.ram.predictiveCommandPeriod),
-                                    traj_eval_poly(dxl_regs.ram.torquePoly1, timePowers),
-                                    0);
+                                        (int32)traj_eval_poly_derivate(dxl_regs.ram.trajPoly1, timePowers),
+                                        dt*(dxl_regs.ram.predictiveCommandPeriod),
+                                        traj_eval_poly(dxl_regs.ram.torquePoly1, timePowers),
+                                        0);
             }
 
 
             if (controlMode == PID_AND_PREDICTIVE_COMMAND || controlMode == PID_ONLY) {
                 mot.targetAngle = traj_magic_modulo(
-                round(traj_eval_poly(dxl_regs.ram.trajPoly1, timePowers)), MAX_ANGLE+1);
+                                                    round(traj_eval_poly(dxl_regs.ram.trajPoly1, timePowers)), MAX_ANGLE+1);
             }
 
             if (dxl_regs.ram.positionTrackerOn == true) {
-            	// For arbitrary measures
+                // For arbitrary measures
                 if (counterUpdate%trackingDivider == 0) {
                     positionArray[positionIndex] = mot.angle;//mot.targetAngle;//(int16)weightCompensation;//mot.speed;//mot.predictiveCommand;//traj_min_jerk(timer3.getCount());
                     timeArray[positionIndex] = time;
 
                     if (positionIndex == NB_POSITIONS_SAVED) {
-                    	notPrintedYet = false;
+                        notPrintedYet = false;
                         positionIndex = 0;
                         counterUpdate = 0;
                         dxl_regs.ram.positionTrackerOn = false;
@@ -252,9 +252,9 @@ void motor_update(encoder * pEnc) {
         counterUpdate++;
     } else {
         if (dxl_regs.ram.positionTrackerOn == true) {
-        	// For arbitrary measures
+            // For arbitrary measures
             if (counterUpdate%trackingDivider == 0) {
-            	timeArray[positionIndex] = time;
+                timeArray[positionIndex] = time;
                 commandArray[positionIndex] = mot.command;
                 positionArray[positionIndex] = mot.angle;
                 speedArray[positionIndex] = mot.speed;
@@ -304,21 +304,21 @@ void motor_read_current() {
 
 void motor_update_sign_of_speed() {
     if (abs(mot.speed) < (1*dxl_regs.ram.speedCalculationDelay)) {
-            // Sign will remain what it was before to avoid oscillations when the speed is low (important when trying to compensate static friction)
+        // Sign will remain what it was before to avoid oscillations when the speed is low (important when trying to compensate static friction)
         return;
     }
     int8 tempSign = sign(mot.speed);
     if (tempSign == 0) {
-            // Sign will remain what it was before
+        // Sign will remain what it was before
         return;
     } else {
         mot.signOfSpeed = tempSign;
         return;
     }
 
-        // Plan B : use the measure of the current
-        // digitalWrite(BOARD_LED_PIN, HIGH);
-        // mot.signOfSpeed = sign(mot.averageCurrent);
+    // Plan B : use the measure of the current
+    // digitalWrite(BOARD_LED_PIN, HIGH);
+    // mot.signOfSpeed = sign(mot.averageCurrent);
 }
 
 void motor_set_command(int16 pCommand) {
@@ -338,23 +338,23 @@ void motor_set_command(int16 pCommand) {
     int16 command = mot.command;
     int16 previousCommand = mot.previousCommand;
     if (mot.state != COMPLIANT) {
-    	if (command >= 0 && previousCommand >= 0) {
-    		//No need to change the spin direction
-			motor_secure_pwm_write(PWM_2_PIN, command);
-		} else if (command <= 0 && previousCommand <= 0) {
-			motor_secure_pwm_write(PWM_1_PIN, abs(command));
-		} else {
-			// Change of spin direction procedure
-			if (command > 0) {
-				motor_secure_pwm_write(PWM_1_PIN, 0);
-				motor_secure_pwm_write(PWM_2_PIN, 0);
-				motor_secure_pwm_write(PWM_2_PIN, command);
-			} else {
-				motor_secure_pwm_write(PWM_2_PIN, 0);
-				motor_secure_pwm_write(PWM_1_PIN, 0);
-				motor_secure_pwm_write(PWM_1_PIN, abs(command));
-			}
-		}
+        if (command >= 0 && previousCommand >= 0) {
+            //No need to change the spin direction
+            motor_secure_pwm_write(PWM_2_PIN, command);
+        } else if (command <= 0 && previousCommand <= 0) {
+            motor_secure_pwm_write(PWM_1_PIN, abs(command));
+        } else {
+            // Change of spin direction procedure
+            if (command > 0) {
+                motor_secure_pwm_write(PWM_1_PIN, 0);
+                motor_secure_pwm_write(PWM_2_PIN, 0);
+                motor_secure_pwm_write(PWM_2_PIN, command);
+            } else {
+                motor_secure_pwm_write(PWM_2_PIN, 0);
+                motor_secure_pwm_write(PWM_1_PIN, 0);
+                motor_secure_pwm_write(PWM_1_PIN, abs(command));
+            }
+        }
     }
 
 }
@@ -393,7 +393,7 @@ int16 motor_check_limit_angles(int16 pAngle) {
         return pAngle;
     }
 
-        // pAngle is not a valid angle, the function will return the closest valid angle
+    // pAngle is not a valid angle, the function will return the closest valid angle
     int16 posDiff = control_angle_diff(pAngle, mot.posAngleLimit);
     int16 negDiff = control_angle_diff(pAngle, mot.negAngleLimit);
 
@@ -406,20 +406,20 @@ int16 motor_check_limit_angles(int16 pAngle) {
 
 bool motor_is_valid_angle(int16 pAngle) {
     if (mot.posAngleLimit == mot.negAngleLimit) {
-            // Free wheel mode
+        // Free wheel mode
         return true;
     }
 
     if (mot.posAngleLimit > mot.negAngleLimit) {
-            // The motor shall never go higher than posLimit nor lower than negLimit
+        // The motor shall never go higher than posLimit nor lower than negLimit
         if ((pAngle <= mot.posAngleLimit) && (pAngle >= mot.negAngleLimit)) {
-                // All fine
+            // All fine
             return true;
         }
     } else {
-            // The motor shall never go outside [0, posLimit] U [negLimit, MAX_ANGLE]
+        // The motor shall never go outside [0, posLimit] U [negLimit, MAX_ANGLE]
         if ((pAngle <= mot.posAngleLimit) || (pAngle >= mot.negAngleLimit)) {
-                // All fine
+            // All fine
             return true;
         }
     }
@@ -435,7 +435,7 @@ void motor_set_target_current(int pCurrent) {
 
 /**
    Will make the engine brake. Note : it brakes hard.
- */
+*/
 void motor_brake() {
     mot.state = BRAKE;
     mot.previousCommand = mot.command;
@@ -446,7 +446,7 @@ void motor_brake() {
 
 /**
    Will release the motor. Call motor_restart() to get out of this mode
- */
+*/
 void motor_compliant() {
     mot.state = COMPLIANT;
     mot.previousCommand = mot.command;
@@ -470,12 +470,12 @@ void motor_temperature_is_critic() {
 void motor_temperature_is_okay() {
     mot.temperatureIsCritic = false;
     motor_restart();
-     digitalWrite(BOARD_LED_PIN, HIGH);
+    digitalWrite(BOARD_LED_PIN, HIGH);
 }
 
 void print_detailed_trajectory() {
-	//The speed has a delay of ~speedCalculationDelay/2 ms. The delay between 2 recorded speed points is 1ms * trackingDivider
-	uint16_t speedShift = (dxl_regs.ram.speedCalculationDelay/2) * trackingDivider;
+    //The speed has a delay of ~speedCalculationDelay/2 ms. The delay between 2 recorded speed points is 1ms * trackingDivider
+    uint16_t speedShift = (dxl_regs.ram.speedCalculationDelay/2) * trackingDivider;
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.println("");
     Serial1.println("Time Command Position Speed");
@@ -488,10 +488,10 @@ void print_detailed_trajectory() {
         Serial1.print(" ");
         Serial1.print(commandArray[i]);
         Serial1.print(" ");
-		Serial1.print(positionArray[i]);
-		Serial1.print(" ");
-		Serial1.print(speedArray[i]);
-		Serial1.println("");
+        Serial1.print(positionArray[i]);
+        Serial1.print(" ");
+        Serial1.print(speedArray[i]);
+        Serial1.println("");
 
 
     }
@@ -508,17 +508,17 @@ void motor_add_benchmark_time() {
 }
 
 void motor_print_time_stamp() {
-	digitalWrite(BOARD_LED_PIN, LOW);
+    digitalWrite(BOARD_LED_PIN, LOW);
 
     digitalWrite(BOARD_TX_ENABLE, HIGH);
     Serial1.println("");
     for (int i = 0; i < TIME_STAMP_SIZE_MOTOR; i++) {
-            Serial1.println("Wait for it");
-        }
+        Serial1.println("Wait for it");
+    }
     for (int i = 0; i < TIME_STAMP_SIZE_MOTOR; i++) {
-    	if (i == changeId) {
+        if (i == changeId) {
             Serial1.println("The change is now !");
-    	}
+        }
         Serial1.println(arrayOfTimeStampsMotor[i]);
     }
 
