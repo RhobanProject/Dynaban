@@ -102,9 +102,9 @@ class  ModelTester(object):
         self.rawCommandToSiTorque = self.rawCommandToVoltage*self.kt/self.r #If speed is 0, then electricalTorque = command * rawCommandToSiTorque N.m. If command = 3000, electricalTorque = 5.6 N.m = stallTorque
 
 
-    def simulationTest(self):
+    def simulationTest(self, duration=0.2):
         dt = 0.001
-        T = numpy.arange(0, 0.2, dt)
+        T = numpy.arange(0, duration, dt)
         u = 0.3333*12
         position = [0]
         speed = [0]
@@ -128,7 +128,7 @@ class  ModelTester(object):
             #Actual output torque
             outputTorque.append(electricalTorque[i] - frictionTorque[i])
             
-            acceleration.append(outputTorque[i]/self.i0)
+            acceleration.append(outputTorque[i]/(self.i0+self.addedInertia))
             speed.append(speed[i] + dt*acceleration[i])
             position.append(position[i] + speed[i]*dt)
            
@@ -148,7 +148,7 @@ class  ModelTester(object):
         plt.plot(T, electricalTorque, "+", 
                  T, frictionTorque, "x", 
                  T, outputTorque, "--")
-        plt.legend(['eleprint "io = ", self.i0ctricalTorque', 'frictionTorque', 'outputTorque'])
+        plt.legend(['electricalTorque', 'frictionTorque', 'outputTorque'])
         plt.grid(True)
         
         plt.show(block=True)
@@ -432,6 +432,11 @@ class  ModelTester(object):
         return self.evaluateModelForMeasures(listOfMeasures, voltage, i0, ke, r, klin, linearTransition, staticFriction, coulombFriction, addedInertia) + sanction
         
     def main(self):
+        # 500g foot at 18cm :
+        addedInertia = 0.0162
+        self.updateModelConstants(12, self.i0, self.ke, self.r, self.klin, self.linearTransition, self.staticFriction, self.coulombFriction, addedInertia)
+        self.simulationTest(0.7)
+        return
 #         print self
 #         T = numpy.arange(0, 1, 0.0001)
 #         timedCommands = zip(T, itertools.repeat(8))
