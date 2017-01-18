@@ -42,10 +42,11 @@ void control_tick_PID_on_position(motor* pMot) {
     controlStruct.deltaAngle =
         control_angle_diff(pMot->targetAngle, pMot->angle);
     int8 direction = choose_direction(pMot);
+
     if ((direction != 0) && (controlStruct.deltaAngle * direction < 0)) {
       // The shortest way is not viable, we'll have to go the other way around
       controlStruct.deltaAngle =
-          control_other_angle_diff(pMot->targetAngle, pMot->angle);
+          -control_other_angle_diff(pMot->targetAngle, pMot->angle);
     }
   } else {
     // Multi-turn mode
@@ -87,7 +88,7 @@ void control_tick_P_on_position(motor* pMot) {
   if ((direction != 0) && (controlStruct.deltaAngle * direction < 0)) {
     // The shortest way is not viable, we'll have to go the other way around
     controlStruct.deltaAngle =
-        control_other_angle_diff(pMot->targetAngle, pMot->angle);
+        -control_other_angle_diff(pMot->targetAngle, pMot->angle);
   }
 
   motor_set_command(controlStruct.deltaAngle * controlStruct.pCoef);
@@ -267,6 +268,7 @@ int8 choose_direction(motor* pMot) {
   }
 
   if (motor_is_valid_angle(pMot->angle) == false) {
+    // The current angle is in a forbidden area...
     return 0;
   }
 
@@ -287,7 +289,6 @@ int8 choose_direction(motor* pMot) {
 
 int8 viable_direction(motor* pMot, int16 pDiffToGoal) {
   int16 diffToLimit = 0;
-
   if (pDiffToGoal > 0) {
     // We are spining positively
     diffToLimit = control_angle_diff(pMot->posAngleLimit, pMot->angle);
@@ -309,7 +310,7 @@ int8 viable_direction(motor* pMot, int16 pDiffToGoal) {
     }
 
     // Would we get to the limit before the goal?
-    if (pDiffToGoal >= diffToLimit) {
+    if (abs(pDiffToGoal) <= abs(diffToLimit)) {
       return -1;
     } else {
       return 1;
