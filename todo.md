@@ -1,5 +1,5 @@
 ** TODO list
-- Invert rotation convention (invert read + action)
+(check)- Invert rotation convention (invert read + action)
 - Change the torque_enable convention? (auto on if a command is given)
 - Change the default CW and CCW position limits so it can't make more than 360 out of the box
 

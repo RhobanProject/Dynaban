@@ -32,11 +32,11 @@ BOARD_INCLUDE_DIR := $(MAKEDIR)/board-includes
 BOARD ?= mx64
 MEMORY_TARGET ?= flash
 
-# Chooses the bootloader, available: maple and robotis
+# Chooses the bootloader, available: maple, servo and robotis
 BOOTLOADER ?= servo
 
 # This is the serial port used by robotis bootloader
-ROBOTIS_PORT ?= /dev/ttyUSB0 #/dev/ttyACM0
+ROBOTIS_PORT ?= /dev/ttyACM0 #/dev/ttyUSB0
 
 # $(BOARD)- and $(MEMORY_TARGET)-specific configuration
 include $(MAKEDIR)/target-config.mk

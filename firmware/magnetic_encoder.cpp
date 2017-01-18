@@ -1,5 +1,8 @@
 #include "magnetic_encoder.h"
 
+#define INVERT 1
+#define MAX_VALUE 4095
+
 /**
    Example code using this interface with 2 encoders :
 
@@ -150,7 +153,9 @@ void encoder_read_angles_sharing_pins_mode() {
         enc->angle = enc->inputLong & ANGLE_MASK;
         // shifting 18-digit angle right 6 digits to form 12-digit value
         enc->angle = (enc->angle >> 6);
-
+        if (INVERT) {
+            enc->angle = MAX_VALUE - enc->angle;
+        }
         if (debug) {
             statusbits = enc->inputLong & STATUS_MASK;
             LIN = statusbits & 8;
@@ -223,7 +228,12 @@ long encoder_read_angle_sequential(uint8 pDOPin, uint8 pCLKPin, uint8 pCSPin) {
                 //SerialUSB.println("Cordic overflow. Data invalid.");
         }
     }
-    return angle;
+    if (INVERT) {
+        return MAX_VALUE - angle;
+    } else {
+        return angle;
+    }
+
         //arrayOfTimeStamps[1] = timer->getCount();
 }
 
