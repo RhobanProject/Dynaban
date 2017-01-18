@@ -2,19 +2,18 @@
 #define _MOTOR_H_
 
 #include <wirish/wirish.h>
-#include "magnetic_encoder.h"
 #include "circular_buffer.h"
 #include "dxl.h"
-
+#include "magnetic_encoder.h"
 
 #define SHUT_DOWN_PIN PA12
 #define HAS_CURRENT_SENSING true
-#define CURRENT_ADC_PIN 33 // PB1
+#define CURRENT_ADC_PIN 33  // PB1
 #define AVERAGE_FACTOR_FOR_CURRENT 256
-#define MAX_COMMAND 2950 // 98.3% of 3000 (PWM period)
+#define MAX_COMMAND 2950  // 98.3% of 3000 (PWM period)
 #define MAX_ANGLE 4095
-#define PWM_1_PIN 26 // PA9 --> Positive rotation
-#define PWM_2_PIN 27 // PA8 --> Negative rotation
+#define PWM_1_PIN 26  // PA9 --> Positive rotation
+#define PWM_2_PIN 27  // PA8 --> Negative rotation
 
 /*
   Dxl datasheet says (seems pretty accurate) max speed is :
@@ -32,7 +31,7 @@
  */
 #define NB_TICKS_BEFORE_UPDATING_ACCELERATION 8
 #define C_NB_RAW_MEASURES 0
-#define NB_POSITIONS_SAVED 1024 // 2048 over flows by 392 bytes
+#define NB_POSITIONS_SAVED 1024  // 2048 over flows by 392 bytes
 
 static const int32 PRESCALE = 1 << 10;
 extern int32 currentRawMeasures[C_NB_RAW_MEASURES];
@@ -47,56 +46,55 @@ extern bool positionTrackerOn;
 extern bool predictiveCommandOn;
 extern float addedInertia;
 
-
-//Debug timer
+// Debug timer
 extern HardwareTimer timer3;
 
 enum motorState {
-    COMPLIANT       = 0,
-    BRAKE           = 1,
-    MOVING          = 2,
+  COMPLIANT = 0,
+  BRAKE = 1,
+  MOVING = 2,
 };
 
 struct motor {
-    int16 command;
-    int16 predictiveCommand;
-    int16 predictiveCommandTorque;
-    int16 previousCommand;
-    int16 angle;
-    int16 previousAngle;
-    buffer angleBuffer;
-    buffer speedBuffer;
-    int16 targetAngle;
-    int32 speed;
-    int32 averageSpeed;
-    int32 previousSpeed;
-    int8 signOfSpeed;
-    int32 targetSpeed;
-    bool speedUpdated;
-    int32 acceleration;
-    int32 targetAcceleration;
-    bool accelerationUpdated;
-    motorState state;
-    int32 current;
-    int32 averageCurrent;
-    int32 targetCurrent;
-    int16 posAngleLimit;
-    int16 negAngleLimit;
-    unsigned char testChar;
-    int16 offset;
-    boolean multiTurnOn;
-    int16 multiTurnAngle;
-    float electricalTorque;
-    float outputTorque;
-    float targetTorque;
-    bool temperatureIsCritic;
+  int16 command;
+  int16 predictiveCommand;
+  int16 predictiveCommandTorque;
+  int16 previousCommand;
+  int16 angle;
+  int16 previousAngle;
+  buffer angleBuffer;
+  buffer speedBuffer;
+  int16 targetAngle;
+  int32 speed;
+  int32 averageSpeed;
+  int32 previousSpeed;
+  int8 signOfSpeed;
+  int32 targetSpeed;
+  bool speedUpdated;
+  int32 acceleration;
+  int32 targetAcceleration;
+  bool accelerationUpdated;
+  motorState state;
+  int32 current;
+  int32 averageCurrent;
+  int32 targetCurrent;
+  int16 posAngleLimit;
+  int16 negAngleLimit;
+  unsigned char testChar;
+  int16 offset;
+  boolean multiTurnOn;
+  int16 multiTurnAngle;
+  float electricalTorque;
+  float outputTorque;
+  float targetTorque;
+  bool temperatureIsCritic;
 };
 
-void motor_init(encoder * pEnc);
+void motor_init(encoder* pEnc);
 
 void motor_restart_traj_timer();
 
-void motor_update(encoder * pEnc);
+void motor_update(encoder* pEnc);
 
 void motor_read_current();
 
@@ -111,7 +109,8 @@ void motor_set_target_angle_multi_turn_mode(int16 pAngle);
 void motor_set_target_current(int pCurrent);
 
 /**
- * Returns pAngle if it's a valid target angle, otherwise it will return the closest valid angle
+ * Returns pAngle if it's a valid target angle, otherwise it will return the
+ * closest valid angle
  */
 int16 motor_check_limit_angles(int16 pAngle);
 
@@ -133,7 +132,7 @@ void motor_compliant();
 
 void motor_restart();
 
-motor * motor_get_motor();
+motor* motor_get_motor();
 
 void motor_print_motor();
 
