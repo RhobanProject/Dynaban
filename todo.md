@@ -1,12 +1,11 @@
 ** TODO list
 (check)- Invert rotation convention (invert read + action)
-- Change the torque_enable convention? (auto on if a command is given)
+(nope, our convention is better) - Change the torque_enable convention? (auto on if a command is given)
+
+(could not reproduce the bug) - The Servo does not answer reads if torque_enable = 0. This is quite confusing if you test it for the first time.
+
+
 - Change the default CW and CCW position limits so it can't make more than 360 out of the box
-
-- (to be verified, seems weird) The Servo does not answer reads if torque_enable = 0. This is quite confusing if you test it for the first time.
-
-
-
 - check Endianness?
 "
 It Looks that you mixed up the error codes. The Notation of the Robotis Error Code in the Doku is Little endian
