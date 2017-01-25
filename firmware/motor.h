@@ -55,6 +55,11 @@ enum motorState {
   MOVING = 2,
 };
 
+struct filter {
+  float n0q, n1q, n2q, d1q, d2q;
+  float xn_1, xn_2;
+};
+
 struct motor {
   int16 command;
   int16 predictiveCommand;
@@ -88,6 +93,7 @@ struct motor {
   float outputTorque;
   float targetTorque;
   bool temperatureIsCritic;
+  filter filt_speed;
 };
 
 void motor_init(encoder* pEnc);

@@ -5,7 +5,9 @@
 
 static motor mot;
 static buffer previousAngleBuffer;
-
+void init_filter_state(filter *f, float e_cte);
+void motor_init_filter_speed(motor *mot, float n0p, float n1p, float n2p,
+                             float d0p, float d1p, float d2p, float te);
 int32 currentRawMeasures[C_NB_RAW_MEASURES];
 int32 currentTimming[C_NB_RAW_MEASURES];
 int currentMeasureIndex = 0;
@@ -40,9 +42,9 @@ void motor_print_time_stamp();
 // Timer for trajectory management
 HardwareTimer timer3(3);
 
-motor* motor_get_motor() { return &mot; }
+motor *motor_get_motor() { return &mot; }
 
-void motor_init(encoder* pEnc) {
+void motor_init(encoder *pEnc) {
   // Ensuring the shut down is active (inversed logic on this one)
   digitalWrite(SHUT_DOWN_PIN, LOW);
   pinMode(SHUT_DOWN_PIN, OUTPUT);
@@ -98,7 +100,15 @@ void motor_init(encoder* pEnc) {
   mot.outputTorque = 0.0;
   mot.targetTorque = 0.0;
   mot.temperatureIsCritic = false;
+  // filtre k.p /(1+2*z* p/wn+p2/wn2)
 
+  float k = dxl_regs.ram.speedCalculationDelay + 1;
+  float tau = (dxl_regs.ram.speedCalculationDelay + 1) * 0.5;
+  float wn = 1 / tau;
+  float csi = 0.7;
+  float te = 1;
+  motor_init_filter_speed(&mot, 0, k, 0, 1, 2 * csi / wn, 1 / (wn * wn), te);
+  init_filter_state(&mot.filt_speed, mot.angle);
   timer3.setPrescaleFactor(
       7200);  // 1 for current debug, 7200 => 10 tick per ms
   timer3.setOverflow(65535);
@@ -110,7 +120,39 @@ void motor_restart_traj_timer() {
   timer3.resume();
 }
 
-void motor_update(encoder* pEnc) {
+void motor_init_filter_speed(motor *mot, float n0p, float n1p, float n2p,
+                             float d0p, float d1p, float d2p, float te) {
+  filter *f = &mot->filt_speed;
+  float te2 = te * te;
+  float d0q = d0p * te2 + 2 * d1p * te + 4 * d2p;
+  f->n2q = (n0p * te2 - 2 * n1p * te + 4 * n2p) / d0q;
+  f->n1q = (2 * n0p * te2 - 8 * n2p) / d0q;
+  f->n0q = (n0p * te2 + 2 * n1p * te + 4 * n2p) / d0q;
+  f->d2q = (d0p * te2 - 2 * d1p * te + 4 * d2p) / d0q;
+  f->d1q = (2 * d0p * te2 - 8 * d2p) / d0q;
+  // icilesgars ,Attention, a initialiser en fonction des entrees intiales,
+  // supposees constantes
+  f->xn_1 = 0;
+  f->xn_2 = 0;
+}
+
+void init_filter_state(filter *f, float e_cte) {
+  // X(z)/E(z) = 1/(1+d1q.z^-1 +q2q .z^-2), a un gain statique = 1/(1+d1q+d2q) ,
+  // d'ou les valeurs de xn-1 et xn-2 a l'equilibre
+  f->xn_1 = e_cte / (1 + f->d1q + f->d2q);
+  f->xn_2 = f->xn_2;
+}
+
+float filter_speed_update(filter *f, float en) {
+  float xn = en - f->d1q * f->xn_1 - f->d2q * f->xn_2;
+  float sn = f->n0q * xn + f->n1q * f->xn_1 + f->n2q * f->xn_2;
+  //----------------------------
+  f->xn_2 = f->xn_1;
+  f->xn_1 = xn;
+  return sn;
+}
+
+void motor_update(encoder *pEnc) {
   uint16 time = timer3.getCount();
 
   int16 dt = 10; /*
@@ -162,7 +204,7 @@ void motor_update(encoder* pEnc) {
   int32 previousSpeed = mot.speed;
 
   mot.speed = mot.angle - oldPosition;
-
+  mot.speed = filter_speed_update(&mot.filt_speed, mot.angle);
   if (abs(mot.speed) > MAX_ANGLE / 2) {
     // Position went from near max to near 0 or vice-versa
     if (mot.angle >= oldPosition) {
@@ -452,7 +494,7 @@ void motor_set_target_current(int pCurrent) {
 
 /**
    Will make the engine brake. Note : it brakes hard.
-*/
+ */
 void motor_brake() {
   mot.state = BRAKE;
   mot.previousCommand = mot.command;
@@ -463,7 +505,7 @@ void motor_brake() {
 
 /**
    Will release the motor. Call motor_restart() to get out of this mode
-*/
+ */
 void motor_compliant() {
   mot.state = COMPLIANT;
   mot.previousCommand = mot.command;
@@ -545,6 +587,7 @@ void motor_print_time_stamp() {
 }
 
 #if BOARD_HAVE_SERIALUSB
+
 void motor_print_motor() {
   SerialUSB.println();
   SerialUSB.println("*** Motor :");
@@ -576,6 +619,7 @@ void motor_print_motor() {
   SerialUSB.println(mot.offset);
 }
 #else
+
 void motor_print_motor() {
   Serial1.println();
   Serial1.println("*** Motor :");
