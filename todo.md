@@ -5,7 +5,16 @@
 (could not reproduce the bug) - The Servo does not answer reads if torque_enable = 0. This is quite confusing if you test it for the first time.
 
 
-- Change the default CW and CCW position limits so it can't make more than 360 out of the box
+(check, it was a bug actually)- Change the default CW and CCW position limits so it can't make more than 360 out of the box
+
+- bootloader?
+
+- Implement the bulk read
+- Adding an ID in the dark flash (date and version of the firmware too), like a\
+ serial number. And stats : how long has the servo been used, how many degress \
+ has it rotated?
+- Dynaban 106 (MX28?)
+
 - check Endianness?
 "
 It Looks that you mixed up the error codes. The Notation of the Robotis Error Code in the Doku is Little endian
@@ -51,3 +60,6 @@ Le 17/01/2017 à 15:51, remi fabre a écrit :
 "
 
 - Sanity check. Redo the weight test ? And the anti-gravity finger. And the writing arm :D
+
+
+- Idée bootloader : copier en ram le bootloader à chaud, gaffe au référencement absolu des adresses (utiliser flag PIC?).
