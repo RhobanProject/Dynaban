@@ -144,7 +144,10 @@ void setup() {
   gpio_set_mode(GPIOB, 7, GPIO_INPUT_FLOATING);
 
   // Hack for priting before inits
-  // Serial1.begin(57600);
+  /*  Serial1.begin(57600);
+  delay(2000);
+  dump_flash();
+  while(1);*/
 
   /*Setting the timer's prescale to get a 24KHz PWM.
     PWM1 and PWM2 share the same timer, channel 1 and 2.*/
