@@ -53,7 +53,6 @@ void control_tick_PID_on_position(motor* pMot) {
     controlStruct.deltaAngle = pMot->targetAngle - pMot->multiTurnAngle;
   }
 
-  
   // The i coeff affects the speed at which the sum hits the max, but doesn't
   // affect the maximum possible value.
   controlStruct.sumOfDeltas = controlStruct.sumOfDeltas +

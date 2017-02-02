@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include "circular_buffer.h"
 
-
 buffer *buffer_creation(int pSize, long pInit) {
   // Allocating space for the struct (the buf field will still be only a
   // pointer)
