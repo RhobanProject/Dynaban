@@ -22,22 +22,15 @@ void dxl_send(ui8 *buffer, int n) {
 bool dxl_sending() { return false; }
 
 void init_dxl_ram() {
-  dxl_regs.ram.torqueEnable = 0;
-  dxl_regs.ram.led = 0;
-  dxl_regs.ram.servoKd = INITIAL_D_COEF;
-  dxl_regs.ram.servoKi = INITIAL_I_COEF;
-  dxl_regs.ram.servoKp = INITIAL_P_COEF;
-  dxl_regs.ram.torqueLimit = dxl_regs.eeprom.maxTorque;
-  dxl_regs.ram.lock = 0;
-  dxl_regs.ram.punch = 0;
-  dxl_regs.ram.torqueMode = 0;
-  dxl_regs.ram.goalCurrent = 0;
-  dxl_regs.ram.goalAcceleration = 0;
-
   dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
   dxl_regs.ram.movingSpeed = hardwareStruct.mot->targetSpeed;
   dxl_regs.ram.goalAcceleration = hardwareStruct.mot->targetAcceleration;
   dxl_regs.ram.goalCurrent = hardwareStruct.mot->targetCurrent;
+
+  dxl_regs.ram.servoKd = INITIAL_D_COEF;
+  dxl_regs.ram.servoKi = INITIAL_I_COEF;
+  dxl_regs.ram.servoKp = INITIAL_P_COEF;
+
   dxl_regs.ram.mode = POSITION_CONTROL;
 
   predictiveControl *predictiveControl = get_predictive_control();
@@ -49,11 +42,6 @@ void init_dxl_ram() {
   dxl_regs.ram.linearTransition = predictiveControl->linearTransition;
   dxl_regs.ram.kstat = predictiveControl->kstat;
 
-  dxl_regs.ram.ouputTorque = 0.0;
-  dxl_regs.ram.electricalTorque = 0.0;
-
-  dxl_regs.ram.frozenRamOn = false;
-  dxl_regs.ram.useValuesNow = false;
   dxl_regs.ram.torqueKp = get_control_struct()->torquePCoef;
 
   // The other registers are updated here :
@@ -201,6 +189,12 @@ void read_dxl_ram() {
     // No strings attached
   }
 
+  if (dxl_regs.ram.time == 0) {
+      // Special value meaning that we're starting a new trajectory and that the servo should synchronise
+      motor_restart_traj_timer();
+      
+  }
+  
   if (dxl_regs.ram.debugOn == true) {
     dxl_print_debug();
   }
@@ -245,22 +239,6 @@ void read_dxl_ram() {
   //    }
 }
 
-void dxl_copy_buffer_trajs() {
-  dxl_regs.ram.trajPoly1Size = dxl_regs.ram.trajPoly2Size;
-  dxl_regs.ram.torquePoly1Size = dxl_regs.ram.torquePoly2Size;
-  dxl_regs.ram.duration1 = dxl_regs.ram.duration2;
-
-  dxl_regs.ram.trajPoly2Size = 0;
-  dxl_regs.ram.torquePoly2Size = 0;
-  dxl_regs.ram.duration2 = 0;
-  for (int i = 0; i < DXL_POLY_SIZE; i++) {
-    dxl_regs.ram.trajPoly1[i] = dxl_regs.ram.trajPoly2[i];
-    dxl_regs.ram.trajPoly2[i] = 0;
-    dxl_regs.ram.torquePoly1[i] = dxl_regs.ram.torquePoly2[i];
-    dxl_regs.ram.torquePoly2[i] = 0;
-  }
-}
-
 void init_dxl_eeprom() { read_dxl_eeprom(); }
 
 void read_dxl_eeprom() {
@@ -283,45 +261,6 @@ void dxl_print_debug() {
   digitalWrite(BOARD_TX_ENABLE, HIGH);
   Serial1.println();
   motor_print_motor();
-
-  Serial1.print("trajPoly1Size = ");
-  Serial1.println(dxl_regs.ram.trajPoly1Size);
-  for (int i = 0; i < 5; i++) {
-    Serial1.print("trajPoly1[");
-    Serial1.print(i);
-    Serial1.print("] = ");
-    Serial1.println(dxl_regs.ram.trajPoly1[i]);
-  }
-  Serial1.print("torquePoly1Size = ");
-  Serial1.println(dxl_regs.ram.torquePoly1Size);
-  for (int i = 0; i < 5; i++) {
-    Serial1.print("torquePoly1[");
-    Serial1.print(i);
-    Serial1.print("] = ");
-    Serial1.println(dxl_regs.ram.torquePoly1[i]);
-  }
-  Serial1.print("duration1 = ");
-  Serial1.println(dxl_regs.ram.duration1);
-
-  Serial1.print("trajPoly2Size = ");
-  Serial1.println(dxl_regs.ram.trajPoly2Size);
-  for (int i = 0; i < 5; i++) {
-    Serial1.print("trajPoly2[");
-    Serial1.print(i);
-    Serial1.print("] = ");
-    Serial1.println(dxl_regs.ram.trajPoly2[i]);
-  }
-  Serial1.print("torquePoly2Size = ");
-  Serial1.println(dxl_regs.ram.torquePoly2Size);
-  for (int i = 0; i < 5; i++) {
-    Serial1.print("torquePoly2[");
-    Serial1.print(i);
-    Serial1.print("] = ");
-    Serial1.println(dxl_regs.ram.torquePoly2[i]);
-    // Serial1.println((*( (&dxl_regs.ram.torquePoly2) + i)));
-  }
-  Serial1.print("duration2 = ");
-  Serial1.println(dxl_regs.ram.duration2);
 
   Serial1.print("mode = ");
   Serial1.println(dxl_regs.ram.mode);

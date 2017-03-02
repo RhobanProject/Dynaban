@@ -41,6 +41,7 @@
 // bootloader gets fixed.
 
 #define DXL_START_OF_RAM 0x18
+#define NB_STATES 3
 
 typedef unsigned char ui8;
 
@@ -135,35 +136,14 @@ struct dxl_ram {
   unsigned short current;               // 0x44
   unsigned char torqueMode;             // 0x46
   unsigned short goalCurrent;  // 0x47 ---> Some padding here would not hurt !
-  unsigned char goalAcceleration;         // 0x49
-  unsigned char trajPoly1Size;            // 0x4A
-  float trajPoly1[DXL_POLY_SIZE];         //[4B
-                                          //[4F
-                                          //[53
-                                          //[57
-                                          //[5B
-  unsigned char torquePoly1Size;          // 0x5F
-  float torquePoly1[DXL_POLY_SIZE];       //[60
-                                          //[64
-                                          //[68
-                                          //[6C
-                                          //[70
-  uint16 duration1;                       // 0x74
-  unsigned char trajPoly2Size;            // 0x76
-  float trajPoly2[DXL_POLY_SIZE];         //[77
-                                          //[7B
-                                          //[7F
-                                          //[83
-                                          //[87
-  unsigned char torquePoly2Size;          // 0x8B
-  float torquePoly2[DXL_POLY_SIZE];       //[8C
-                                          //[90
-                                          //[94
-                                          //[98
-                                          //[9C
-  uint16 duration2;                       // 0xA0
+  unsigned char goalAcceleration;       // 0x49
+  
+  int16 futureStates[NB_STATES][3];               //[4A, 5C] // [(P0, V0, T0), (P1, V1, T1), (P2, V2, T2)]
+  uint16 dt;                              // 5D // in 0.1ms(10==1ms)
+  uint16 time;                            // 5F// in 0.1ms(10==1ms)
+
   unsigned char mode;                     // 0xA2
-  unsigned char copyNextBuffer;           // 0xA3
+                                          // 0xA3 <-- unused
   bool positionTrackerOn;                 // 0xA4
   bool debugOn;                           // 0xA5
   uint16 unused;                          // 0xA6

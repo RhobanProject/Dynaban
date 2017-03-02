@@ -83,9 +83,6 @@ void dxl_init_regs() {
 
   dxl_regs.ram.torqueEnable = 0;
   dxl_regs.ram.led = 0;
-  dxl_regs.ram.servoKd = 0;
-  dxl_regs.ram.servoKi = 0;
-  dxl_regs.ram.servoKp = 32;
   dxl_regs.ram.torqueLimit = dxl_regs.eeprom.maxTorque;
   dxl_regs.ram.registeredInstruction = 0;
   dxl_regs.ram.moving = 0;
@@ -96,23 +93,17 @@ void dxl_init_regs() {
   dxl_regs.ram.goalCurrent = 0;
   dxl_regs.ram.goalAcceleration = 0;
 
-  // New stuff :
-  dxl_regs.ram.trajPoly1Size = DXL_POLY_SIZE;
-  dxl_regs.ram.torquePoly1Size = DXL_POLY_SIZE;
-  dxl_regs.ram.trajPoly1Size = DXL_POLY_SIZE;
-  dxl_regs.ram.torquePoly2Size = DXL_POLY_SIZE;
-  dxl_regs.ram.duration1 = 0;
-  dxl_regs.ram.duration2 = 0;
-  for (int i = 0; i < DXL_POLY_SIZE; i++) {
-    dxl_regs.ram.trajPoly1[i] = 0.0;
-    dxl_regs.ram.torquePoly1[i] = 0.0;
-    dxl_regs.ram.trajPoly2[i] = 0.0;
-    dxl_regs.ram.torquePoly2[i] = 0.0;
+  // New stuff
+  for (int i = 0; i < NB_STATES; i++) {
+    dxl_regs.ram.futureStates[i][0] = 0;
+    dxl_regs.ram.futureStates[i][1] = 0;
+    dxl_regs.ram.futureStates[i][2] = 0;
   }
-
+  dxl_regs.ram.dt = 10;
+  dxl_regs.ram.time = 0;
+  
   dxl_regs.ram.speedCalculationDelay = 50;
   dxl_regs.ram.mode = 0;
-  dxl_regs.ram.copyNextBuffer = 0;
   dxl_regs.ram.positionTrackerOn = false;
   dxl_regs.ram.debugOn = false;
 
@@ -121,6 +112,12 @@ void dxl_init_regs() {
   dxl_regs.ram.predictiveCommandPeriod = 10;
   dxl_regs.ram.controlMariageMode = 1;
 
+  dxl_regs.ram.ouputTorque = 0.0;
+  dxl_regs.ram.electricalTorque = 0.0;
+
+  dxl_regs.ram.frozenRamOn = false;
+  dxl_regs.ram.useValuesNow = false;
+  
   dxl_regs.ram.unused = 160;
   dxl_regs.ram.hardestHysteresys = 80;
 }

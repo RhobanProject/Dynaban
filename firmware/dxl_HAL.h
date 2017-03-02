@@ -41,11 +41,6 @@ void init_dxl_eeprom();
 void update_dxl_ram();
 
 /**
- * Copies the trajPoly2 and torquePoly2 info into the trajPoly2 and torquePoly2
- */
-void dxl_copy_buffer_trajs();
-
-/**
  * Reads the dynamixel ram and applies modifications (such as goas position)
  */
 void read_dxl_ram();

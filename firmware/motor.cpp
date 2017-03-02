@@ -101,7 +101,6 @@ void motor_init(encoder *pEnc) {
   mot.targetTorque = 0.0;
   mot.temperatureIsCritic = false;
   // filtre k.p /(1+2*z* p/wn+p2/wn2)
-
   float k = dxl_regs.ram.speedCalculationDelay + 1;
   float tau = (dxl_regs.ram.speedCalculationDelay + 1) * 0.5;
   float wn = 1 / tau;
@@ -109,12 +108,18 @@ void motor_init(encoder *pEnc) {
   float te = 1;
   motor_init_filter_speed(&mot, 0, k, 0, 1, 2 * csi / wn, 1 / (wn * wn), te);
   init_filter_state(&mot.filt_speed, mot.angle);
+
+  mot.feed_state[0] = 0;
+  mot.feed_state[1] = 0;
+  mot.feed_state[2] = 0;
+  
   timer3.setPrescaleFactor(
       7200);  // 1 for current debug, 7200 => 10 tick per ms
   timer3.setOverflow(65535);
 }
 
 void motor_restart_traj_timer() {
+  // This timer is used as a timestamp for the trajectories
   timer3.pause();
   timer3.refresh();
   timer3.resume();
@@ -230,23 +235,15 @@ void motor_update(encoder *pEnc) {
     if (changeId == 0) {
       changeId = timeIndexMotor;
     }
+    
     if (counterUpdate % (dxl_regs.ram.predictiveCommandPeriod) == 0) {
-      if (time > dxl_regs.ram.duration1 && controlMode != COMPLIANT_KIND_OF) {
-        motor_restart_traj_timer();
-        time = 0;
-        if (dxl_regs.ram.copyNextBuffer != 0) {
-          // Copying the buffer into the actual trajs
-          dxl_regs.ram.copyNextBuffer = 0;
-          dxl_copy_buffer_trajs();
-        } else {
-          digitalWrite(BOARD_LED_PIN, LOW);
+      if (time > dxl_regs.ram.time*NB_STATES && controlMode != COMPLIANT_KIND_OF) {
           // Default action : forcing the motor to stay where it stands (through
           // PID)
           controlMode = POSITION_CONTROL;
           dxl_regs.ram.mode = 0;
           hardwareStruct.mot->targetAngle = hardwareStruct.mot->angle;
           dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
-        }
       }
       // These 3 lines make it impossible for the bootloader to load the binary
       // file, mainly because of the cos import. -> Known bug and known solution
@@ -256,28 +253,28 @@ void motor_update(encoder *pEnc) {
       //             predictive_control_anti_gravity_tick(&mot, mot.speed,
       //             weightCompensation, addedInertia);
 
-      // We're going to evaluate at least one polynom (and more often than not,
-      // 3 polynoms). We'll calculate the powers of t only once :
-      int maxPower =
-          max(dxl_regs.ram.trajPoly1Size, dxl_regs.ram.torquePoly1Size);
-      float timePowers[4];
-      eval_powers_of_t(timePowers, time, maxPower, 10000);
-
       if (controlMode == COMPLIANT_KIND_OF) {
         predictive_control_anti_gravity_tick(&mot, mot.speed, 0.0, 0.0);
       } else {
-        predictive_control_tick(
+          //Interpolating the next goal position/speed/torque
+          int32 goalPosition = 0.0;
+          int32 goalSpeed = 0.0;
+          float goalTorque = 0.0;
+          traj_interpolate_next_state(time, dxl_regs.ram.time, dt * (dxl_regs.ram.predictiveCommandPeriod), mot.feed_state, &goalPosition, &goalSpeed, &goalTorque);
+          //Calling the feed forward function
+          predictive_control_tick(
             &mot,
-            (int32)traj_eval_poly_derivate(dxl_regs.ram.trajPoly1, timePowers),
+            goalSpeed,
             dt * (dxl_regs.ram.predictiveCommandPeriod),
-            traj_eval_poly(dxl_regs.ram.torquePoly1, timePowers), 0);
-      }
+            goalTorque, 0);
 
-      if (controlMode == PID_AND_PREDICTIVE_COMMAND ||
-          controlMode == PID_ONLY) {
-        mot.targetAngle = traj_magic_modulo(
-            round(traj_eval_poly(dxl_regs.ram.trajPoly1, timePowers)),
-            MAX_ANGLE + 1);
+          if (controlMode == PID_AND_PREDICTIVE_COMMAND ||
+              controlMode == PID_ONLY) {
+            // Actually, this is not the position we want to be in dt but the
+            // position we should be right now (traj_interpolate_next_state
+            // handles this)
+            mot.targetAngle = traj_magic_modulo(goalPosition, MAX_ANGLE + 1);
+          }
       }
 
       if (dxl_regs.ram.positionTrackerOn == true) {
