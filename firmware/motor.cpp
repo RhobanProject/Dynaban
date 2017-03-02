@@ -203,7 +203,8 @@ void motor_update(encoder *pEnc) {
   // Updating the motor speed
   int32 previousSpeed = mot.speed;
 
-  mot.speed = mot.angle - oldPosition;
+  //mot.speed = mot.angle - oldPosition;
+  // New way of calculating the speed
   mot.speed = filter_speed_update(&mot.filt_speed, mot.angle);
   if (abs(mot.speed) > MAX_ANGLE / 2) {
     // Position went from near max to near 0 or vice-versa
