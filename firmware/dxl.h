@@ -37,7 +37,7 @@
 
 #define DXL_POLY_SIZE 5
 #define DXL_MAGIC_OFFSET_ADRESS 0x0800C000
-// 0x0801F400 // <-- This address is the new one, that we'll use once the
+// 0x0801F400 // <-- This address is the new one. We'll use it once the
 // bootloader gets fixed.
 
 #define DXL_START_OF_RAM 0x18
@@ -61,7 +61,7 @@ struct dxl_packet {
   ui8 currentError;
 };
 
-// HAL to implement
+
 unsigned int dxl_data_available();
 ui8 dxl_data_byte();
 void dxl_send(ui8 *buffer, int n);
@@ -184,6 +184,8 @@ struct dxl_ram {
   unsigned char predictiveCommandPeriod;  // 0xD6
   unsigned char controlMariageMode;       // 0xD7
   uint16 hardestHysteresys;               // 0xD8
+    // In mV.
+  uint16 presentPWMVoltage;               // 0xDA
 
 } __attribute__((packed));
 

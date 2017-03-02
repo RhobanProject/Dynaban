@@ -41,7 +41,7 @@ void predictive_control_init() {
                                   exp(-1) * pControl.kstat + pControl.kcoul) /
                                  (1 - exp(-1));  // N.m
 
-  pControl.voltsToCommand = 3000 / pControl.vAlim;  // Command/V
+  pControl.voltsToCommand = OVER_FLOW / pControl.vAlim;  // Command/V
   pControl.stepsToRads = 2 * PI / 4096.0;           // rad/step
   pControl.torqueToVoltage =
       pControl.r / pControl.ke;  // in Ohm.rad/(V.s) = V/(N.m)
@@ -57,7 +57,7 @@ void predictive_control_update() {
   pControl.coulombContribution = (pControl.kvis * pControl.linearTransition -
                                   exp(-1) * pControl.kstat + pControl.kcoul) /
                                  (1 - exp(-1));     // N.m
-  pControl.voltsToCommand = 3000 / pControl.vAlim;  // Command/V
+  pControl.voltsToCommand = OVER_FLOW / pControl.vAlim;  // Command/V
   pControl.stepsToRads = 2 * PI / 4096.0;           // rad/step
   pControl.torqueToVoltage =
       pControl.r / pControl.ke;  // in Ohm.rad/(V.s) = V/(N.m)

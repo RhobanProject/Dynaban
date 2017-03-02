@@ -11,7 +11,6 @@
 
 #define POWER_SUPPLY_ADC_PIN PA2
 #define TEMPERATURE_ADC_PIN PA1
-#define OVER_FLOW 3000
 
 /**
  * Schedules the hardware tasks

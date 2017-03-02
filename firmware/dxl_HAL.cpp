@@ -77,6 +77,9 @@ void update_dxl_ram() {
 
   // dxl_regs.ram.registeredInstruction = ; // To do?
 
+  //An input voltage of 120 means 12V. presentPWMVoltage is in mV though.
+  dxl_regs.ram.presentPWMVoltage = terrible_sign_convention((int32_t)(hardwareStruct.mot->command * hardwareStruct.voltage*100 /(OVER_FLOW)), 2048);
+  
   if (hardwareStruct.mot->speed != 0) {
     dxl_regs.ram.moving = 1;
   } else {
