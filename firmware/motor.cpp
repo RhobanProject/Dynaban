@@ -112,6 +112,8 @@ void motor_init(encoder *pEnc) {
   mot.feed_state[0] = 0;
   mot.feed_state[1] = 0;
   mot.feed_state[2] = 0;
+
+  mot.time = 0;
   
   timer3.setPrescaleFactor(
       7200);  // 1 for current debug, 7200 => 10 tick per ms
@@ -120,6 +122,13 @@ void motor_init(encoder *pEnc) {
 
 void motor_restart_traj_timer() {
   // This timer is used as a timestamp for the trajectories
+    //Attention !
+  digitalWrite(BOARD_TX_ENABLE, HIGH);
+  Serial1.println();
+  Serial1.println("Restarted!!");
+  Serial1.waitDataToBeSent();
+  digitalWrite(BOARD_TX_ENABLE, LOW);
+
   timer3.pause();
   timer3.refresh();
   timer3.resume();
@@ -159,7 +168,7 @@ float filter_speed_update(filter *f, float en) {
 
 void motor_update(encoder *pEnc) {
   uint16 time = timer3.getCount();
-
+  mot.time = time;
   int16 dt = 10; /*
                   * This function should be called every 1 ms.
                   * The plan B would be to estimate dt = time - previousTime;
@@ -182,7 +191,7 @@ void motor_update(encoder *pEnc) {
 
   // Should not be useful, just being careful
   tempAngle = tempAngle % (MAX_ANGLE + 1);
-
+  
   mot.angle = tempAngle;
   if (mot.multiTurnOn == false) {
     mot.multiTurnAngle = mot.angle;
@@ -237,13 +246,20 @@ void motor_update(encoder *pEnc) {
     }
     
     if (counterUpdate % (dxl_regs.ram.predictiveCommandPeriod) == 0) {
-      if (time > dxl_regs.ram.time*NB_STATES && controlMode != COMPLIANT_KIND_OF) {
+        // Hum, (dxl_regs.ram.time + NB_STATES*dxl_regs.ram.dt) could overflow...
+        if (time > (dxl_regs.ram.time + NB_STATES*dxl_regs.ram.dt) && controlMode != COMPLIANT_KIND_OF) {
           // Default action : forcing the motor to stay where it stands (through
           // PID)
           controlMode = POSITION_CONTROL;
           dxl_regs.ram.mode = 0;
           hardwareStruct.mot->targetAngle = hardwareStruct.mot->angle;
           dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
+          //Attention !
+          digitalWrite(BOARD_TX_ENABLE, HIGH);
+          Serial1.println();
+          Serial1.println("Stopped!!");
+          Serial1.waitDataToBeSent();
+          digitalWrite(BOARD_TX_ENABLE, LOW);
       }
       // These 3 lines make it impossible for the bootloader to load the binary
       // file, mainly because of the cos import. -> Known bug and known solution
@@ -262,19 +278,22 @@ void motor_update(encoder *pEnc) {
           float goalTorque = 0.0;
           traj_interpolate_next_state(time, dxl_regs.ram.time, dt * (dxl_regs.ram.predictiveCommandPeriod), mot.feed_state, &goalPosition, &goalSpeed, &goalTorque);
           //Calling the feed forward function
-          predictive_control_tick(
+          /*predictive_control_tick(
             &mot,
             goalSpeed,
             dt * (dxl_regs.ram.predictiveCommandPeriod),
-            goalTorque, 0);
+            goalTorque, 0);*/
 
           if (controlMode == PID_AND_PREDICTIVE_COMMAND ||
               controlMode == PID_ONLY) {
             // Actually, this is not the position we want to be in dt but the
             // position we should be right now (traj_interpolate_next_state
             // handles this)
-            mot.targetAngle = traj_magic_modulo(goalPosition, MAX_ANGLE + 1);
+              mot.targetAngle = traj_magic_modulo(goalPosition, MAX_ANGLE + 1);
           }
+          mot.feed_state[0] = mot.targetAngle;
+          mot.feed_state[1] = goalSpeed;
+          mot.feed_state[2] = goalTorque;
       }
 
       if (dxl_regs.ram.positionTrackerOn == true) {

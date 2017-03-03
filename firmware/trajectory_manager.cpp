@@ -340,37 +340,39 @@ void traj_interpolate_next_state(uint16 t, uint16 t0, uint16 dtControl,
                                  int16 current_state[3],
                                  int32* goalPosition, int32* goalSpeed,
                                  float* goalTorque) {
-  // Finding the goal state, it's either the state 0, 1 or 2.
-  volatile int16_t* state;
+
+Check this. 
+    // Finding the goal state, it's either the state 0, 1 or 2.
+  volatile int16_t* goalState;
   uint16 tGoal = 0;
-  if (t0 > t) {
-    state = dxl_regs.ram.futureStates[0];
+  if (t < t0) {
+    goalState = dxl_regs.ram.futureStates[0];
     tGoal = t0;
   } else if (t < (dxl_regs.ram.dt + t0)) {
-    state = dxl_regs.ram.futureStates[1];
+    goalState = dxl_regs.ram.futureStates[1];
     tGoal = t0 + dxl_regs.ram.dt;
   } else {
+    goalState = dxl_regs.ram.futureStates[2];
     tGoal = t0 + 2*dxl_regs.ram.dt;
-    state = dxl_regs.ram.futureStates[2];
   }
 
   // Linear interpolation between the current state and the goal state, evaluated in (t + dtControl) for the speed and the torque and in (t) for the position (because the position is used for the feed-back and the others 2 for the feed-forward)
-  float percentage = 1.0 - abs(t - tGoal)/dxl_regs.ram.dt;
-  *goalPosition = (state[0] - current_state[0])*percentage;
+  float percentage = 1.0 - abs(t - tGoal)/float(dxl_regs.ram.dt);
+  *goalPosition = current_state[0] + (goalState[0] - current_state[0])*percentage;
 
   // Now for t + dtControl
   t = t + dtControl;
-  if (t0 > t) {
-    state = dxl_regs.ram.futureStates[0];
+  if (t < t0) {
+    goalState = dxl_regs.ram.futureStates[0];
     tGoal = t0;
   } else if (t < (dxl_regs.ram.dt + t0)) {
-    state = dxl_regs.ram.futureStates[1];
+    goalState = dxl_regs.ram.futureStates[1];
     tGoal = t0 + dxl_regs.ram.dt;
   } else {
+    goalState = dxl_regs.ram.futureStates[2];
     tGoal = t0 + 2*dxl_regs.ram.dt;
-    state = dxl_regs.ram.futureStates[2];
   }
-  percentage = 1.0 - abs(t - tGoal)/dxl_regs.ram.dt;
-  *goalSpeed = (state[1] - current_state[1])*percentage;
-  *goalTorque = (state[2] - current_state[2])*percentage;
+  percentage = 1.0 - abs(t - tGoal)/float(dxl_regs.ram.dt);
+  *goalSpeed = current_state[1] + (state[1] - current_state[1])*percentage;
+  *goalTorque = current_state[2] + (state[2] - current_state[2])*percentage;
 }

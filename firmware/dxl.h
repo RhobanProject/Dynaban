@@ -137,8 +137,10 @@ struct dxl_ram {
   unsigned char torqueMode;             // 0x46
   unsigned short goalCurrent;           // 0x47 ---> Some padding here would not hurt !
   unsigned char goalAcceleration;       // 0x49
-  
-  int16 futureStates[NB_STATES][3];       //[4A, 5B] // [(P0, V0, T0), (P1, V1, T1), (P2, V2, T2)]
+
+  int16 futureStates[NB_STATES][3];  //[4A, 5B] // [(P0, V0, T0), (P1, V1, T1),
+                                     //(P2, V2, T2)] Position and speed in steps
+                                     //and steps/s, torque in mN.m
   uint16 dt;                              // 5C // in 0.1ms(10==1ms)
   uint16 time;                            // 5E// in 0.1ms(10==1ms)
   unsigned char _padding5[66];            // [60, A1] <-- unused

@@ -194,9 +194,9 @@ void read_dxl_ram() {
   }
   
   if (dxl_regs.ram.time == 0) {
-      // Special value meaning that we're starting a new trajectory and that the servo should synchronise
+      // Special value meaning that we're starting a new trajectory and that the servo should synchronise    
       motor_restart_traj_timer();
-      
+      dxl_regs.ram.time = 1; // Astuce ! 0.1ms wrong is the cost.
   }
   
   predictiveControl *pControl = get_predictive_control();
@@ -261,10 +261,44 @@ void dxl_print_debug() {
   digitalWrite(BOARD_TX_ENABLE, HIGH);
   Serial1.println();
 
-  for(int i = 0; i < 50; i ++) {
-      Serial1.println("*** test:");
-      Serial1.print(i);
-  }
+  Serial1.print("s0 = ");
+  Serial1.println(hardwareStruct.mot->feed_state[0]);
+  Serial1.print("s1 = ");
+  Serial1.println(hardwareStruct.mot->feed_state[1]); 
+  Serial1.print("s2 = ");
+  Serial1.println(hardwareStruct.mot->feed_state[2]);
+  Serial1.print("t = ");
+  Serial1.println(hardwareStruct.mot->time);
+  Serial1.print("ft = ");
+  Serial1.println(dxl_regs.ram.time);
+  Serial1.print("dt = ");
+  Serial1.println(dxl_regs.ram.dt);
+  Serial1.print("mode = ");
+  Serial1.println(dxl_regs.ram.mode); 
+  Serial1.print("controlMode = ");
+  Serial1.println(controlMode);
+  /*
+  Serial1.print("p0 = ");
+  Serial1.println(dxl_regs.ram.futureStates[0][0]);
+  Serial1.print("s0 = ");
+  Serial1.println(dxl_regs.ram.futureStates[0][1]); 
+  Serial1.print("t0 = ");
+  Serial1.println(dxl_regs.ram.futureStates[0][2]);
+
+  Serial1.print("p1 = ");
+  Serial1.println(dxl_regs.ram.futureStates[1][0]);
+  Serial1.print("s1 = ");
+  Serial1.println(dxl_regs.ram.futureStates[1][1]); 
+  Serial1.print("t1 = ");
+  Serial1.println(dxl_regs.ram.futureStates[1][2]);
+
+  Serial1.print("p2 = ");
+  Serial1.println(dxl_regs.ram.futureStates[2][0]);
+  Serial1.print("s2 = ");
+  Serial1.println(dxl_regs.ram.futureStates[2][1]); 
+  Serial1.print("t2 = ");
+  Serial1.println(dxl_regs.ram.futureStates[2][2]); 
+  */
   Serial1.waitDataToBeSent();
   digitalWrite(BOARD_TX_ENABLE, LOW);
   return;
@@ -272,9 +306,6 @@ void dxl_print_debug() {
   motor_print_motor();
 
   Serial1.println("*** General :");
-
-  Serial1.print("target angle = ");
-  Serial1.println(hardwareStruct.mot->targetAngle); 
   
   Serial1.print("mode = ");
   Serial1.println(dxl_regs.ram.mode);

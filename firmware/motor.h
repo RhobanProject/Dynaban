@@ -96,6 +96,7 @@ struct motor {
   bool temperatureIsCritic;
   filter filt_speed;
   int16 feed_state[3];
+  uint16 time;
 };
 
 void motor_init(encoder* pEnc);
