@@ -189,16 +189,16 @@ void read_dxl_ram() {
     // No strings attached
   }
 
+  if (dxl_regs.ram.debugOn == true) {
+    dxl_print_debug();
+  }
+  
   if (dxl_regs.ram.time == 0) {
       // Special value meaning that we're starting a new trajectory and that the servo should synchronise
       motor_restart_traj_timer();
       
   }
   
-  if (dxl_regs.ram.debugOn == true) {
-    dxl_print_debug();
-  }
-
   predictiveControl *pControl = get_predictive_control();
   if (pControl->kstat != dxl_regs.ram.kstat ||
       pControl->i0 != dxl_regs.ram.i0 || pControl->r != dxl_regs.ram.r ||
@@ -260,8 +260,22 @@ unsigned short terrible_sign_convention(int32 pInput, int32 pIamZeroISwear) {
 void dxl_print_debug() {
   digitalWrite(BOARD_TX_ENABLE, HIGH);
   Serial1.println();
+
+  for(int i = 0; i < 50; i ++) {
+      Serial1.println("*** test:");
+      Serial1.print(i);
+  }
+  Serial1.waitDataToBeSent();
+  digitalWrite(BOARD_TX_ENABLE, LOW);
+  return;
+  
   motor_print_motor();
 
+  Serial1.println("*** General :");
+
+  Serial1.print("target angle = ");
+  Serial1.println(hardwareStruct.mot->targetAngle); 
+  
   Serial1.print("mode = ");
   Serial1.println(dxl_regs.ram.mode);
 

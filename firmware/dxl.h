@@ -135,15 +135,15 @@ struct dxl_ram {
   unsigned char _padding4[18];          // 0x32
   unsigned short current;               // 0x44
   unsigned char torqueMode;             // 0x46
-  unsigned short goalCurrent;  // 0x47 ---> Some padding here would not hurt !
+  unsigned short goalCurrent;           // 0x47 ---> Some padding here would not hurt !
   unsigned char goalAcceleration;       // 0x49
   
-  int16 futureStates[NB_STATES][3];               //[4A, 5C] // [(P0, V0, T0), (P1, V1, T1), (P2, V2, T2)]
-  uint16 dt;                              // 5D // in 0.1ms(10==1ms)
-  uint16 time;                            // 5F// in 0.1ms(10==1ms)
-
+  int16 futureStates[NB_STATES][3];       //[4A, 5B] // [(P0, V0, T0), (P1, V1, T1), (P2, V2, T2)]
+  uint16 dt;                              // 5C // in 0.1ms(10==1ms)
+  uint16 time;                            // 5E// in 0.1ms(10==1ms)
+  unsigned char _padding5[66];            // [60, A1] <-- unused
   unsigned char mode;                     // 0xA2
-                                          // 0xA3 <-- unused
+  unsigned char _padding6[1];             // 0xA3 <-- unused
   bool positionTrackerOn;                 // 0xA4
   bool debugOn;                           // 0xA5
   uint16 unused;                          // 0xA6
