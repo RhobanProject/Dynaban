@@ -340,8 +340,7 @@ void traj_interpolate_next_state(uint16 t, uint16 t0, uint16 dtControl,
                                  int16 current_state[3],
                                  int32* goalPosition, int32* goalSpeed,
                                  float* goalTorque) {
-
-Check this. 
+    to do : interpolate between user points, not present point
     // Finding the goal state, it's either the state 0, 1 or 2.
   volatile int16_t* goalState;
   uint16 tGoal = 0;
