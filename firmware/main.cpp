@@ -320,18 +320,20 @@ void hardware_tick() {
     // No control
   }
   // add_benchmark_time();
-  if (hardwareCounter & (1 << 7)) {
+  if (hardwareCounter & (1 << 3)) {
     /*
-     * These actions are performed at ~10 Hz (7.8 Hz).
-     * Why the & (1 << 7) weirdness? We try to avoid % operator when possible,
+     * These actions are performed at ~100 Hz (125 Hz).
+     * Why the & (1 << 3) weirdness? We try to avoid % operator when possible,
      * takes too long.
      */
 
     // Updating power supply value (the value is 10 times bigger than the real
     // value)
     uint8_t voltageMeasure = read_voltage();
+    // TODO put the mobile average back
     // Mobile averaging to reduce impact of transient values of voltages
-    hardwareStruct.voltage = (hardwareStruct.voltage * 3 + voltageMeasure) / 4;
+    //hardwareStruct.voltage = (hardwareStruct.voltage * 3 + voltageMeasure) / 4;
+    hardwareStruct.voltage = voltageMeasure;
   }
   hardwareCounter++;
   if (hardwareCounter & (1 << 10)) {

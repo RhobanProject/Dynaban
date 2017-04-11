@@ -109,10 +109,14 @@ void motor_init(encoder *pEnc) {
   motor_init_filter_speed(&mot, 0, k, 0, 1, 2 * csi / wn, 1 / (wn * wn), te);
   init_filter_state(&mot.filt_speed, mot.angle);
 
-  mot.feed_state[0] = 0;
-  mot.feed_state[1] = 0;
-  mot.feed_state[2] = 0;
-
+  mot.feedState[0] = 0;
+  mot.feedState[1] = 0;
+  mot.feedState[2] = 0;
+  mot.previousGoalState[0] = 0;
+  mot.previousGoalState[1] = 0;
+  mot.previousGoalState[2] = 0;
+  mot.previousGoalTime = 0;
+  
   mot.time = 0;
   
   timer3.setPrescaleFactor(
@@ -247,19 +251,10 @@ void motor_update(encoder *pEnc) {
     
     if (counterUpdate % (dxl_regs.ram.predictiveCommandPeriod) == 0) {
         // Hum, (dxl_regs.ram.time + NB_STATES*dxl_regs.ram.dt) could overflow...
-        if (time > (dxl_regs.ram.time + NB_STATES*dxl_regs.ram.dt) && controlMode != COMPLIANT_KIND_OF) {
+        if (time > (dxl_regs.ram.time + (NB_STATES-1)*dxl_regs.ram.dt) && controlMode != COMPLIANT_KIND_OF) {
           // Default action : forcing the motor to stay where it stands (through
           // PID)
-          controlMode = POSITION_CONTROL;
-          dxl_regs.ram.mode = 0;
-          hardwareStruct.mot->targetAngle = hardwareStruct.mot->angle;
-          dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
-          //Attention !
-          digitalWrite(BOARD_TX_ENABLE, HIGH);
-          Serial1.println();
-          Serial1.println("Stopped!!");
-          Serial1.waitDataToBeSent();
-          digitalWrite(BOARD_TX_ENABLE, LOW);
+          motor_set_default_mode();
       }
       // These 3 lines make it impossible for the bootloader to load the binary
       // file, mainly because of the cos import. -> Known bug and known solution
@@ -276,24 +271,30 @@ void motor_update(encoder *pEnc) {
           int32 goalPosition = 0.0;
           int32 goalSpeed = 0.0;
           float goalTorque = 0.0;
-          traj_interpolate_next_state(time, dxl_regs.ram.time, dt * (dxl_regs.ram.predictiveCommandPeriod), mot.feed_state, &goalPosition, &goalSpeed, &goalTorque);
+          int flag = traj_interpolate_next_state(time, dxl_regs.ram.time, dt * (dxl_regs.ram.predictiveCommandPeriod), mot.previousGoalState, &mot.previousGoalTime, &goalPosition, &goalSpeed, &goalTorque);
+          if (flag != 0) {
+              // Something went wrong
+              motor_set_default_mode();
+          }
+
+          // The user sends the torque in mNm
+          float goalTorqueSI = goalTorque/1000.0;
           //Calling the feed forward function
-          /*predictive_control_tick(
+          predictive_control_tick(
             &mot,
             goalSpeed,
             dt * (dxl_regs.ram.predictiveCommandPeriod),
-            goalTorque, 0);*/
+            goalTorqueSI, 0);
 
-          if (controlMode == PID_AND_PREDICTIVE_COMMAND ||
-              controlMode == PID_ONLY) {
-            // Actually, this is not the position we want to be in dt but the
-            // position we should be right now (traj_interpolate_next_state
-            // handles this)
-              mot.targetAngle = traj_magic_modulo(goalPosition, MAX_ANGLE + 1);
-          }
-          mot.feed_state[0] = mot.targetAngle;
-          mot.feed_state[1] = goalSpeed;
-          mot.feed_state[2] = goalTorque;
+
+          // Actually, this is not the position we want to be in dt but the
+          // position we should be right now (traj_interpolate_next_state
+          // handles this)
+          mot.targetAngle = traj_magic_modulo(goalPosition, MAX_ANGLE + 1);
+          
+          mot.feedState[0] = mot.targetAngle;
+          mot.feedState[1] = goalSpeed;
+          mot.feedState[2] = goalTorque;
       }
 
       if (dxl_regs.ram.positionTrackerOn == true) {
@@ -547,6 +548,21 @@ void motor_temperature_is_okay() {
   mot.temperatureIsCritic = false;
   motor_restart();
   digitalWrite(BOARD_LED_PIN, HIGH);
+}
+
+void motor_set_default_mode() {
+    controlMode = POSITION_CONTROL;
+    dxl_regs.ram.mode = 0;
+    hardwareStruct.mot->targetAngle = hardwareStruct.mot->angle;
+    dxl_regs.ram.goalPosition = hardwareStruct.mot->targetAngle;
+    /*
+    //Attention !
+    digitalWrite(BOARD_TX_ENABLE, HIGH);
+    Serial1.println();
+    Serial1.println("Stopped!!");
+    Serial1.waitDataToBeSent();
+    digitalWrite(BOARD_TX_ENABLE, LOW);
+    */
 }
 
 void print_detailed_trajectory() {

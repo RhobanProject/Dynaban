@@ -59,9 +59,10 @@ void predictive_control_anti_gravity_tick(motor* pMot, int32 pVGoal,
                                           float pOutputTorque, float pIAdded);
 int8 sign(int32 pInput);
 
-void traj_interpolate_next_state(uint16 t, uint16 t0, uint16 dtControl,
-                                 int16 current_state[3],
+int traj_interpolate_next_state(uint16 t, uint16 t0, uint16 dtControl,
+                                 volatile int16 previousGoalState[3],
+                                 uint16* previousGoalTime,
                                  int32* goalPosition, int32* goalSpeed,
-                                 float* goalTorque);
+                                float* goalTorque);
 
 #endif

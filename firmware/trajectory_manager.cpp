@@ -336,42 +336,69 @@ int8 sign(int32 pInput) {
   }
 }
 
-void traj_interpolate_next_state(uint16 t, uint16 t0, uint16 dtControl,
-                                 int16 current_state[3],
+int traj_interpolate_next_state(uint16 t, uint16 t0, uint16 dtControl,
+                                 volatile int16 previousGoalState[3],
+                                 uint16* previousGoalTime,
                                  int32* goalPosition, int32* goalSpeed,
                                  float* goalTorque) {
-    to do : interpolate between user points, not present point
+    //to do : interpolate between user points, not present point
+    // TODO dp/dt =V0 en 0 , dp/dt =V1 en t1 p(0) =p0 , p(t1) = p1 => 4 coeffs
+    // P(t) = P0 + V0.(t + a2 (t + a3))
+    
     // Finding the goal state, it's either the state 0, 1 or 2.
-  volatile int16_t* goalState;
+  volatile int16* goalState;
   uint16 tGoal = 0;
   if (t < t0) {
+      // The user send a set of states that are all in the future, we'll interpolate between our last goal state and the first state
     goalState = dxl_regs.ram.futureStates[0];
     tGoal = t0;
   } else if (t < (dxl_regs.ram.dt + t0)) {
+      // Between point 0 and point 1
+    previousGoalState = dxl_regs.ram.futureStates[0];
+    *previousGoalTime = t0;
     goalState = dxl_regs.ram.futureStates[1];
     tGoal = t0 + dxl_regs.ram.dt;
-  } else {
+  } else if (t < (2*dxl_regs.ram.dt + t0)) {
+    // Between point 1 and point 2
+    previousGoalState = dxl_regs.ram.futureStates[1];
+    *previousGoalTime = t0 + dxl_regs.ram.dt;
     goalState = dxl_regs.ram.futureStates[2];
     tGoal = t0 + 2*dxl_regs.ram.dt;
+  } else {
+      // Should never happen, the case must be handled before calling this function
+      return -1;
   }
-
+  uint16 tPast = *previousGoalState;
   // Linear interpolation between the current state and the goal state, evaluated in (t + dtControl) for the speed and the torque and in (t) for the position (because the position is used for the feed-back and the others 2 for the feed-forward)
-  float percentage = 1.0 - abs(t - tGoal)/float(dxl_regs.ram.dt);
-  *goalPosition = current_state[0] + (goalState[0] - current_state[0])*percentage;
+  *goalPosition = ((goalState[0] - previousGoalState[0])/(tGoal - tPast))*(t - tPast) + previousGoalState[0];
 
   // Now for t + dtControl
   t = t + dtControl;
-  if (t < t0) {
+    if (t < t0) {
+      // The user send a set of states that are all in the future, we'll interpolate between our last goal state and the first state
     goalState = dxl_regs.ram.futureStates[0];
     tGoal = t0;
   } else if (t < (dxl_regs.ram.dt + t0)) {
+      // Between point 0 and point 1
+    previousGoalState = dxl_regs.ram.futureStates[0];
+    *previousGoalTime = t0;
     goalState = dxl_regs.ram.futureStates[1];
     tGoal = t0 + dxl_regs.ram.dt;
-  } else {
+  } else if (t < (2*dxl_regs.ram.dt + t0)) {
+    // Between point 1 and point 2
+    previousGoalState = dxl_regs.ram.futureStates[1];
+    *previousGoalTime = t0 + dxl_regs.ram.dt;
     goalState = dxl_regs.ram.futureStates[2];
     tGoal = t0 + 2*dxl_regs.ram.dt;
+  } else {
+    *goalSpeed = 0;
+    *goalTorque = 0;
+    return 0;
   }
-  percentage = 1.0 - abs(t - tGoal)/float(dxl_regs.ram.dt);
-  *goalSpeed = current_state[1] + (state[1] - current_state[1])*percentage;
-  *goalTorque = current_state[2] + (state[2] - current_state[2])*percentage;
+  tPast = *previousGoalState;
+  float percentage = (t - tPast)/(tGoal - tPast);
+  *goalSpeed = (goalState[1] - previousGoalState[1])*percentage + previousGoalState[1];
+  *goalTorque = (goalState[2] - previousGoalState[2])*percentage + previousGoalState[2];
+
+  return 0;
 }

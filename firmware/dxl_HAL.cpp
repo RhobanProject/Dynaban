@@ -262,11 +262,11 @@ void dxl_print_debug() {
   Serial1.println();
 
   Serial1.print("s0 = ");
-  Serial1.println(hardwareStruct.mot->feed_state[0]);
+  Serial1.println(hardwareStruct.mot->feedState[0]);
   Serial1.print("s1 = ");
-  Serial1.println(hardwareStruct.mot->feed_state[1]); 
+  Serial1.println(hardwareStruct.mot->feedState[1]); 
   Serial1.print("s2 = ");
-  Serial1.println(hardwareStruct.mot->feed_state[2]);
+  Serial1.println(hardwareStruct.mot->feedState[2]);
   Serial1.print("t = ");
   Serial1.println(hardwareStruct.mot->time);
   Serial1.print("ft = ");

@@ -95,7 +95,9 @@ struct motor {
   float targetTorque;
   bool temperatureIsCritic;
   filter filt_speed;
-  int16 feed_state[3];
+  int16 feedState[3];
+  volatile int16 previousGoalState[3];
+  uint16 previousGoalTime;
   uint16 time;
 };
 
@@ -154,6 +156,11 @@ void motor_temperature_is_critic();
  * Restarts the motor.
  */
 void motor_temperature_is_okay();
+
+/**
+ * Sets the motor in the standard PID mode.
+ */
+void motor_set_default_mode();
 
 void print_detailed_trajectory();
 
