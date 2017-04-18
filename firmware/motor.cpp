@@ -69,7 +69,7 @@ void motor_init(encoder *pEnc) {
   digitalWrite(SHUT_DOWN_PIN, HIGH);
 
   // Reading the magic offset in the flash
-  mot.offset = dxl_read_magic_offset();
+  mot.offset = -dxl_read_magic_offset();
   mot.command = 0;
   mot.previousCommand = 0;
   mot.predictiveCommand = 0;
