@@ -2,6 +2,10 @@
 (check)- Invert rotation convention (invert read + action)
 (nope, our convention is better) - Change the torque_enable convention? (auto on if a command is given)
 
+- The half-bridge driver has a ~500ns dead time for ON and for OFF. Depending on the PWM duty cycle, this can have an impact of more than 10% on the actual PWM felt by the motor. --> Very simple and important to account for !
+
+- When measuring the speed, we have a configurable delay that tunes the precision/delay trade-off. But we can do better, during that delay we know what orders were sent, hence we can use the model to enhance the speed measure.
+
 (could not reproduce the bug) - The Servo does not answer reads if torque_enable = 0. This is quite confusing if you test it for the first time.
 
 
