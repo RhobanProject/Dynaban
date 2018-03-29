@@ -7,6 +7,9 @@ that could be caused by these manipulations.**
 
 **Note 2: Using an alternative firmware may void the warranty of your servo.**
 
+## Robocup 2016 Syposium paper
+[Available here](docs/DynabanRoboCup2016.pdf)
+
 ## Supported servos
 
 The currently supported servos are:
