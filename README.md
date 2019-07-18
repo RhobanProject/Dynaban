@@ -16,6 +16,13 @@ The currently supported servos are:
 
 * `mx64`: MX-64 & MX-64A
 
+## Videos
+[Cursive written "Hello world" with a 6 DoF arm](https://www.youtube.com/watch?v=dzXZ_eCfBkI)
+
+[https://www.youtube.com/watch?v=J7hV0yLmQu0 (I should have filmed the training section too for clarity, my bad)](https://www.youtube.com/watch?v=J7hV0yLmQu0)
+
+[Torque controled arm tests](https://www.youtube.com/watch?v=g23DFRDJjfQ)
+
 ## Building and programming
 
 You'll have to install the arm cross-compilation tools. On debian-like distributions,
