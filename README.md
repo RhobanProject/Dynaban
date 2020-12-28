@@ -59,15 +59,19 @@ make install
 This should run the flash script (see `scripts/` directory), that will wait for the servo
 to boot for flashing it. Then, simply power on your servo.
 
+# How to control the servomotor once Dynaban has been flashed?
+
+Anything that works with the default firmware shoud work with Dynaban.
+
+However if you want to use the advanced features we recommend using this modified version of Pypot:
+https://bitbucket.org/RemiFabre/pypotdynabanedition/src/master/
+
+The videos above use this code:
+https://bitbucket.org/RemiFabre/dear/src/master/
+
+
 # What's new ?
 
-The hardware detection part of the firmware is complete. We can read the magnetic encoder, control the 2 half-bridges that command the motor,  read/write into the ram and the eeprom (flash actually), read the motor's current, read the temperature and read the input voltage.
-
-The hardware abstraction layers we created (motor.*, magnetic_encoder.*, dxl*) are intended to be safe and easy to use. The control.cpp file implements a PID type of control.
-
-A servo using our firmware will be recognized as a MX-64. You can communicate with it using the same protocol you've always used.
-
-(Updated 30/08/2015)
 **The firmware is on a stable and usable version**. 
 The fields that are not mapped below are either considered of little use or considered not doable with the hardware capacities. Nevertheless, these functionalities can be implemented if  the need arises.
 **New, powerfull functionalities have been implemented. More on it [below](#Advanced functionnalities)**
