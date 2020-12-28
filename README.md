@@ -64,9 +64,11 @@ to boot for flashing it. Then, simply power on your servo.
 Anything that works with the default firmware shoud work with Dynaban.
 
 However if you want to use the advanced features we recommend using this modified version of Pypot:
+
 https://bitbucket.org/RemiFabre/pypotdynabanedition/src/master/
 
 The videos above use this code:
+
 https://bitbucket.org/RemiFabre/dear/src/master/
 
 
