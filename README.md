@@ -23,8 +23,12 @@ The currently supported servos are:
 
 [Torque controled arm tests](https://www.youtube.com/watch?v=g23DFRDJjfQ)
 
-## Building and programming
-
+## Install
+### Tested on ubuntu 22.04 (nov 2023)
+```
+sudo apt install build-essential dfu-util binutils-arm-none-eabi gcc-arm-none-eabi libstdc++-arm-none-eabi-newlib
+```
+### Old instructions (~Ubuntu 14.04)
 You'll have to install the arm cross-compilation tools. On debian-like distributions,
 you can get it with:
 
@@ -40,7 +44,9 @@ Command (if a conflict rises, you can add --force-overwrite to the following lin
 	sudo dpkg -i libstdc++-arm-none-eabi-newlib_4.8.3-9+4_all.deb
 ```
 
-Then, go to the `firmware/` directory and edit the `Makefile` to set the appropriate
+## Building and programming
+
+Go to the `firmware/` directory and edit the `Makefile` to set the appropriate
 `BOARD` variable, targetting your servo.
 
 You can then run:
@@ -58,6 +64,8 @@ make install
 
 This should run the flash script (see `scripts/` directory), that will wait for the servo
 to boot for flashing it. Then, simply power on your servo.
+
+**When prompted with 'Trying to enter bootloader...' restart the servo by unplugging/repluging its power (and not unplugging the USB) as the board will check for firmware commands only at boot**
 
 # How to control the servomotor once Dynaban has been flashed?
 
