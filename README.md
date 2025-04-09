@@ -1,10 +1,17 @@
 ![Dynaban: An alternative firmware for Dynamixel servos](docs/logo.png)
 
-This repository contains an open-source alternative firmware for Dynamixel servos.
+This repository contains an open-source alternative firmware for Dynamixel servos, offering complete control over the hardware and predictive control capabilities.
 
-⚠️ **Warning 1:** A bad firmware can break your servo. We are not responsible for any damage that could result from these manipulations.
+## What's New?
 
-⚠️ **Warning 2:** Using an alternative firmware may void the warranty of your servo.
+**The firmware is stable and usable.**
+
+Some fields are not currently mapped (see below) because they are either unnecessary or not feasible with the hardware. They can be added if needed.
+
+**New, powerful functionalities have been implemented. More on this [below](#advanced-functionalities).**
+
+Setting CW and CCW limits to the same value enables wheel mode. Now, setting both to 4095 puts the servo in "multi-turn" mode. In that mode, the goal position ranges from -32768 to +32768.  
+Example: if the servo is at 0° and you command 720°, it will rotate twice before stopping.
 
 ## RoboCup 2016 Symposium Paper
 [Available here](docs/DynabanRoboCup2016.pdf)
@@ -58,16 +65,6 @@ However, to access advanced features, we recommend using this modified version o
 The videos above use this code:
 [https://bitbucket.org/RemiFabre/dear](https://bitbucket.org/RemiFabre/dear)
 
-## What's New?
-
-**The firmware is stable and usable.**
-
-Some fields are not currently mapped (see below) because they are either unnecessary or not feasible with the hardware. They can be added if needed.
-
-**New, powerful functionalities have been implemented. More on this [below](#advanced-functionalities).**
-
-Setting CW and CCW limits to the same value enables wheel mode. Now, setting both to 4095 puts the servo in "multi-turn" mode. In that mode, the goal position ranges from -32768 to +32768.  
-Example: if the servo is at 0° and you command 720°, it will rotate twice before stopping.
 
 ## Basic Functionalities
 
@@ -117,58 +114,42 @@ Example: if the servo is at 0° and you command 720°, it will rotate twice befo
 
 ## <a name="advanced-functionalities"></a>Advanced Functionalities
 
-One goal of Dynaban is full control over hardware. After implementing the basics, we added experimental features.
-
 ### RAM Mapping Extension
 
-The RAM map has been extended beyond the default `goalAcceleration` at address `0x49`. New fields include trajectory and torque splines, mode control, friction parameters, debug flags, etc.  
-```
-    unsigned char trajPoly1Size;            // 0x4A
-    float         trajPoly1[DXL_POLY_SIZE]; //[0x4B
-                                            //[0x4F
-                                            //[0x53
-                                            //[0x57
-                                            //[0x5B
-    unsigned char torquePoly1Size;          // 0x5F
-    float         torquePoly1[DXL_POLY_SIZE];//[0x60
-                                            //[0x64
-                                            //[0x68
-                                            //[0x6C
-                                            //[0x70
-    uint16        duration1;                // 0x75
+The RAM map has been extended beyond the default `goalAcceleration` at address `0x49`.  
+New fields include trajectory and torque splines, mode control, friction parameters, debug flags, etc.
 
-    unsigned char trajPoly2Size;            // 0x76
-    float         trajPoly2[DXL_POLY_SIZE]; //[0x77
-                                            //[0x7B
-                                            //[0x7F
-                                            //[0x83
-                                            //[0x87
-    unsigned char torquePoly2Size;          // 0x8B
-    float         torquePoly2[DXL_POLY_SIZE];//[0x8C
-                                            //[0x90
-                                            //[0x94
-                                            //[0x98
-                                            //[0x9C
-    uint16        duration2;                // 0xA0
-    unsigned char mode;                     // 0xA2
-    unsigned char copyNextBuffer;           // 0xA3
-    bool          positionTrackerOn;        // 0xA4
-    bool          debugOn;                  // 0xA5
-    uint16 staticFriction;                  // 0xA6
-    float i0;				    // 0xA8
-    float r;				    // 0xAC
-    float ke;                               // 0xB0
-    float kvis;                             // 0xB4
-    uint16 statToCoulTrans;                 // 0xB8
-    float coulombCommandDivider;            // 0xBA
-    int16 speedCalculationDelay;	    // 0xBE
-    float ouputTorque;                      // 0xC0
-    float outputTorqueWithoutFriction;      // 0xC4
-    unsigned char frozenRamOn;              // 0xC8
-    unsigned char useValuesNow;             // 0xC9
-    uint16 torqueKp;                        // 0xCA
-    float goalTorque;			    // 0xCC
-```
+| Address Range | Name                         | Type             | Description                                 |
+|---------------|------------------------------|------------------|---------------------------------------------|
+| `0x4A`        | `trajPoly1Size`              | `unsigned char`  | Degree of position polynomial (traj1)       |
+| `0x4B–0x5B`   | `trajPoly1`                  | `float[5]`       | Position trajectory polynomial (traj1)      |
+| `0x5F`        | `torquePoly1Size`           | `unsigned char`  | Degree of torque polynomial (traj1)         |
+| `0x60–0x70`   | `torquePoly1`               | `float[5]`       | Torque trajectory polynomial (traj1)        |
+| `0x75`        | `duration1`                 | `uint16`         | Duration of first trajectory (traj1)        |
+| `0x76`        | `trajPoly2Size`             | `unsigned char`  | Degree of position polynomial (traj2)       |
+| `0x77–0x87`   | `trajPoly2`                 | `float[5]`       | Position trajectory polynomial (traj2)      |
+| `0x8B`        | `torquePoly2Size`           | `unsigned char`  | Degree of torque polynomial (traj2)         |
+| `0x8C–0x9C`   | `torquePoly2`               | `float[5]`       | Torque trajectory polynomial (traj2)        |
+| `0xA0`        | `duration2`                 | `uint16`         | Duration of second trajectory (traj2)       |
+| `0xA2`        | `mode`                      | `unsigned char`  | Current control mode                        |
+| `0xA3`        | `copyNextBuffer`            | `unsigned char`  | Flag to copy traj2 to traj1 after exec      |
+| `0xA4`        | `positionTrackerOn`         | `bool`           | Internal position tracker (debug use)       |
+| `0xA5`        | `debugOn`                   | `bool`           | Enables serial debug output                 |
+| `0xA6`        | `staticFriction`            | `uint16`         | Static friction value                       |
+| `0xA8`        | `i0`                        | `float`          | Motor model parameter (no-load current)     |
+| `0xAC`        | `r`                         | `float`          | Motor resistance                            |
+| `0xB0`        | `ke`                        | `float`          | Back EMF constant                           |
+| `0xB4`        | `kvis`                      | `float`          | Viscous friction coefficient                |
+| `0xB8`        | `statToCoulTrans`           | `uint16`         | Transition value from static to Coulomb     |
+| `0xBA`        | `coulombCommandDivider`     | `float`          | Divider for Coulomb friction compensation   |
+| `0xBE`        | `speedCalculationDelay`     | `int16`          | Delay used for speed computation (ms)       |
+| `0xC0`        | `outputTorque`              | `float`          | Estimated current output torque             |
+| `0xC4`        | `outputTorqueWithoutFriction` | `float`        | Torque estimate without friction            |
+| `0xC8`        | `frozenRamOn`               | `unsigned char`  | Locks RAM parameters (freeze current state) |
+| `0xC9`        | `useValuesNow`              | `unsigned char`  | Applies RAM values immediately              |
+| `0xCA`        | `torqueKp`                  | `uint16`         | Proportional gain for torque control        |
+| `0xCC`        | `goalTorque`                | `float`          | Target torque                               |
+
 
 ### Servo Modes (via `mode` at address 0xA2)
 
@@ -180,8 +161,8 @@ The RAM map has been extended beyond the default `goalAcceleration` at address `
 | 3 | PID and predictive command. Follows the trajectory set in the traj1 fields using both the PID and the predictive command. This should be the default mode when following a trajectory |
 | 4 | Compliant-kind-of mode. In this mode, the servo will try to act compliant |
 
-## <a name="Predictive control background"></a>Predictive control background :
-One very big limitation of the default firmware is that the only control loop that is available is a PID (which is already an enhancement compared to the RX family that has only a P).
+## Predictive control background
+One strong limitation of the default firmware is that the only control loop that is available is a PID (which is already an enhancement compared to the RX family that has only a P).
 A PID is meant to compensate the differences between what is predicted by the model of our system and what actually happens. 
 Those differences come from :
 - The model limitations (how is the friction modelized? Is the inertia taken in concideration? Etc.)
@@ -205,7 +186,7 @@ After tuning the model, we managed to get decent results with a **full open loop
 And almost perfect results (< 0.4°) when we combine the model and the PID :
 ![Following a trajectory with a PID only approach and with a model only approach (open loop)](trajectory/speed_control_and_pid.png)
 
-## <a name="How to use the predictive control?"></a>How to use the predictive control? :
+## How to use the predictive control?
 The idea here is to tell the servo what it will have to do in the near future and let it try to match it. More precisely :
 - The servo needs to know the positions it should be at in the near future
 - The servo needs to know the torques it should output in the near future
@@ -219,7 +200,7 @@ Once these informations have been set, the servo will try to follow the trajecto
 
 When the trajectory ends, the field "mode" will automatically be set to 0 (default, position control mode). Basically, the servo will try to stay where it landed at the end of the trajectory. [Unless you want to continue your trajectory with an other one.](#How do I smoothly continue a trajectory after the first one ended ?)
 
-## <a name="How do I smoothly continue a trajectory after the first one ended ?"></a>How do I smoothly continue a trajectory after the first one ended ?
+## How do I smoothly continue a trajectory after the first one ended ?
 As you can notice in the [RAM mapping extention](#RAM mapping extention), the fields needed to use the predictive control are present twice. Once under the name of traj1 and once under the name of traj2 (trajPoly2Size, trajPoly2, torquePoly2, etc).
 The fields traj2 are a buffer that will be copied into the traj1 fields once the traj1 finishes. 
 
@@ -232,9 +213,8 @@ etc.
 The transitions between the trajectories should be made in a way that ensures the continuity of both torque and position trajectories and their derivates. Don't do this :>)
 ![Don't do this :>)](docs/piece_wise_continuity.png)
     
-## <a name="Model parameters"></a>Model parameters :
+## Model parameters
 Dynaban uses a model of the electrical motor and a model of friction. These models have parameters that can be adjusted by the user with the following fields :
-(TO DO : explain a bit the model)
 - staticFriction
 - i0
 - r
@@ -244,7 +224,7 @@ Dynaban uses a model of the electrical motor and a model of friction. These mode
 - coulombCommandDivider
     
 
-## <a name="Speed calculation"></a>Speed calculation :
+## Speed calculation 
 The speedCalculationDelay field is expressed in ms and affects how the speed is calculated. The greater speedCalculationDelay is, the greater the granularity on the speed calculation and vice-versa. The current speed calculation implementation is approximately equivalent to :
 speed(t) = position (t) - position (t - speedCalculationDelay)
 
@@ -259,52 +239,26 @@ Respect the following formula and it will be fine:
 Where speedCalculationDelay is in ms and maxServoSpeed is in steps/s.  
 8096 steps/s (2 rotations/s) is a comfortable max speed for a MX64 => maximum value of speedCalculationDelay = 252 ms
 
-## <a name="Miscellaneous"></a>Miscellaneous :
+## Miscellaneous
 When the debugOn field is set to 1, debug information will be printed through the serial interface every time something is written by the user on the serial interface.
 
 Don't mind the positionTrackerOn field, it's used by us when testing and benchmarking but it's not meant to be user-friendly. The idea here is to store information (typically the present position) on the RAM as fast as possible and, only when the experience is over, send the data through the serial port. The position sensor is currently read at 1KHz (could be read up to 10KHz) which is way more than what's achievable through the dxl protocol.
 
 
-## <a name="Is using floating point values a good idea ?"></a> Is using floating point values a good idea ?
+## Is using floating point values a good idea ?
 Dynaban started on a MX-64 which is powered by a Cortex M3 with a 72MHz clock. The embedded micro controller doesn't have a FPU, which means that both floating point multiplications and floating point divisions take a lot of time to process. 
 We did some benchmarks. Measures were done with a hardware timer with a precision of 0.1 ms :
 1 000 000 floating point multiplications done in 1.1431 seconds, which implies ~82 clock cycles per multiplication.
 1 000 000 floating point divisions done in 1.0995 seconds, which implies ~79 clock cycles per division.
 
-~80 cycles for an operation is a lot, but Dynaban works well even though the hardware is ticked at 1 kHz. Using floats when talking torques and following timed trajectories is handy but when Dynaban will be implemented on devices with lesser uC performances, we'll use fixed point arithmetics instead.
+~80 cycles for an operation is a lot, but Dynaban works well even though the hardware is ticked at 1 kHz. Using floats when talking torques and following timed trajectories is handy but we might need fixed point arithmetics if this is needed on a device with lesser uC performances.
 
 
 
-## To do  :
+## Warnings
+⚠️ **Warning 1:** A bad firmware can break your servo. Be careful when you code.
 
-     - Modify how the speed is calculated. The speed ranges from 0 to 1023 (and 1024 to 2047
-     for the other direction). 1023 is 117.07rpm, 1 is 0.114rpm which is about 8 steps/s
-     (the magnetic encoder has 4096 steps). Therefore, to be able to measure a speed of
-     0.114rpm, we need to wait 128ms. This is very bad when you think "control loop", since delays
-     create instability. The easy solution is to reduce precision (unless you're using your
-     MX to build a clock, not sure it's useful to get a precision of  0.114rpm). A better
-     solution is to reduce precision (ie reduce delay) as speed goes up.
-     - Make it possible to set a speed in joint mode (connect control
-     loops to each other)
-     - Write documentation for this new portion of RAM :
-
-	
-	bool          positionTrackerOn;        // 0xA4
-    	bool          debugOn;                  // 0xA5
-    	uint16 staticFriction;                  // 0xA6
-	float i0;								// 0xA8
-	float r;								// 0xAC
-	float ke;                               // 0xB0
-	float kvis;                             // 0xB4
-	uint16 statToCoulTrans;                 // 0xB8
-	float coulombCommandDivider;            // 0xBA
-	int16 speedCalculationDelay;			// 0xBE
-	float ouputTorque;                      // 0xC0
-	float outputTorqueWithoutFriction;      // 0xC4
-	unsigned char frozenRamOn;              // 0xC8
-	unsigned char useValuesNow;             // 0xC9
-	uint16 torqueKp;                        // 0xCA
-	float goalTorque;						// 0xCC
+⚠️ **Warning 2:** Using an alternative firmware may void the warranty of your servo.
 
 ## License
 
