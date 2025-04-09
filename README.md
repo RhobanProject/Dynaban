@@ -2,143 +2,127 @@
 
 This repository contains an open-source alternative firmware for Dynamixel servos.
 
-**Note 1: A bad firmware can break your servo, we are not responsible for any damage
-that could be caused by these manipulations.**
+⚠️ **Warning 1:** A bad firmware can break your servo. We are not responsible for any damage that could result from these manipulations.
 
-**Note 2: Using an alternative firmware may void the warranty of your servo.**
+⚠️ **Warning 2:** Using an alternative firmware may void the warranty of your servo.
 
-## Robocup 2016 Syposium paper
+## RoboCup 2016 Symposium Paper
 [Available here](docs/DynabanRoboCup2016.pdf)
 
-## Supported servos
+## Supported Servos
 
-The currently supported servos are:
+Currently supported servos:
 
 * `mx64`: MX-64 & MX-64A
 
 ## Videos
-[Cursive written "Hello world" with a 6 DoF arm](https://www.youtube.com/watch?v=dzXZ_eCfBkI)
 
-[https://www.youtube.com/watch?v=J7hV0yLmQu0 (I should have filmed the training section too for clarity, my bad)](https://www.youtube.com/watch?v=J7hV0yLmQu0)
-
-[Torque controled arm tests](https://www.youtube.com/watch?v=g23DFRDJjfQ)
+- [Cursive written "Hello world" with a 6 DoF arm](https://www.youtube.com/watch?v=dzXZ_eCfBkI)
+- [Trajectory demo (training part not filmed)](https://www.youtube.com/watch?v=J7hV0yLmQu0)
+- [Torque-controlled arm tests](https://www.youtube.com/watch?v=g23DFRDJjfQ)
 
 ## Install
-### Tested on ubuntu 22.04 (nov 2023)
-```
+
+### Tested on Ubuntu 22.04
+```bash
 sudo apt install build-essential dfu-util binutils-arm-none-eabi gcc-arm-none-eabi libstdc++-arm-none-eabi-newlib
 ```
-### Old instructions (~Ubuntu 14.04)
-You'll have to install the arm cross-compilation tools. On debian-like distributions,
-you can get it with:
 
-```
-    sudo aptitude install build-essential git-core dfu-util openocd python \
-        python-serial binutils-arm-none-eabi gcc-arm-none-eabi libstdc++-arm-none-eabi-newlib
-```
-If you're running an Ubuntu 14.04 or older, you might need to install the libstdc++-arm-none-eabi-newlib packet by hand. Download link :
-http://ftp.de.debian.org/debian/pool/main/libs/libstdc++-arm-none-eabi/libstdc++-arm-none-eabi-newlib_4.8.3-9+4_all.deb
 
-Command (if a conflict rises, you can add --force-overwrite to the following line):
-```
-	sudo dpkg -i libstdc++-arm-none-eabi-newlib_4.8.3-9+4_all.deb
-```
+## Building and Programming
 
-## Building and programming
+Go to the `firmware/` directory and edit the `Makefile` to set the appropriate `BOARD` variable for your servo.
 
-Go to the `firmware/` directory and edit the `Makefile` to set the appropriate
-`BOARD` variable, targetting your servo.
-
-You can then run:
-
-```
+Then run:
+```bash
 make
 ```
 
-Use an USB2Dynamixel, a USB2AX or any hardware that allows communication with your servo,
-and bring an appropriate external power supply. Power it off and type:
+Use a USB2Dynamixel, USB2AX, or any device that allows communication with your servo, and connect a suitable external power supply. Power off the servo and run:
 
-```
+```bash
 make install
 ```
 
-This should run the flash script (see `scripts/` directory), that will wait for the servo
-to boot for flashing it. Then, simply power on your servo.
+This runs a flash script (see `scripts/`), which waits for the servo to boot into flash mode. Then power on the servo.
 
-**When prompted with 'Trying to enter bootloader...' restart the servo by unplugging/repluging its power (and not unplugging the USB) as the board will check for firmware commands only at boot**
+⚠️ **When prompted with 'Trying to enter bootloader...', restart the servo by unplugging/replugging its power (not the USB). The bootloader only listens for firmware commands at startup.**
 
-# How to control the servomotor once Dynaban has been flashed?
+## How to Control the Servo Once Dynaban is Flashed
 
-Anything that works with the default firmware shoud work with Dynaban.
+Anything that works with the default firmware should work with Dynaban.
 
-However if you want to use the advanced features we recommend using this modified version of Pypot:
-
-https://bitbucket.org/RemiFabre/pypotdynabanedition/src/master/
+However, to access advanced features, we recommend using this modified version of Pypot:
+[https://bitbucket.org/RemiFabre/pypotdynabanedition](https://bitbucket.org/RemiFabre/pypotdynabanedition)
 
 The videos above use this code:
+[https://bitbucket.org/RemiFabre/dear](https://bitbucket.org/RemiFabre/dear)
 
-https://bitbucket.org/RemiFabre/dear/src/master/
+## What's New?
 
+**The firmware is stable and usable.**
 
-# What's new ?
+Some fields are not currently mapped (see below) because they are either unnecessary or not feasible with the hardware. They can be added if needed.
 
-**The firmware is on a stable and usable version**. 
-The fields that are not mapped below are either considered of little use or considered not doable with the hardware capacities. Nevertheless, these functionalities can be implemented if  the need arises.
-**New, powerfull functionalities have been implemented. More on it [below](#Advanced functionnalities)**
+**New, powerful functionalities have been implemented. More on this [below](#advanced-functionalities).**
 
-(Updated 09/09/2015)
-Putting the CW limit and the CCW limit to the same value already put the servo in wheel mode. Now, putting both limits to 4095 puts the servo in "multi-turn" mode. In that mode, the goal position ranges from -32768 to +32768. Example : if the servo is at position 0° and you ask 720°, the servo will do 2 full rotations before stopping.
+Setting CW and CCW limits to the same value enables wheel mode. Now, setting both to 4095 puts the servo in "multi-turn" mode. In that mode, the goal position ranges from -32768 to +32768.  
+Example: if the servo is at 0° and you command 720°, it will rotate twice before stopping.
 
-# Basic functionalities
+## Basic Functionalities
 
-Here is the list of what is and is not currently implemented when you write into the MX's RAM:
+### RAM (volatile memory)
 
-     - LED : mapped.
-     - D Gain : mapped.
-     - I Gain : mapped.
-     - P Gain : mapped.
-     - Torque enable : mapped. (default value is 0, you'll need to change the value at start up)
-     - Goal Position : mapped.
-     - Moving Speed : mapped. Currently, setting a speed will put the motor in wheel mode (if the "mode" value is set to 5, more on the "mode" value below).
-     - Torque Limit : not mapped.
-     - Present Position : mapped.
-     - Present Speed : mapped.
-     - Present Load : not mapped.
-     - Present Voltage : mapped.
-     - Present Temperature : mapped.
-     - Registered : not mapped.
-     - Moving : mapped.
-     - Lock : not mapped.
-     - Punch : not mapped.
-     - Current : mapped but very hard to exploit because it is very noisy and the noise
-       is not the same if the motor is going CW or CCW.This is the biggest issue we
-       encountered, more on that problem in the notes.
-     - Torque Control Mode Enable : mapped.
-     - Goal Torque : mapped but does not work that well due to the bad current measurement.
-     - Goal Acceleration : NOT mapped.
+| Field | Status |
+|-------|--------|
+| LED | Mapped |
+| D Gain | Mapped |
+| I Gain | Mapped |
+| P Gain | Mapped |
+| Torque Enable | Mapped (default 0) |
+| Goal Position | Mapped |
+| Moving Speed | Mapped (enables wheel mode if `mode` is 5) |
+| Torque Limit | Not mapped |
+| Present Position | Mapped |
+| Present Speed | Mapped |
+| Present Load | Not mapped |
+| Present Voltage | Mapped |
+| Present Temperature | Mapped |
+| Registered | Not mapped |
+| Moving | Mapped |
+| Lock | Not mapped |
+| Punch | Not mapped |
+| Current | Mapped but noisy and unreliable |
+| Torque Control Mode Enable | Mapped |
+| Goal Torque | Mapped, but not very accurate |
+| Goal Acceleration | Not mapped |
 
-Here is the list of what is and is not currently implemented when you write into the MX's EEPROM (flash):
+### EEPROM (flash)
 
-    - Model Number : mapped.
-    - Version Of Firmware : mapped.
-    - ID : mapped.
-    - Baud Rate : mapped.
-    - Return Delay Time : not mapped.
-    - CW and CCW angle limits : mapped. Both at 0 means no limits.
-    - Highest Limit Temperature : not mapped Currently hard set to 70 degrees.
-    - Lowest and highest Limit Voltage : not mapped.
-    - Max Torque : not mapped.
-    - Status Return level : not mapped.
-    - Alarm led : not mapped.
-    - Multi turn offset : not mapped.
-    - Resolution Divider : not mapped.
+| Field | Status |
+|-------|--------|
+| Model Number | Mapped |
+| Firmware Version | Mapped |
+| ID | Mapped |
+| Baud Rate | Mapped |
+| Return Delay Time | Not mapped |
+| CW/CCW Angle Limits | Mapped |
+| Temperature Limit | Not mapped (fixed at 70°C) |
+| Voltage Limits | Not mapped |
+| Max Torque | Not mapped |
+| Status Return Level | Not mapped |
+| Alarm LED | Not mapped |
+| Multi-turn Offset | Not mapped |
+| Resolution Divider | Not mapped |
 
-# <a name="Advanced functionnalities"></a>Advanced functionalities
-One of the motivations behind this project was to have full control over our hardware. Once the basic stuff was working, we started playing with more advanced funtionalities.
+## <a name="advanced-functionalities"></a>Advanced Functionalities
 
-## <a name="RAM mapping extention"></a>RAM mapping extention
-The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 0x49. On the Dynaban firmware, the chart is increased with the following fields :
+One goal of Dynaban is full control over hardware. After implementing the basics, we added experimental features.
 
+### RAM Mapping Extension
+
+The RAM map has been extended beyond the default `goalAcceleration` at address `0x49`. New fields include trajectory and torque splines, mode control, friction parameters, debug flags, etc.  
+```
     unsigned char trajPoly1Size;            // 0x4A
     float         trajPoly1[DXL_POLY_SIZE]; //[0x4B
                                             //[0x4F
@@ -184,15 +168,17 @@ The RAM chart of the MX-64 ends with the field "goalAcceleration" on the adress 
     unsigned char useValuesNow;             // 0xC9
     uint16 torqueKp;                        // 0xCA
     float goalTorque;			    // 0xCC
+```
 
-## <a name="Using the field mode"></a>Using the field 'mode' :
-A servo using the Dynaban has diferent mode it can be in. You can set the desired mode by writing a number in the "mode" field (adress 0xA2 in the RAM).
-* 0 : Default mode. Uses the PID to follow the goal position. The behaviour should be almost identical to the default firmware
-* 1 : Predictive command only. Follows the trajectory set in the traj1 fields but only relying on the model of the motor. This mode can be useful when calibrating the model     
-* 2 : PID only. Follows the trajectory set in the traj1 fields but only relying on the PID. 
-* 3 : PID and predictive command. Follows the trajectory set in the traj1 fields using both the PID and the predictive command. This should be the default mode when following a trajectory
-* 4 : Compliant-kind-of mode. In this mode, the servo will try to act compliant     
+### Servo Modes (via `mode` at address 0xA2)
 
+| Mode | Description |
+|------|-------------|
+| 0 | Default mode. Uses the PID to follow the goal position. The behaviour should be almost identical to the default firmware |
+| 1 | Predictive command only. Follows the trajectory set in the traj1 fields but only relying on the model of the motor. This mode can be useful when calibrating the model  |
+| 2 | PID only. Follows the trajectory set in the traj1 fields but only relying on the PID. |
+| 3 | PID and predictive command. Follows the trajectory set in the traj1 fields using both the PID and the predictive command. This should be the default mode when following a trajectory |
+| 4 | Compliant-kind-of mode. In this mode, the servo will try to act compliant |
 
 ## <a name="Predictive control background"></a>Predictive control background :
 One very big limitation of the default firmware is that the only control loop that is available is a PID (which is already an enhancement compared to the RX family that has only a P).
@@ -323,4 +309,3 @@ We did some benchmarks. Measures were done with a hardware timer with a precisio
 ## License
 
 This is under [CC by-nc-sa](http://creativecommons.org/licenses/by-nc-sa/3.0/) license
-
