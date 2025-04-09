@@ -1,7 +1,10 @@
 ![Dynaban: An alternative firmware for Dynamixel servos](docs/logo.png)
 
-This repository contains an open-source alternative firmware for Dynamixel servos, offering complete control over the hardware and predictive control capabilities.
+Dynaban is an open-source firmware for Dynamixel servos that offers:
 
+- Complete hardware control  
+- Predictive motion capabilities
+- 
 ## What's New?
 
 **The firmware is stable and usable.**
@@ -159,7 +162,7 @@ New fields include trajectory and torque splines, mode control, friction paramet
 | 3 | PID and predictive command. Follows the trajectory set in the traj1 fields using both the PID and the predictive command. This should be the default mode when following a trajectory |
 | 4 | Compliant-kind-of mode. In this mode, the servo will try to act compliant |
 
-## Predictive control background
+## Predictive Control Background
 One strong limitation of the default firmware is that the only control loop that is available is a PID (which is already an enhancement compared to the RX family that has only a P).
 A PID is meant to compensate the differences between what is predicted by the model of our system and what actually happens. 
 Those differences come from :
@@ -198,7 +201,7 @@ Once these informations have been set, the servo will try to follow the trajecto
 
 When the trajectory ends, the field "mode" will automatically be set to 0 (default, position control mode). Basically, the servo will try to stay where it landed at the end of the trajectory. [Unless you want to continue your trajectory with an other one.](#How do I smoothly continue a trajectory after the first one ended ?)
 
-## How do I smoothly continue a trajectory after the first one ended ?
+## How do I smoothly continue a trajectory after the first one ended?
 As you can notice in the [RAM mapping extention](#RAM mapping extention), the fields needed to use the predictive control are present twice. Once under the name of traj1 and once under the name of traj2 (trajPoly2Size, trajPoly2, torquePoly2, etc).
 The fields traj2 are a buffer that will be copied into the traj1 fields once the traj1 finishes. 
 
@@ -243,7 +246,7 @@ When the debugOn field is set to 1, debug information will be printed through th
 Don't mind the positionTrackerOn field, it's used by us when testing and benchmarking but it's not meant to be user-friendly. The idea here is to store information (typically the present position) on the RAM as fast as possible and, only when the experience is over, send the data through the serial port. The position sensor is currently read at 1KHz (could be read up to 10KHz) which is way more than what's achievable through the dxl protocol.
 
 
-## Is using floating point values a good idea ?
+## Is using floating point values a good idea?
 Dynaban started on a MX-64 which is powered by a Cortex M3 with a 72MHz clock. The embedded micro controller doesn't have a FPU, which means that both floating point multiplications and floating point divisions take a lot of time to process. 
 We did some benchmarks. Measures were done with a hardware timer with a precision of 0.1 ms :
 1 000 000 floating point multiplications done in 1.1431 seconds, which implies ~82 clock cycles per multiplication.
