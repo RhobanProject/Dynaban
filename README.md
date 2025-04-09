@@ -6,8 +6,6 @@ This repository contains an open-source alternative firmware for Dynamixel servo
 
 **The firmware is stable and usable.**
 
-Some fields are not currently mapped (see below) because they are either unnecessary or not feasible with the hardware. They can be added if needed.
-
 **New, powerful functionalities have been implemented. More on this [below](#advanced-functionalities).**
 
 Setting CW and CCW limits to the same value enables wheel mode. Now, setting both to 4095 puts the servo in "multi-turn" mode. In that mode, the goal position ranges from -32768 to +32768.  
